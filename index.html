@@ -570,7 +570,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   <div class="cv-body" id="cvBody"><div class="cv-empty"><div class="cv-empty-icon">&#9201;</div><p>Loading your program...</p></div></div>
 </div>
 
-<div id="viewApp" style="display:block">
+<div id="viewApp" style="display:none">
 
 <header>
   <div class="logo">
@@ -2692,10 +2692,10 @@ async function cvSubmit() {
 // ================================================================
 document.addEventListener('DOMContentLoaded', function() {
   // Always init local data first
-  loadCustomEx();
-  renderCatChips();
-  renderMuscleChips();
-  init();
+  try { loadCustomEx(); } catch(e) {}
+  try { renderCatChips(); } catch(e) {}
+  try { renderMuscleChips(); } catch(e) {}
+  try { init(); } catch(e) {}
 
   // LOCAL FILE — skip auth entirely, go straight to practitioner view
   var isLocal = window.location.protocol === 'file:' ||
@@ -2706,6 +2706,9 @@ document.addEventListener('DOMContentLoaded', function() {
     setSyncStatus('idle');
     return;
   }
+
+  // HOSTED — always show auth first as default fallback
+  showView('auth');
 
   // HOSTED — check for magic link hash
   var hash = window.location.hash || '';
