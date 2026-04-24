@@ -425,7 +425,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 }
 /* Sticky submit button on mobile */
 @media (max-width:640px) {
-  #viewClient .cv-session{position:sticky;bottom:0;border-radius:12px 12px 0 0;margin:0 -10px;box-shadow:0 -4px 20px rgba(28,43,53,.12)}
+  #viewClient .cv-session{border-radius:12px;margin-bottom:8px}
 }
 
 
@@ -2705,7 +2705,7 @@ function renderCV() {
   h += '<textarea id="cvSessionComment" placeholder="How are you going overall? Any pain, concerns or questions for your clinician?" style="width:100%;padding:9px 11px;border:1.5px solid var(--sand-dark);border-radius:7px;font-size:13px;font-family:-apple-system,sans-serif;color:var(--text);background:var(--sand);outline:none;resize:none;height:80px;line-height:1.5" oninput="cvComment=this.value">' + (cvComment||'') + '</textarea>';
   h += '</div>';
   h += '<button class="cv-submit" onclick="cvSubmit()">&#10003; Submit Session Log</button>';
-  h += '<button onclick="cvGoHome()" style="width:100%;padding:12px;border-radius:10px;border:none;background:none;color:var(--text-light);font-size:13px;font-weight:600;cursor:pointer;margin-top:6px">&#8592; Back to Home</button>';
+  h += '<div style="text-align:center;margin-top:10px;padding-bottom:4px"><button onclick="cvGoHome()" style="background:none;border:none;color:var(--text-light);font-size:12px;font-weight:600;cursor:pointer;padding:6px 16px;border-radius:20px;border:1.5px solid var(--sand-dark)">&#8592; Back to Home</button></div>';
   h += '</div>';
 
   document.getElementById('cvBody').innerHTML = h;
@@ -4535,7 +4535,7 @@ function renderCVHome() {
       '<div style="width:36px;height:36px;border-radius:50%;background:var(--ocean-pale);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">&#128222;</div>' +
       '<div><div style="font-size:13px;font-weight:600;color:var(--ocean)">Call Clinic</div><div style="font-size:11px;color:var(--text-light)">0409 051 260</div></div>' +
       '</a>';
-    h += '<a href="mailto:admin@beachsideep.com.au?subject=Patient%20Enquiry" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--sand-dark);text-decoration:none;-webkit-tap-highlight-color:transparent">' +
+    h += '<a href="mailto:admin@beachsideep.com.au?subject=Patient%20Enquiry" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--sand-dark);text-decoration:none;-webkit-tap-highlight-color:transparent">' +
       '<div style="width:36px;height:36px;border-radius:50%;background:var(--ocean-pale);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">&#9993;</div>' +
       '<div><div style="font-size:13px;font-weight:600;color:var(--ocean)">Email Clinic</div><div style="font-size:11px;color:var(--text-light)">admin@beachsideep.com.au</div></div>' +
       '</a>';
@@ -4834,7 +4834,7 @@ function cvLogHealthKey(btn) {
   renderCVHome();
 }
 
-function cvGoHome() { cvSwitchTab('home'); }
+function cvGoHome() { var o = document.getElementById('cvCongratsOverlay'); if(o) o.remove(); cvSwitchTab('home'); }
 
 function cvShowBooking() {
   var existing = document.getElementById('cvBookingModal');
