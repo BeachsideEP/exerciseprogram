@@ -4404,7 +4404,17 @@ function cvSwitchTab(tab) {
 function renderCVHome() {
   var el = document.getElementById('cvHomeContent');
   if (!el) { setTimeout(renderCVHome, 100); return; }
-  if (!cvData) { el.innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#9201;</div><p>Loading...</p></div>'; return; }
+  if (!cvData) {
+    el.innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#9201;</div><p>Loading...</p><p style="font-size:10px;color:red">DEBUG: cvData is null</p></div>';
+    return;
+  }
+  // cvData exists - render home
+  el.innerHTML = '<div style="padding:16px"><p style="color:green;font-weight:700">DEBUG: cvData loaded for ' + cvData.first + '</p></div>';
+  setTimeout(function() { renderCVHomeReal(); }, 0);
+}
+function renderCVHomeReal() {
+  var el = document.getElementById('cvHomeContent');
+  if (!el || !cvData) return;
   var log = [];
   (cvData.programs || []).forEach(function(p) { (p.log || []).forEach(function(e) { if (e.clientSubmitted) log.push(e); }); });
   cvOwnWorkouts.forEach(function(w) { log.push({ date: w.date, clientSubmitted: true, ownWorkout: true }); });
