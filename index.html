@@ -618,7 +618,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 
 
 /* Anna AI tab */
-#cvTabAi{display:none;height:calc(100vh - 110px);display:none;flex-direction:column}
+#cvTabAi{height:calc(100vh - 120px);flex-direction:column;display:none}
 .anna-header{background:linear-gradient(135deg,var(--ocean-deep) 0%,#1A5C8A 100%);
   color:#fff;padding:14px 16px;border-radius:12px;margin-bottom:12px;
   display:flex;align-items:center;gap:12px}
@@ -721,7 +721,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   <div id="cvTabCalendar" style="display:none">
     <div class="cv-calendar" id="cvCalContent"></div>
   </div>
-  <div id="cvTabAi" style="display:none;flex-direction:column;height:calc(100vh - 120px)">
+  <div id="cvTabAi" style="display:none;flex-direction:column;height:calc(100vh - 60px);padding-bottom:70px">
     <div class="anna-header">
       <div class="anna-avatar">&#129302;</div>
       <div class="anna-intro">
@@ -4666,7 +4666,13 @@ function cvSwitchTab(tab) {
   ['home','workouts','calendar','ai'].forEach(function(t) {
     var content = document.getElementById('cvTab' + t.charAt(0).toUpperCase() + t.slice(1));
     var btn = document.getElementById('cvTabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
-    if (content) content.style.display = t === tab ? 'block' : 'none';
+    if (content) {
+      if (t === tab) {
+        content.style.display = (t === 'ai') ? 'flex' : 'block';
+      } else {
+        content.style.display = 'none';
+      }
+    }
     if (btn) btn.classList.toggle('active', t === tab);
   });
   // Remove congrats overlay if present
