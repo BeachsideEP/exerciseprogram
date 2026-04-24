@@ -1863,7 +1863,9 @@ function openDrawer(id) {
   // Show YouTube video if available
   var drVid = document.getElementById('drVideoWrap');
   if (drVid) {
-    var vidUrl = ex.videoUrl || '';
+    // Re-fetch ex from library to get latest videoUrl
+  var freshEx = getAllExercises().find(function(le) { return String(le.id) === String(id); });
+  var vidUrl = (freshEx && freshEx.videoUrl) || ex.videoUrl || '';
     if (vidUrl && ytVideoId(vidUrl)) {
       drVid.style.display = '';
       drVid.innerHTML = ytBtnHTML(vidUrl, '&#9654; Watch Exercise Video on YouTube');
@@ -2666,9 +2668,14 @@ function renderCV() {
       h += '<div class="cv-ex-body">';
       if (ex.desc) h += '<div class="cv-ex-desc">' + ex.desc + '</div>';
       if (ex.notes) h += '<div style="font-size:10px;color:var(--ocean);margin-bottom:10px;font-style:italic">&#128203; ' + ex.notes + '</div>';
-      // YouTube video button
-      if (ex.videoUrl && ytVideoId(ex.videoUrl)) {
-        h += '<div class="cv-yt-panel" id="cvVid' + i + '" data-url="' + ex.videoUrl + '">';
+      // YouTube video button — check program exercise AND library lookup
+      var exVideoUrl = ex.videoUrl || '';
+      if (!exVideoUrl) {
+        var libEx = getAllExercises().find(function(le) { return le.name === ex.name; });
+        if (libEx) exVideoUrl = libEx.videoUrl || '';
+      }
+      if (exVideoUrl && ytVideoId(exVideoUrl)) {
+        h += '<div class="cv-yt-panel" id="cvVid' + i + '" data-url="' + exVideoUrl + '">';
         h += '<button class="cv-yt-btn" onclick="cvToggleVideo(' + i + ')">';
         h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>';
         h += 'Watch Exercise Video</button>';
