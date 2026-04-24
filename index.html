@@ -2131,6 +2131,14 @@ async function saveClinikoKey(key, shard) {
 }
 
 async function loadClinikoKey() {
+  // Try localStorage first (fast, works offline)
+  var cachedKey = localStorage.getItem('bep_clk_key');
+  var cachedShard = localStorage.getItem('bep_clk_shard') || 'au1';
+  if (cachedKey) {
+    applyClinikoKey(cachedKey, cachedShard);
+    return;
+  }
+  // Fall back to Supabase
   try {
     const r = await fetch(SUPA_URL + '/rest/v1/library?id=eq.bep_cliniko_config&select=data', { headers: supaHeaders() });
     if (!r.ok) return;
@@ -2140,15 +2148,18 @@ async function loadClinikoKey() {
     if (d.key) {
       localStorage.setItem('bep_clk_key', d.key);
       localStorage.setItem('bep_clk_shard', d.shard || 'au1');
-      // Pre-fill the key field and show search section
-      const keyEl = document.getElementById('clkKey');
-      if (keyEl) keyEl.value = d.key;
-      const st = document.getElementById('clkStatus');
-      if (st) st.innerHTML = '<span class="status st-ok">Auto-connected (' + (d.shard||'au1') + ')</span>';
-      const ss = document.getElementById('clkSearchSection');
-      if (ss) ss.style.display = '';
+      applyClinikoKey(d.key, d.shard || 'au1');
     }
   } catch(e) {}
+}
+
+function applyClinikoKey(key, shard) {
+  const keyEl = document.getElementById('clkKey');
+  if (keyEl) keyEl.value = key;
+  const st = document.getElementById('clkStatus');
+  if (st) st.innerHTML = '<span class="status st-ok">Connected (' + shard + ')</span>';
+  const ss = document.getElementById('clkSearchSection');
+  if (ss) ss.style.display = '';
 }
 
 // ══════════════════════════════════════
