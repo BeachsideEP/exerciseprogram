@@ -2189,9 +2189,10 @@ async function sendMagicLink() {
       setAuthMsg('Link sent! Check your email inbox.', 'ok');
     } else {
       const d = await r.json();
-      setAuthMsg(d.error_description || 'Could not send - try again.', 'err');
+      const msg = d.error_description || d.msg || d.error || JSON.stringify(d);
+      setAuthMsg('Error: ' + msg, 'err');
     }
-  } catch (e) { setAuthMsg('Connection error.', 'err'); }
+  } catch (e) { setAuthMsg('Connection error: ' + e.message, 'err'); }
 }
 
 // ── SEND LINK FROM EDIT CLIENT MODAL ──
