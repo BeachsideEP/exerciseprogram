@@ -2017,7 +2017,7 @@ function handleJSONImport(e) {
 // ══════════════════════════════════════
 function clkApiUrl(shard, path) {
   // Route through Supabase Edge Function to avoid CORS
-  return SUPA_URL + '/functions/v1/cliniko?shard=' + shard + '&path=' + encodeURIComponent(path);
+  return SUPA_URL + '/functions/v1/cliniko-edge-function-ts?shard=' + shard + '&path=' + encodeURIComponent(path);
 }
 
 function testCliniko() {
