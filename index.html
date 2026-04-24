@@ -2031,30 +2031,26 @@ function testCliniko() {
   const st = document.getElementById('clkStatus');
   st.innerHTML = '<span class="status st-load">Connecting...</span>';
   const sm = key.match(/(au\d|us\d|ca\d|uk\d)/i);
-  const shard = sm ? sm[1].toLowerCase() : 'au1';
-  const clkUrl = clkApiUrl(shard, '/v1/patients?per_page=1');
-  st.innerHTML = '<span class="status st-load">Connecting to: ' + clkUrl.substring(0,60) + '...</span>';
-  fetch(clkUrl, {
+  const shard = sm ? sm[1].toLowerCase() : 'au2';
+  fetch(clkApiUrl(shard, '/v1/patients?per_page=1'), {
     method: 'GET',
-    headers: {
-      'Authorization': 'Basic ' + btoa(key + ':'),
-      'apikey': SUPA_KEY,
-      'x-cliniko-key': key
-    }
+    headers: { 'Authorization': 'Basic ' + btoa(key + ':'), 'apikey': SUPA_KEY, 'x-cliniko-key': key }
   }).then(function(r) {
-    st.innerHTML = '<span class="status st-load">HTTP ' + r.status + ' received</span>';
     return r.text().then(function(t) {
       if (r.ok) {
+        // Save to localStorage
         localStorage.setItem('bep_clk_key', key);
         localStorage.setItem('bep_clk_shard', shard);
-        st.innerHTML = '<span class="status st-ok">Connected (' + shard + ')</span>';
-        document.getElementById('clkSearchSection').style.display = '';
+        // Save to Supabase for other devices
+        saveClinikoKey(key, shard);
+        // Update UI
+        applyClinikoKey(key, shard);
       } else {
-        st.innerHTML = '<span class="status st-err">HTTP ' + r.status + ': ' + t.substring(0,100) + '</span>';
+        st.innerHTML = '<span class="status st-err">Error ' + r.status + ': ' + t.substring(0,80) + '</span>';
       }
     });
   }).catch(function(err) {
-    st.innerHTML = '<span class="status st-err">Fetch failed: ' + err.message + ' — Is Verify JWT off in Supabase Edge Functions?</span>';
+    st.innerHTML = '<span class="status st-err">Failed: ' + err.message + '</span>';
   });
 }
 
