@@ -4003,8 +4003,9 @@ function openClientDemo() {
   document.getElementById('cvBackBtn').style.display = '';
   document.getElementById('cvSignOutBtn').style.display = 'none';
   document.getElementById('cvLogoText').textContent = '👁 Demo: ' + cl.first + ' ' + cl.last;
+  cvOwnWorkouts = JSON.parse(localStorage.getItem('cv_own_workouts_' + cl.id) || '[]');
   showView('client');
-  renderCV();
+  cvSwitchTab('home');
 }
 
 function closeClientDemo() {
