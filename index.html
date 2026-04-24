@@ -607,13 +607,62 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   border-radius:9px;margin:8px 0;background:#000}
 .yt-embed iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:9px}
 /* CV video button */
-.cv-yt-btn{display:flex;align-items:center;gap:7px;background:#FF0000;color:#fff;
-  border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:700;
-  font-family:-apple-system,sans-serif;cursor:pointer;margin:8px 0;width:100%}
+.cv-yt-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:#FF0000;color:#fff;
+  border:none;border-radius:10px;padding:12px 14px;font-size:14px;font-weight:700;
+  font-family:-apple-system,sans-serif;cursor:pointer;margin:8px 0;width:100%;
+  box-shadow:0 3px 12px rgba(255,0,0,.3);letter-spacing:.01em}
 .cv-yt-panel{margin:8px 0}
 .cv-yt-embed{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;
   border-radius:10px;background:#000}
 .cv-yt-embed iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:10px}
+
+
+/* Anna AI tab */
+#cvTabAi{display:none;height:calc(100vh - 110px);display:none;flex-direction:column}
+.anna-header{background:linear-gradient(135deg,var(--ocean-deep) 0%,#1A5C8A 100%);
+  color:#fff;padding:14px 16px;border-radius:12px;margin-bottom:12px;
+  display:flex;align-items:center;gap:12px}
+.anna-avatar{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.15);
+  display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.anna-intro{flex:1}
+.anna-name{font-size:16px;font-weight:700;margin-bottom:1px}
+.anna-role{font-size:10px;opacity:.65;line-height:1.4}
+.anna-messages{flex:1;overflow-y:auto;padding-bottom:8px;min-height:0}
+.anna-msg{margin-bottom:10px;display:flex;gap:8px;align-items:flex-start}
+.anna-msg.user{flex-direction:row-reverse}
+.anna-bubble{max-width:82%;padding:10px 13px;border-radius:14px;font-size:13px;
+  line-height:1.5;font-family:-apple-system,sans-serif}
+.anna-msg.assistant .anna-bubble{background:#fff;color:var(--text);
+  border:1.5px solid var(--sand-dark);border-bottom-left-radius:4px;
+  box-shadow:0 1px 4px rgba(28,43,53,.06)}
+.anna-msg.user .anna-bubble{background:var(--ocean);color:#fff;
+  border-bottom-right-radius:4px}
+.anna-avatar-sm{width:28px;height:28px;border-radius:50%;flex-shrink:0;
+  background:var(--ocean-deep);display:flex;align-items:center;justify-content:center;
+  font-size:13px;color:#fff;margin-top:2px}
+.anna-typing{display:flex;gap:4px;padding:10px 13px;background:#fff;
+  border:1.5px solid var(--sand-dark);border-radius:14px;border-bottom-left-radius:4px;
+  width:fit-content}
+.anna-typing span{width:6px;height:6px;border-radius:50%;background:var(--text-light);
+  animation:annaBounce 1.2s infinite}
+.anna-typing span:nth-child(2){animation-delay:.2s}
+.anna-typing span:nth-child(3){animation-delay:.4s}
+@keyframes annaBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+.anna-input-row{display:flex;gap:8px;margin-top:8px;padding-top:8px;
+  border-top:1.5px solid var(--sand-dark)}
+.anna-input{flex:1;padding:10px 12px;border:1.5px solid var(--sand-dark);border-radius:10px;
+  font-size:13px;font-family:-apple-system,sans-serif;outline:none;
+  background:var(--sand);resize:none;max-height:100px;min-height:40px;line-height:1.4}
+.anna-input:focus{border-color:var(--ocean-light);background:#fff}
+.anna-send{width:42px;height:42px;border-radius:10px;background:var(--ocean);color:#fff;
+  border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;align-self:flex-end}
+.anna-send:hover{background:var(--ocean-deep)}
+.anna-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.anna-chip{background:#fff;border:1.5px solid var(--sand-dark);color:var(--ocean);
+  font-size:11px;padding:5px 10px;border-radius:20px;cursor:pointer;
+  font-family:-apple-system,sans-serif}
+.anna-chip:hover{border-color:var(--ocean);background:var(--ocean-pale)}
 
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -672,6 +721,31 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   <div id="cvTabCalendar" style="display:none">
     <div class="cv-calendar" id="cvCalContent"></div>
   </div>
+  <div id="cvTabAi" style="display:none;flex-direction:column;height:calc(100vh - 120px)">
+    <div class="anna-header">
+      <div class="anna-avatar">&#129302;</div>
+      <div class="anna-intro">
+        <div class="anna-name">Anna</div>
+        <div class="anna-role">Beachside EP Health Assistant &middot; Here to help with health questions, nutrition &amp; general wellbeing</div>
+      </div>
+    </div>
+    <div class="anna-chips" id="annaChips">
+      <div class="anna-chip" onclick="annaSendChip(this)">I have knee pain</div>
+      <div class="anna-chip" onclick="annaSendChip(this)">What should I eat before exercise?</div>
+      <div class="anna-chip" onclick="annaSendChip(this)">My shoulder feels sore</div>
+      <div class="anna-chip" onclick="annaSendChip(this)">High protein meal ideas</div>
+      <div class="anna-chip" onclick="annaSendChip(this)">My back is tight</div>
+    </div>
+    <div class="anna-messages" id="annaMessages"></div>
+    <div class="anna-input-row">
+      <textarea class="anna-input" id="annaInput" placeholder="Ask Anna a health question…" rows="1"
+        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();annaSend()}"></textarea>
+      <button class="anna-send" onclick="annaSend()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>
   <!-- BOTTOM TABS -->
   <div class="cv-tabs">
     <button class="cv-tab active" id="cvTabBtnHome" onclick="cvSwitchTab('home')">
@@ -685,6 +759,14 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <button class="cv-tab" id="cvTabBtnCalendar" onclick="cvSwitchTab('calendar')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       Calendar
+    </button>
+  
+    <button class="cv-tab" id="cvTabBtnAi" onclick="cvSwitchTab('ai')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+        <circle cx="12" cy="8" r="4"/><path d="M8 8h-2a2 2 0 00-2 2v1h2"/><path d="M16 8h2a2 2 0 012 2v1h-2"/>
+        <path d="M6 11v3a6 6 0 0012 0v-3"/><path d="M9 21h6"/><path d="M12 18v3"/>
+      </svg>
+      Anna
     </button>
   </div>
 
@@ -4581,7 +4663,7 @@ var cvOwnWorkouts = []; // [{date, type, duration, note}]
 
 function cvSwitchTab(tab) {
   cvActiveTab = tab;
-  ['home','workouts','calendar'].forEach(function(t) {
+  ['home','workouts','calendar','ai'].forEach(function(t) {
     var content = document.getElementById('cvTab' + t.charAt(0).toUpperCase() + t.slice(1));
     var btn = document.getElementById('cvTabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
     if (content) content.style.display = t === tab ? 'block' : 'none';
@@ -4595,6 +4677,7 @@ function cvSwitchTab(tab) {
   if (tab === 'home') renderCVHome();
   if (tab === 'workouts') renderCV();
   if (tab === 'calendar') renderCVCalendar();
+  if (tab === 'ai') renderAnnaTab();
 }
 
 // ── HOME SCREEN ──
@@ -5086,17 +5169,24 @@ function cvToggleVideo(exIdx) {
   var url = panel.getAttribute('data-url');
   var id = ytVideoId(url);
   if (!id) return;
-  if (panel.innerHTML.indexOf('iframe') !== -1) {
-    // Collapse back to button
+  if (panel.getAttribute('data-expanded') === '1') {
+    // Collapse back to red button
+    panel.setAttribute('data-expanded', '0');
     panel.innerHTML = '<button class="cv-yt-btn" onclick="cvToggleVideo(' + exIdx + ')">' +
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>' +
+      '<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>' +
       'Watch Exercise Video</button>';
   } else {
-    // Expand to embed
-    panel.innerHTML = '<div class="cv-yt-embed"><iframe src="https://www.youtube-nocookie.com/embed/' +
-      id + '?rel=0&modestbranding=1&autoplay=1" allowfullscreen loading="lazy"></iframe></div>' +
-      '<button onclick="cvToggleVideo(' + exIdx + ')" style="background:none;border:none;' +
-      'color:var(--text-light);font-size:11px;cursor:pointer;margin-top:4px">&#9650; Hide video</button>';
+    // Expand to full embedded player
+    panel.setAttribute('data-expanded', '1');
+    panel.innerHTML =
+      '<div class="cv-yt-embed" style="border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.2)">' +
+        '<iframe src="https://www.youtube-nocookie.com/embed/' + id +
+        '?rel=0&modestbranding=1&autoplay=1" allowfullscreen loading="lazy" allow="autoplay; fullscreen"></iframe>' +
+      '</div>' +
+      '<button onclick="cvToggleVideo(' + exIdx + ')" style="display:flex;align-items:center;justify-content:center;' +
+      'gap:6px;width:100%;background:none;border:1.5px solid var(--sand-dark);color:var(--text-light);' +
+      'font-size:12px;font-weight:600;cursor:pointer;margin-top:8px;padding:8px;border-radius:8px;' +
+      'font-family:-apple-system,sans-serif">&#9650; Close Video</button>';
   }
 }
 
@@ -5179,6 +5269,123 @@ function cvStartSync(user) {
 function cvStopSync() {
   cvSyncUser = null;
   if (cvSyncInterval) { clearInterval(cvSyncInterval); cvSyncInterval = null; }
+}
+
+
+// ════════════════════════════════════════════════════
+// ANNA — AI Health Assistant
+// ════════════════════════════════════════════════════
+var annaHistory = [];
+var annaReady = false;
+
+var ANNA_SYSTEM = `You are Anna, a friendly health assistant for Beachside Exercise Physiology clinic.
+Your role is to support clients with general health questions between their appointments.
+
+STRICT RULES — never break these:
+1. BOOKINGS: You cannot make, reschedule or cancel appointments. Always say: "To book, reschedule or cancel, please call us on 0409 051 260 — we'd love to hear from you!"
+2. EXERCISE ADVICE: You do not prescribe, modify or recommend specific exercises or training programs. That is your clinician's job. Refer clients to their clinician for any exercise questions.
+3. DIET ADVICE: You do not provide personalised diet plans or tell clients what to eat. You can discuss what macronutrients (protein, carbohydrates, fats) are typically found in certain foods, and share general meal ideas or simple recipes.
+4. MEDICAL DIAGNOSIS: You do not diagnose conditions. Always recommend clients see their clinician or a GP for anything clinical.
+
+WHAT YOU DO WELL:
+- Listen warmly to pain, soreness or niggles and suggest which general movement areas to be cautious with (e.g. "with knee pain, avoid high-impact loading until you've spoken to your clinician")
+- Explain macronutrients in foods and share healthy meal ideas or simple recipes on request
+- Provide general wellbeing support, sleep hygiene, stress management and lifestyle tips
+- Answer general health questions in a warm, encouraging, non-clinical tone
+
+Always be warm, concise and encouraging. You represent Beachside Exercise Physiology — a professional, caring clinic. Sign off warmly when appropriate. If unsure, recommend the client speak to their clinician.`;
+
+function renderAnnaTab() {
+  var el = document.getElementById('cvTabAi');
+  if (!el) return;
+  el.style.display = 'flex';
+  // Initialise with welcome message if first visit
+  var msgEl = document.getElementById('annaMessages');
+  if (msgEl && !annaReady) {
+    annaReady = true;
+    var clientName = (cvData && cvData.first) ? cvData.first : 'there';
+    annaHistory = [];
+    annaAppendMsg('assistant', 'Hi ' + clientName + '! I\u2019m Anna, your Beachside EP health assistant \ud83d\ude0a I\u2019m here to help with general health questions, nutrition ideas, or if you\u2019re feeling any aches or niggles. What\u2019s on your mind today?');
+  }
+}
+
+function annaAppendMsg(role, text) {
+  var msgEl = document.getElementById('annaMessages');
+  if (!msgEl) return;
+  var isUser = role === 'user';
+  var div = document.createElement('div');
+  div.className = 'anna-msg ' + role;
+  var avatarHtml = isUser
+    ? '<div class="anna-avatar-sm" style="background:var(--teal)">' + ((cvData && cvData.first) ? cvData.first[0].toUpperCase() : 'U') + '</div>'
+    : '<div class="anna-avatar-sm">\ud83e\uddb9</div>';
+  // Convert markdown-ish formatting
+  var formatted = text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+  div.innerHTML = avatarHtml + '<div class="anna-bubble">' + formatted + '</div>';
+  msgEl.appendChild(div);
+  msgEl.scrollTop = msgEl.scrollHeight;
+}
+
+function annaShowTyping() {
+  var msgEl = document.getElementById('annaMessages');
+  if (!msgEl) return;
+  var div = document.createElement('div');
+  div.className = 'anna-msg assistant';
+  div.id = 'annaTyping';
+  div.innerHTML = '<div class="anna-avatar-sm">\ud83e\uddb9</div>' +
+    '<div class="anna-typing"><span></span><span></span><span></span></div>';
+  msgEl.appendChild(div);
+  msgEl.scrollTop = msgEl.scrollHeight;
+}
+
+function annaHideTyping() {
+  var el = document.getElementById('annaTyping');
+  if (el) el.remove();
+}
+
+async function annaSend() {
+  var input = document.getElementById('annaInput');
+  var text = (input ? input.value : '').trim();
+  if (!text) return;
+  input.value = '';
+  input.style.height = 'auto';
+
+  // Hide suggestion chips after first message
+  var chips = document.getElementById('annaChips');
+  if (chips) chips.style.display = 'none';
+
+  annaAppendMsg('user', text);
+  annaHistory.push({ role: 'user', content: text });
+  annaShowTyping();
+
+  try {
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 600,
+        system: ANNA_SYSTEM,
+        messages: annaHistory
+      })
+    });
+    var data = await resp.json();
+    var reply = (data.content && data.content[0] && data.content[0].text) ? data.content[0].text : 'Sorry, I had trouble responding. Please try again.';
+    annaHistory.push({ role: 'assistant', content: reply });
+    annaHideTyping();
+    annaAppendMsg('assistant', reply);
+  } catch (e) {
+    annaHideTyping();
+    annaAppendMsg('assistant', 'Sorry, I\u2019m having trouble connecting right now. Please try again in a moment.');
+  }
+}
+
+function annaSendChip(btn) {
+  var text = btn.textContent.trim();
+  var input = document.getElementById('annaInput');
+  if (input) { input.value = text; }
+  annaSend();
 }
 
 </script>
