@@ -2180,11 +2180,10 @@ async function sendMagicLink() {
   if (!email) { setAuthMsg('Enter your email address.', 'err'); return; }
   setAuthMsg('Sending...', 'ok');
   try {
-    const redirectTo = 'https://beachsideep.github.io/exerciseprogram';
     const r = await fetch(SUPA_URL + '/auth/v1/magiclink', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
-      body: JSON.stringify({ email: email, options: { redirectTo: redirectTo } })
+      body: JSON.stringify({ email: email })
     });
     if (r.ok) {
       setAuthMsg('Link sent! Check your email inbox.', 'ok');
@@ -2203,7 +2202,7 @@ function sendClientLink() {
   fetch(SUPA_URL + '/auth/v1/magiclink', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
-    body: JSON.stringify({ email: email, options: { redirectTo: 'https://beachsideep.github.io/exerciseprogram' } })
+    body: JSON.stringify({ email: email })
   }).then(function(r) {
     if (r.ok) toast('Login link sent to ' + email, 'ok');
     else toast('Could not send - check email', 'err');
