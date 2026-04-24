@@ -593,6 +593,28 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .cv-session-item:last-child{border-bottom:none}
 .cv-session-date{font-weight:700;color:var(--ocean-deep);margin-bottom:2px}
 
+
+/* YouTube video */
+.yt-btn{display:inline-flex;align-items:center;gap:6px;background:#FF0000;color:#fff;
+  border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:700;
+  font-family:-apple-system,sans-serif;cursor:pointer;margin-top:6px;text-decoration:none}
+.yt-btn:hover{background:#cc0000}
+.yt-btn svg{flex-shrink:0}
+.yt-input{width:100%;padding:7px 9px;border:1.5px solid var(--sand-d);border-radius:6px;
+  font-size:12px;font-family:'DM Sans',sans-serif;outline:none;background:var(--sand)}
+.yt-input:focus{border-color:var(--ocean-l);background:#fff}
+.yt-embed{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;
+  border-radius:9px;margin:8px 0;background:#000}
+.yt-embed iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:9px}
+/* CV video button */
+.cv-yt-btn{display:flex;align-items:center;gap:7px;background:#FF0000;color:#fff;
+  border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:700;
+  font-family:-apple-system,sans-serif;cursor:pointer;margin:8px 0;width:100%}
+.cv-yt-panel{margin:8px 0}
+.cv-yt-embed{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;
+  border-radius:10px;background:#000}
+.cv-yt-embed iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:10px}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -719,6 +741,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <div class="dr-desc" id="drDesc"></div>
     <div class="dr-sec"><div class="dr-sec-lbl">Primary Muscles</div><div class="tag-row" id="drMuscles"></div></div>
     <div class="dr-sec"><div class="dr-sec-lbl">Default Parameters</div><div class="tag-row" id="drParams"></div></div>
+    <div id="drVideoWrap" style="display:none;margin-top:6px"></div>
     <button class="btn btn-teal" style="width:100%;margin-top:7px" id="drAddBtn">+ Add to Program</button>
   </div>
 </div>
@@ -885,6 +908,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
         <label>Custom Category Name</label><input id="em_custom_cat" type="text" placeholder="e.g. Post-Surgical Rehab">
       </div>
       <div class="fg" style="grid-column:1/-1"><label>Clinical Description</label><textarea id="em_desc" placeholder="Starting position, movement cues, safety tips…" rows="3"></textarea></div>
+      <div class="fg" style="grid-column:1/-1"><label>YouTube Video URL <span style="font-weight:400;color:var(--text-l)">(optional — paste full URL e.g. https://youtube.com/watch?v=…)</span></label><input id="em_video" type="text" class="yt-input" placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ"></div>
       <div class="fg"><label>Primary Muscles</label><input id="em_muscles" type="text" placeholder="e.g. Glutes, Hamstrings, Core"></div>
       <div class="fg"><label>Default Sets</label><input id="em_sets" type="number" value="3" min="1" max="20"></div>
       <div class="fg"><label>Default Reps</label><input id="em_reps" type="text" placeholder="e.g. 10-12"></div>
@@ -938,6 +962,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
       </select>
     </div>
     <div class="fg" style="grid-column:1/-1"><label>Clinical Description</label><textarea id="ee_desc" rows="3"></textarea></div>
+      <div class="fg" style="grid-column:1/-1"><label>YouTube Video URL <span style="font-weight:400;color:var(--text-l)">(optional)</span></label><input id="ee_video" type="text" class="yt-input" placeholder="https://www.youtube.com/watch?v=…"></div>
     <div class="fg"><label>Primary Muscles</label><input id="ee_muscles" type="text"></div>
     <div class="fg"><label>Default Sets</label><input id="ee_sets" type="number" min="1" max="20"></div>
     <div class="fg"><label>Default Reps</label><input id="ee_reps" type="text"></div>
@@ -1835,6 +1860,18 @@ function openDrawer(id) {
   const ps = [ex.sets?`${ex.sets} sets`:'',ex.reps?`${ex.reps} reps`:'',ex.hold||'',ex.rest?`Rest: ${ex.rest}`:''].filter(Boolean);
   document.getElementById('drParams').innerHTML = ps.map(p=>`<span class="tag">${p}</span>`).join('');
   document.getElementById('drAddBtn').onclick = () => { addEx(id); closeDrawer(); };
+  // Show YouTube video if available
+  var drVid = document.getElementById('drVideoWrap');
+  if (drVid) {
+    var vidUrl = ex.videoUrl || '';
+    if (vidUrl && ytVideoId(vidUrl)) {
+      drVid.style.display = '';
+      drVid.innerHTML = ytBtnHTML(vidUrl, '&#9654; Watch Exercise Video on YouTube');
+    } else {
+      drVid.style.display = 'none';
+      drVid.innerHTML = '';
+    }
+  }
   document.getElementById('drawer').classList.add('open');
 }
 function closeDrawer() { document.getElementById('drawer').classList.remove('open'); }
@@ -1979,14 +2016,14 @@ function addCustomExercise() {
   if (!cat) { toast('Select a category','err'); return; }
   const photo = v('emPhotoData');
   const id = 'custom_' + Date.now();
-  const ex = { id, name, cat, desc:v('em_desc'), muscles:v('em_muscles'), sets:parseInt(v('em_sets'))||3, reps:v('em_reps'), hold:v('em_hold'), rest:v('em_rest'), load:'' };
+  const ex = { id, name, cat, desc:v('em_desc'), muscles:v('em_muscles'), sets:parseInt(v('em_sets'))||3, reps:v('em_reps'), hold:v('em_hold'), rest:v('em_rest'), load:'', videoUrl:v('em_video')||'' };
   customExercises.push(ex);
   if (photo) { customPhotos[name] = photo; saveCustomPhotos(); }
   saveCustomEx();
   renderLib(); renderCatChips();
   document.getElementById('libCnt').textContent = getAllExercises().length;
   // Reset form
-  ['em_name','em_desc','em_muscles','em_reps','em_hold','em_rest'].forEach(id => sv(id,''));
+  ['em_name','em_desc','em_muscles','em_reps','em_hold','em_rest','em_video'].forEach(id => sv(id,''));
   sv('em_cat',''); sv('em_sets','3');
   document.getElementById('emPhotoData').value = '';
   document.getElementById('emPhotoPreview').innerHTML = `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="60" fill="#EEF0F5" rx="6"/><text x="22" y="34" font-size="18" fill="#aaa">📷</text></svg>`;
@@ -1996,7 +2033,7 @@ function addCustomExercise() {
 
 function openEditEx(id) {
   const ex = getAllExercises().find(e => e.id === id); if (!ex) return;
-  sv('ee_name', ex.name); sv('ee_cat', ex.cat); sv('ee_desc', ex.desc||'');
+  sv('ee_name', ex.name); sv('ee_cat', ex.cat); sv('ee_desc', ex.desc||''); sv('ee_video', ex.videoUrl||'');
   sv('ee_muscles', ex.muscles||''); sv('ee_sets', ex.sets||3);
   sv('ee_reps', ex.reps||''); sv('ee_hold', ex.hold||''); sv('ee_rest', ex.rest||'');
   document.getElementById('eeEditId').value = id;
@@ -2021,7 +2058,7 @@ function saveExEdit() {
   ex.name = newName; ex.cat = v('ee_cat') || ex.cat;
   ex.desc = v('ee_desc'); ex.muscles = v('ee_muscles');
   ex.sets = parseInt(v('ee_sets')) || ex.sets;
-  ex.reps = v('ee_reps'); ex.hold = v('ee_hold'); ex.rest = v('ee_rest');
+  ex.reps = v('ee_reps'); ex.hold = v('ee_hold'); ex.rest = v('ee_rest'); ex.videoUrl = v('ee_video') || ex.videoUrl || '';
   // Handle photo
   const photo = v('eePhotoData');
   if (photo) {
@@ -2037,7 +2074,7 @@ function saveExEdit() {
   const isCustom = customExercises.some(e => String(e.id) === String(id));
   if (!isCustom) {
     // Store as override: create a custom entry that overrides the built-in
-    const override = {...ex, id: 'override_'+id};
+    const override = {...ex, id: 'override_'+id, videoUrl: ex.videoUrl || ''};
     customExercises.push(override);
     // Also store the photo override mapping
   }
@@ -2629,6 +2666,14 @@ function renderCV() {
       h += '<div class="cv-ex-body">';
       if (ex.desc) h += '<div class="cv-ex-desc">' + ex.desc + '</div>';
       if (ex.notes) h += '<div style="font-size:10px;color:var(--ocean);margin-bottom:10px;font-style:italic">&#128203; ' + ex.notes + '</div>';
+      // YouTube video button
+      if (ex.videoUrl && ytVideoId(ex.videoUrl)) {
+        h += '<div class="cv-yt-panel" id="cvVid' + i + '" data-url="' + ex.videoUrl + '">';
+        h += '<button class="cv-yt-btn" onclick="cvToggleVideo(' + i + ')">';
+        h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>';
+        h += 'Watch Exercise Video</button>';
+        h += '</div>';
+      }
       if (ex.progression) h += '<div style="font-size:10px;color:var(--teal);margin-bottom:10px">&#8593; Goal: ' + ex.progression + '</div>';
 
       // Per-set table
@@ -4854,6 +4899,69 @@ function cvShowBooking() {
 }
 
 function cvCloseBooking() { var el=document.getElementById('cvBookingModal'); if(el) el.remove(); }
+
+// ════════════════════════════════════════════════════
+// YOUTUBE VIDEO HELPERS
+// ════════════════════════════════════════════════════
+
+// Extract YouTube video ID from any YouTube URL format
+function ytVideoId(url) {
+  if (!url) return null;
+  url = url.trim();
+  // youtu.be/ID
+  var m = url.match(/youtu\.be\/([A-Za-z0-9_-]{11})/);
+  if (m) return m[1];
+  // youtube.com/watch?v=ID
+  m = url.match(/[?&]v=([A-Za-z0-9_-]{11})/);
+  if (m) return m[1];
+  // youtube.com/embed/ID
+  m = url.match(/\/embed\/([A-Za-z0-9_-]{11})/);
+  if (m) return m[1];
+  // youtube.com/shorts/ID
+  m = url.match(/\/shorts\/([A-Za-z0-9_-]{11})/);
+  if (m) return m[1];
+  return null;
+}
+
+// Build a YouTube watch button string (for HTML concatenation)
+function ytBtnHTML(videoUrl, label) {
+  var id = ytVideoId(videoUrl);
+  if (!id) return '';
+  label = label || 'Watch Video';
+  return '<a class="yt-btn" href="https://www.youtube.com/watch?v=' + id + '" target="_blank" rel="noopener">' +
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>' +
+    label + '</a>';
+}
+
+// Build an embedded YouTube player div
+function ytEmbedHTML(videoUrl) {
+  var id = ytVideoId(videoUrl);
+  if (!id) return '';
+  return '<div class="yt-embed"><iframe src="https://www.youtube-nocookie.com/embed/' + id +
+    '?rel=0&modestbranding=1" allowfullscreen loading="lazy"></iframe></div>';
+}
+
+// Client view: toggle between button and embedded player
+function cvToggleVideo(exIdx) {
+  var panel = document.getElementById('cvVid' + exIdx);
+  if (!panel) return;
+  var url = panel.getAttribute('data-url');
+  var id = ytVideoId(url);
+  if (!id) return;
+  if (panel.innerHTML.indexOf('iframe') !== -1) {
+    // Collapse back to button
+    panel.innerHTML = '<button class="cv-yt-btn" onclick="cvToggleVideo(' + exIdx + ')">' +
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>' +
+      'Watch Exercise Video</button>';
+  } else {
+    // Expand to embed
+    panel.innerHTML = '<div class="cv-yt-embed"><iframe src="https://www.youtube-nocookie.com/embed/' +
+      id + '?rel=0&modestbranding=1&autoplay=1" allowfullscreen loading="lazy"></iframe></div>' +
+      '<button onclick="cvToggleVideo(' + exIdx + ')" style="background:none;border:none;' +
+      'color:var(--text-light);font-size:11px;cursor:pointer;margin-top:4px">&#9650; Hide video</button>';
+  }
+}
+
 </script>
 </body>
 </html>
