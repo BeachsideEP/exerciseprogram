@@ -2017,7 +2017,13 @@ function handleJSONImport(e) {
 // ══════════════════════════════════════
 function clkApiUrl(shard, path) {
   // Route through Supabase Edge Function to avoid CORS
+  // path is fully encoded so & in query strings don't break the outer URL
   return SUPA_URL + '/functions/v1/cliniko-edge-function-ts?shard=' + shard + '&path=' + encodeURIComponent(path);
+}
+
+function clkSearchUrl(shard, searchTerm) {
+  // Build search URL with correct q[] syntax - pass term separately
+  return SUPA_URL + '/functions/v1/cliniko-edge-function-ts?shard=' + shard + '&path=' + encodeURIComponent('/v1/patients') + '&search=' + encodeURIComponent(searchTerm) + '&per_page=20';
 }
 
 function testCliniko() {
@@ -2060,12 +2066,13 @@ function clkSearch() {
     document.getElementById('clkResults').innerHTML = '<div style="font-size:11px;color:var(--text-light);padding:5px">Searching...</div>';
     // Search by first name and last name separately then merge results
     var parts = q.trim().split(/\s+/);
-    var firstFilter = 'q[]=' + encodeURIComponent('first_name:~' + parts[0]) + '&per_page=20';
-    var lastFilter  = 'q[]=' + encodeURIComponent('last_name:~' + parts[0]) + '&per_page=20';
     var headers2 = { method: 'GET', headers: { 'Authorization': 'Basic ' + btoa(key + ':'), 'apikey': SUPA_KEY, 'x-cliniko-key': key } };
+    // Search first_name and last_name separately using dedicated search param
+    var fnUrl = SUPA_URL + '/functions/v1/cliniko-edge-function-ts?shard=' + shard + '&field=first_name&search=' + encodeURIComponent(parts[0]) + '&per_page=20';
+    var lnUrl = SUPA_URL + '/functions/v1/cliniko-edge-function-ts?shard=' + shard + '&field=last_name&search=' + encodeURIComponent(parts[0]) + '&per_page=20';
     Promise.all([
-      fetch(clkApiUrl(shard, '/v1/patients?' + firstFilter), headers2).then(function(r){return r.json();}),
-      fetch(clkApiUrl(shard, '/v1/patients?' + lastFilter), headers2).then(function(r){return r.json();})
+      fetch(fnUrl, headers2).then(function(r){return r.json();}),
+      fetch(lnUrl, headers2).then(function(r){return r.json();})
     ]).then(function(results) {
       var seen = {};
       var pts = [];
