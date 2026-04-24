@@ -5390,7 +5390,8 @@ async function annaSend() {
     annaAppendMsg('assistant', reply);
   } catch (e) {
     annaHideTyping();
-    annaAppendMsg('assistant', 'Connection error: ' + e.message);
+    var url = SUPA_URL + '/functions/v1/anna';
+    annaAppendMsg('assistant', 'Debug — URL: ' + url + ' | Error: ' + e.name + ': ' + e.message);
   }
 }
 
