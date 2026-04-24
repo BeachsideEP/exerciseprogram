@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Beachside EP — HEP Builder v9</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 <style>
@@ -530,8 +530,8 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 
 
 /* CLIENT APP TABS */
-.cv-tabs{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.97);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid rgba(0,0,0,.08);display:flex;z-index:200;box-shadow:0 -4px 20px rgba(0,0,0,.06)}
-.cv-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px 12px;cursor:pointer;color:var(--text-light);font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;transition:all .2s;gap:4px;border:none;background:none;position:relative}
+.cv-tabs{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.97);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid rgba(0,0,0,.08);display:flex;justify-content:center;z-index:200;box-shadow:0 -4px 20px rgba(0,0,0,.06)}.cv-tabs-inner{display:flex;width:100%;max-width:600px}
+.cv-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:7px 2px 10px;cursor:pointer;color:var(--text-light);font-size:8.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;transition:all .2s;gap:3px;border:none;background:none;position:relative;min-width:0}
 .cv-tab.active{color:var(--ocean)}
 .cv-tab.active::after{content:'';position:absolute;top:0;left:25%;right:25%;height:2.5px;background:var(--ocean);border-radius:0 0 3px 3px}
 .cv-tab svg{width:22px;height:22px}
@@ -748,6 +748,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   </div>
   <!-- BOTTOM TABS -->
   <div class="cv-tabs">
+    <div class="cv-tabs-inner">
     <button class="cv-tab active" id="cvTabBtnHome" onclick="cvSwitchTab('home')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       Home
@@ -762,12 +763,10 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     </button>
   
     <button class="cv-tab" id="cvTabBtnAi" onclick="cvSwitchTab('ai')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
-        <circle cx="12" cy="8" r="4"/><path d="M8 8h-2a2 2 0 00-2 2v1h2"/><path d="M16 8h2a2 2 0 012 2v1h-2"/>
-        <path d="M6 11v3a6 6 0 0012 0v-3"/><path d="M9 21h6"/><path d="M12 18v3"/>
-      </svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M12 8v4l3 3"/></svg>
       Anna
     </button>
+    </div>
   </div>
 
 
@@ -5366,15 +5365,14 @@ async function annaSend() {
   annaShowTyping();
 
   try {
-    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+    var resp = await fetch(SUPA_URL + '/functions/v1/anna', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 600,
-        system: ANNA_SYSTEM,
-        messages: annaHistory
-      })
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + authToken()
+      },
+      body: JSON.stringify({ messages: annaHistory })
     });
     var data = await resp.json();
     var reply = (data.content && data.content[0] && data.content[0].text) ? data.content[0].text : 'Sorry, I had trouble responding. Please try again.';
