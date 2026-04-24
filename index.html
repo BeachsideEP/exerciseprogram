@@ -2455,6 +2455,7 @@ function sendClientLink() {
 
 // ── SIGN OUT ──
 async function signOut() {
+  cvStopSync(); // Stop client sync on logout
   const token = localStorage.getItem('bep_token');
   if (token) {
     try {
@@ -2575,6 +2576,7 @@ async function loadClientView(user) {
       return;
     }
     cvData = match; cvState = {}; cvFeeling = ''; cvProgIdx = 0; cvSafetyDone = false; cvComment = '';
+    cvStartSync(user); // Begin live sync
     cvOwnWorkouts = JSON.parse(localStorage.getItem('cv_own_workouts_' + match.id) || '[]');
     cvSwitchTab('home');
   } catch (e) {
@@ -4116,20 +4118,24 @@ function streakBarHTML(prog) {
 var cvSubState = {}; // idx -> { active, query, results }
 
 function cvStartSub(idx) {
-  if (!cvSubState[idx]) cvSubState[idx] = {};
-  cvSubState[idx].active = true;
-  cvSubState[idx].query = '';
+  if (!cvState[idx]) cvState[idx] = {};
+  cvState[idx].subbing = true;
+  cvState[idx].open = true; // ensure card is open
   renderCV();
+  setTimeout(function() {
+    var el = document.getElementById('cvSubSrch' + idx);
+    if (el) el.focus();
+  }, 80);
 }
 
 function cvCancelSub(idx) {
-  if (cvSubState[idx]) cvSubState[idx].active = false;
+  if (cvState[idx]) cvState[idx].subbing = false;
   renderCV();
 }
 
 function cvFilterSub(idx, query) {
-  if (!cvSubState[idx]) cvSubState[idx] = {};
-  cvSubState[idx].query = query;
+  var listEl = document.getElementById('cvSubList' + idx);
+  if (listEl) listEl.innerHTML = cvSubListHTML(idx, query);
   // Re-render just the sub list
   var listEl = document.getElementById('cvSubList' + idx);
   if (listEl) listEl.innerHTML = cvSubListHTML(idx, query);
@@ -4139,14 +4145,14 @@ function cvSubListHTML(idx, query) {
   var prog = cvData.programs[cvProgIdx] || cvData.programs[0];
   var currentEx = prog.exercises[idx];
   var q = (query || '').toLowerCase().trim();
-  var pool = EXERCISES.filter(function(ex) {
+  var pool = (typeof getAllExercises === 'function' ? getAllExercises() : EXERCISES).filter(function(ex) {
     if (ex.name === currentEx.name) return false;
     if (!q) return ex.cat === currentEx.cat;
     return ex.name.toLowerCase().indexOf(q) !== -1 || ex.cat.toLowerCase().indexOf(q) !== -1;
   }).slice(0, 8);
   if (!pool.length) return '<div style="padding:8px;font-size:11px;color:var(--text-light)">No matches found</div>';
   return pool.map(function(ex) {
-    return '<div onclick="cvDoSub(' + idx + ',' + ex.id + ')" style="padding:8px 10px;border-bottom:1px solid var(--sand-dark);cursor:pointer;font-size:12px;display:flex;align-items:center;gap:8px">' +
+    return '<div onclick="cvDoSub(' + idx + ',\'' + ex.id + '\')" style="padding:8px 10px;border-bottom:1px solid var(--sand-dark);cursor:pointer;font-size:12px;display:flex;align-items:center;gap:8px">' +
       '<div style="width:30px;height:30px;border-radius:5px;overflow:hidden;flex-shrink:0">' + getExIllusStr(ex.name, ex.cat) + '</div>' +
       '<div><div style="font-weight:600">' + ex.name + '</div><div style="font-size:10px;color:var(--text-light)">' + ex.cat + '</div></div>' +
     '</div>';
@@ -4156,7 +4162,7 @@ function cvSubListHTML(idx, query) {
 function cvDoSub(idx, newExId) {
   var prog = cvData.programs[cvProgIdx] || cvData.programs[0];
   var oldEx = prog.exercises[idx];
-  var newExBase = EXERCISES.find(function(e) { return e.id === newExId; });
+  var newExBase = (typeof getAllExercises === 'function' ? getAllExercises() : EXERCISES).find(function(e) { return String(e.id) === String(newExId); });
   if (!newExBase) return;
   // Keep prescription fields, swap exercise
   var newEx = Object.assign({}, oldEx, {
@@ -4168,7 +4174,12 @@ function cvDoSub(idx, newExId) {
     substitutedAt: new Date().toLocaleDateString('en-AU')
   });
   prog.exercises[idx] = newEx;
-  if (cvSubState[idx]) cvSubState[idx].active = false;
+  if (cvState[idx]) cvState[idx].subbing = false;
+  // Save to Supabase
+  fetch(SUPA_URL + '/rest/v1/clients', {
+    method: 'POST', headers: supaHeaders(),
+    body: JSON.stringify({ id: cvData.id, data: cvData, updated_at: new Date().toISOString() })
+  }).catch(function() {});
   renderCV();
 }
 
@@ -4461,6 +4472,8 @@ function cvSwitchTab(tab) {
   // Remove congrats overlay if present
   var congrats = document.getElementById('cvCongratsOverlay');
   if (congrats) congrats.remove();
+  // Light sync on tab switch if data is stale (>60s)
+  if (cvSyncUser && Date.now() - cvLastSync > 60000) cvSilentSync();
   if (tab === 'home') renderCVHome();
   if (tab === 'workouts') renderCV();
   if (tab === 'calendar') renderCVCalendar();
@@ -4967,6 +4980,87 @@ function cvToggleVideo(exIdx) {
       '<button onclick="cvToggleVideo(' + exIdx + ')" style="background:none;border:none;' +
       'color:var(--text-light);font-size:11px;cursor:pointer;margin-top:4px">&#9650; Hide video</button>';
   }
+}
+
+
+// ════════════════════════════════════════════════════
+// CLIENT VIEW — LIVE SYNC
+// Silently refreshes the client's data from Supabase
+// without resetting UI state (cvState, cvFeeling etc)
+// ════════════════════════════════════════════════════
+var cvSyncInterval = null;
+var cvLastSync = 0;
+var cvSyncUser = null;
+
+async function cvSilentSync() {
+  if (!cvSyncUser) return;
+  // Don't sync more than once every 30s
+  if (Date.now() - cvLastSync < 30000) return;
+  try {
+    const r = await fetch(SUPA_URL + '/rest/v1/clients?select=data', { headers: supaHeaders() });
+    if (!r.ok) return;
+    const rows = await r.json();
+    const email = (cvSyncUser.email || '').toLowerCase();
+    const match = rows.map(function(row) { return row.data; }).filter(Boolean)
+      .find(function(c) { return (c.email || '').toLowerCase() === email; });
+    if (!match) return;
+    cvLastSync = Date.now();
+
+    // Update cvData but preserve session state
+    // Only update programs/outcomes/safetyLog from server
+    // Don't wipe cvState (mid-session ticks) or cvFeeling
+    var wasProgIdx = cvProgIdx;
+    cvData = match;
+    cvProgIdx = wasProgIdx;
+
+    // Also sync to local clients[] so practitioner view stays fresh
+    if (typeof clients !== 'undefined' && Array.isArray(clients)) {
+      var localIdx = clients.findIndex(function(c) { return c.id === match.id; });
+      if (localIdx !== -1) { clients[localIdx] = match; if (typeof saveDB === 'function') saveDB(); }
+    }
+
+    // Re-render the current tab silently
+    var activeTab = cvActiveTab || 'home';
+    if (activeTab === 'home') renderCVHome();
+    else if (activeTab === 'workouts') renderCV();
+    else if (activeTab === 'calendar') renderCVCalendar();
+
+    // Show a subtle sync indicator
+    cvShowSyncPulse();
+  } catch (e) {
+    // Silent fail — don't disrupt the client
+  }
+}
+
+function cvShowSyncPulse() {
+  var existing = document.getElementById('cvSyncPulse');
+  if (existing) { existing.remove(); }
+  var pulse = document.createElement('div');
+  pulse.id = 'cvSyncPulse';
+  pulse.style.cssText = 'position:fixed;top:58px;right:10px;background:rgba(91,191,170,.85);' +
+    'color:#fff;font-size:9px;font-weight:700;padding:3px 8px;border-radius:20px;z-index:300;' +
+    'pointer-events:none;transition:opacity .5s';
+  pulse.textContent = '✓ Updated';
+  document.body.appendChild(pulse);
+  setTimeout(function() { pulse.style.opacity = '0'; }, 1500);
+  setTimeout(function() { if (pulse.parentNode) pulse.remove(); }, 2100);
+}
+
+function cvStartSync(user) {
+  cvSyncUser = user;
+  cvLastSync = 0;
+  // Poll every 60 seconds
+  if (cvSyncInterval) clearInterval(cvSyncInterval);
+  cvSyncInterval = setInterval(cvSilentSync, 60000);
+  // Sync when tab becomes visible (client switches back from another app)
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && cvSyncUser) cvSilentSync();
+  });
+}
+
+function cvStopSync() {
+  cvSyncUser = null;
+  if (cvSyncInterval) { clearInterval(cvSyncInterval); cvSyncInterval = null; }
 }
 
 </script>
