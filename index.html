@@ -2670,11 +2670,20 @@ function renderCV() {
       h += '<div class="cv-ex-body">';
       if (ex.desc) h += '<div class="cv-ex-desc">' + ex.desc + '</div>';
       if (ex.notes) h += '<div style="font-size:10px;color:var(--ocean);margin-bottom:10px;font-style:italic">&#128203; ' + ex.notes + '</div>';
-      // YouTube video button — check program exercise AND library lookup
+      // YouTube video button — check customExercises FIRST (overrides), then ALL_EXERCISES
       var exVideoUrl = ex.videoUrl || '';
       if (!exVideoUrl) {
-        var libEx = getAllExercises().find(function(le) { return le.name === ex.name; });
-        if (libEx) exVideoUrl = libEx.videoUrl || '';
+        // Check custom/override exercises first (they have videoUrl if practitioner added one)
+        var customEx = customExercises.find(function(le) {
+          return le.name === ex.name && le.videoUrl;
+        });
+        if (customEx) {
+          exVideoUrl = customEx.videoUrl;
+        } else {
+          // Fallback to full library (catches future cases)
+          var libEx = ALL_EXERCISES.find(function(le) { return le.name === ex.name; });
+          if (libEx) exVideoUrl = libEx.videoUrl || '';
+        }
       }
       if (exVideoUrl && ytVideoId(exVideoUrl)) {
         h += '<div class="cv-yt-panel" id="cvVid' + i + '" data-url="' + exVideoUrl + '">';
@@ -2860,12 +2869,24 @@ function cvSavePreSession() {
   if (vas)  pushToOutcome('Pain VAS', vas);
   if (hr)   pushToOutcome('Heart Rate', hr);
 
-  // Save back to Supabase
-  fetch(SUPA_URL + '/rest/v1/clients', {
-    method: 'POST',
-    headers: supaHeaders(),
-    body: JSON.stringify({ id: cvData.id, data: cvData, updated_at: new Date().toISOString() })
-  }).catch(function() {});
+  // Fetch fresh then patch safety log only (don't overwrite practitioner changes)
+  fetch(SUPA_URL + '/rest/v1/clients?select=data&id=eq.' + cvData.id, { headers: supaHeaders() })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(rows) {
+      var saveData = cvData;
+      if (rows && rows.length && rows[0].data) {
+        var fresh = rows[0].data;
+        fresh.safetyLog = cvData.safetyLog;
+        fresh.outcomes = cvData.outcomes || fresh.outcomes;
+        saveData = fresh;
+        cvData = fresh; // keep local in sync
+      }
+      return fetch(SUPA_URL + '/rest/v1/clients', {
+        method: 'POST',
+        headers: supaHeaders(),
+        body: JSON.stringify({ id: saveData.id, data: saveData, updated_at: new Date().toISOString() })
+      });
+    }).catch(function() {});
 
   cvSafetyDone = true;
   renderCV();
@@ -2938,11 +2959,47 @@ async function cvSubmit() {
   }
 
   try {
-    const r = await fetch(SUPA_URL + '/rest/v1/clients', {
+    // Fetch fresh copy first to avoid overwriting practitioner's program changes
+    const freshResp = await fetch(SUPA_URL + '/rest/v1/clients?select=data&id=eq.' + cvData.id, {
+      headers: supaHeaders()
+    });
+    if (freshResp.ok) {
+      const freshRows = await freshResp.json();
+      if (freshRows && freshRows.length && freshRows[0].data) {
+        const fresh = freshRows[0].data;
+        // Merge only our changes onto fresh: log entries, lastReps/lastLoad, substitutions
+        const myProg = cvData.programs[cvProgIdx];
+        if (myProg && fresh.programs && fresh.programs[cvProgIdx]) {
+          const freshProg = fresh.programs[cvProgIdx];
+          // Append new log entries
+          if (!freshProg.log) freshProg.log = [];
+          const myLog = myProg.log || [];
+          const freshLogLen = freshProg.log.length;
+          freshProg.log = freshProg.log.concat(myLog.slice(freshLogLen));
+          // Copy exercise progress (lastReps, lastLoad, substitutions)
+          (myProg.exercises || []).forEach(function(ex, ei) {
+            if (freshProg.exercises && freshProg.exercises[ei]) {
+              if (ex.lastReps) freshProg.exercises[ei].lastReps = ex.lastReps;
+              if (ex.lastLoad) freshProg.exercises[ei].lastLoad = ex.lastLoad;
+              if (ex.substitutedFor) {
+                freshProg.exercises[ei].name = ex.name;
+                freshProg.exercises[ei].substitutedFor = ex.substitutedFor;
+                freshProg.exercises[ei].substitutedAt = ex.substitutedAt;
+              }
+            }
+          });
+        }
+        if (cvData.safetyLog) fresh.safetyLog = cvData.safetyLog;
+        if (cvData.outcomes) fresh.outcomes = cvData.outcomes;
+        cvData = fresh;
+      }
+    }
+    await fetch(SUPA_URL + '/rest/v1/clients', {
       method: 'POST',
       headers: supaHeaders(),
       body: JSON.stringify({ id: cvData.id, data: cvData, updated_at: new Date().toISOString() })
     });
+    cvLastSync = 0; // Force next sync to refresh
     cvState = {}; cvFeeling = ''; cvComment = ''; cvSafetyDone = false;
     showCVCongrats(cvData.first, false);
     cvSwitchTab('home');
