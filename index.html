@@ -652,7 +652,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
       Home
     </button>
     <button class="cv-tab" id="cvTabBtnWorkouts" onclick="cvSwitchTab('workouts')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 6.5h11M6.5 17.5h11"/><rect x="2" y="9" width="4" height="6" rx="1"/><rect x="18" y="9" width="4" height="6" rx="1"/><line x1="6" y1="12" x2="18" y2="12"/></svg>
       Workouts
     </button>
     <button class="cv-tab" id="cvTabBtnCalendar" onclick="cvSwitchTab('calendar')">
@@ -2524,7 +2524,8 @@ async function loadClientView(user) {
       return;
     }
     cvData = match; cvState = {}; cvFeeling = ''; cvProgIdx = 0; cvSafetyDone = false; cvComment = '';
-    renderCV();
+    cvOwnWorkouts = JSON.parse(localStorage.getItem('cv_own_workouts_' + match.id) || '[]');
+    cvSwitchTab('home');
   } catch (e) {
     el.innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#9888;</div><p>Could not load: ' + e.message + '</p></div>';
   }
@@ -4566,81 +4567,117 @@ function renderCVCalendar() {
   var el = document.getElementById('cvCalContent');
   if (!el || !cvData) return;
 
-  // Get all session dates
-  var sessionDates = {};
+  // Build a map of all sessions by date string "DD MMM YYYY"
+  var sessionsByDate = {};
+  var MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
   (cvData.programs || []).forEach(function(p) {
     (p.log || []).forEach(function(e) {
-      if (e.clientSubmitted) {
-        var d = e.date.split(',')[0].trim();
-        sessionDates[d] = (sessionDates[d] || 0) + 1;
-      }
+      if (!e.clientSubmitted) return;
+      var d = e.date.split(',')[0].trim();
+      if (!sessionsByDate[d]) sessionsByDate[d] = { prescribed: [], cardio: [] };
+      sessionsByDate[d].prescribed.push(e.text || 'Session completed');
     });
   });
-  cvOwnWorkouts.forEach(function(w) {
+  (cvOwnWorkouts || []).forEach(function(w) {
     var d = w.date.split(',')[0].trim();
-    sessionDates[d] = (sessionDates[d] || 0) + 1;
+    if (!sessionsByDate[d]) sessionsByDate[d] = { prescribed: [], cardio: [] };
+    sessionsByDate[d].cardio.push(w.type + (w.duration ? ' · ' + w.duration + ' min' : '') + (w.note ? ' · ' + w.note : ''));
   });
 
-  var monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  var dayNames = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  // Generate 60 days: 30 past + today + 29 future
+  var DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   var today = new Date();
-  var firstDay = new Date(cvCalYear, cvCalMonth, 1).getDay();
-  var daysInMonth = new Date(cvCalYear, cvCalMonth + 1, 0).getDate();
-
-  var h = '<div class="cv-cal-month">';
-  h += '<button class="cv-cal-nav" onclick="cvCalNav(-1)">&#8249;</button>';
-  h += '<div class="cv-cal-month-title">' + monthNames[cvCalMonth] + ' ' + cvCalYear + '</div>';
-  h += '<button class="cv-cal-nav" onclick="cvCalNav(1)">&#8250;</button>';
-  h += '</div>';
-  h += '<div class="cv-cal-grid">';
-  dayNames.forEach(function(d) { h += '<div class="cv-cal-day-hdr">' + d + '</div>'; });
-
-  for (var i = 0; i < firstDay; i++) h += '<div></div>';
-  for (var day = 1; day <= daysInMonth; day++) {
-    var dateStr = day + ' ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][cvCalMonth] + ' ' + cvCalYear;
-    var isToday = day === today.getDate() && cvCalMonth === today.getMonth() && cvCalYear === today.getFullYear();
-    var hasSess = !!sessionDates[dateStr];
-    h += '<div class="cv-cal-day' + (hasSess ? ' has-session' : '') + (isToday ? ' today' : '') + '">' + day + '</div>';
+  today.setHours(0,0,0,0);
+  var days = [];
+  for (var offset = -30; offset <= 29; offset++) {
+    var d = new Date(today);
+    d.setDate(today.getDate() + offset);
+    days.push(d);
   }
-  h += '</div>';
 
-  // Session list for this month
-  var monthSessions = [];
-  Object.keys(sessionDates).forEach(function(d) {
-    var parts = d.split(' ');
-    if (parts.length >= 3) {
-      var mIdx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(parts[1]);
-      if (mIdx === cvCalMonth && parseInt(parts[2]) === cvCalYear) {
-        monthSessions.push(d);
-      }
+  var h = '<div style="padding:0 16px 80px">';
+
+  // Month group tracking
+  var lastMonth = -1;
+
+  days.forEach(function(d) {
+    var dayName = DAY_NAMES[d.getDay()];
+    var dd = d.getDate();
+    var mm = d.getMonth();
+    var yyyy = d.getFullYear();
+    var monthStr = MONTH_SHORT[mm];
+    var dateKey = dd + ' ' + monthStr + ' ' + yyyy;
+    var isToday = d.getTime() === today.getTime();
+    var isFuture = d > today;
+    var sessions = sessionsByDate[dateKey] || null;
+    var hasPrescribed = sessions && sessions.prescribed.length > 0;
+    var hasCardio = sessions && sessions.cardio.length > 0;
+    var hasAny = hasPrescribed || hasCardio;
+
+    // Month header
+    if (mm !== lastMonth) {
+      h += '<div style="font-size:13px;font-weight:800;color:var(--ocean-deep);text-transform:uppercase;letter-spacing:.08em;padding:20px 0 8px;border-bottom:2px solid var(--ocean);margin-bottom:8px;font-family:Georgia,serif">' + monthStr + ' ' + yyyy + '</div>';
+      lastMonth = mm;
     }
-  });
-  monthSessions.sort();
 
-  if (monthSessions.length) {
-    h += '<div class="cv-session-list">';
-    h += '<div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">' + monthSessions.length + ' sessions this month</div>';
-    monthSessions.forEach(function(d) {
-      h += '<div class="cv-session-item"><div class="cv-session-date">' + d + '</div>';
-      h += '<div style="color:var(--text-light)">' + sessionDates[d] + ' workout' + (sessionDates[d] > 1 ? 's' : '') + ' logged</div></div>';
-    });
+    // Day row
+    h += '<div style="display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--sand-dark)' + (isToday ? ';background:linear-gradient(90deg,var(--ocean-pale),transparent);margin:0 -16px;padding:10px 16px;border-radius:8px' : '') + '">';
+
+    // Date column
+    h += '<div style="width:52px;flex-shrink:0;text-align:center">';
+    h += '<div style="font-size:10px;font-weight:700;color:' + (isToday ? 'var(--ocean)' : 'var(--text-light)') + ';text-transform:uppercase;letter-spacing:.06em">' + dayName.slice(0,3) + '</div>';
+    h += '<div style="font-size:22px;font-weight:800;color:' + (isToday ? 'var(--ocean)' : (isFuture ? 'var(--text-light)' : 'var(--text)')) + ';line-height:1.1">' + dd + '</div>';
+    h += '<div style="font-size:9px;color:var(--text-light)">' + monthStr + '</div>';
     h += '</div>';
-  } else {
-    h += '<div class="cv-empty" style="padding:24px"><div class="cv-empty-icon" style="font-size:30px">&#128197;</div><p>No sessions logged this month</p></div>';
-  }
 
+    // Content column
+    h += '<div style="flex:1;min-width:0;padding-top:2px">';
+
+    if (hasAny) {
+      // Prescribed workouts (blue circles)
+      sessions.prescribed.forEach(function(txt) {
+        h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">';
+        h += '<div style="width:10px;height:10px;border-radius:50%;background:var(--ocean);flex-shrink:0"></div>';
+        h += '<div style="font-size:12px;color:var(--text);line-height:1.4">' + txt + '</div>';
+        h += '</div>';
+      });
+      // Own cardio (green circles)
+      sessions.cardio.forEach(function(txt) {
+        h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">';
+        h += '<div style="width:10px;height:10px;border-radius:50%;background:var(--teal);flex-shrink:0"></div>';
+        h += '<div style="font-size:12px;color:var(--text);line-height:1.4">' + txt + '</div>';
+        h += '</div>';
+      });
+    } else if (isToday) {
+      h += '<div style="font-size:12px;color:var(--ocean);font-weight:600">Today — no session logged yet</div>';
+    } else if (isFuture) {
+      h += '<div style="font-size:11px;color:var(--sand-dark)">-</div>';
+    } else {
+      h += '<div style="font-size:11px;color:var(--sand-dark)">Rest day</div>';
+    }
+
+    h += '</div>';
+    h += '</div>';
+  });
+
+  // Legend
+  h += '<div style="display:flex;gap:16px;padding:16px 0;margin-top:8px">';
+  h += '<div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:50%;background:var(--ocean)"></div><span style="font-size:11px;color:var(--text-light)">Prescribed workout</span></div>';
+  h += '<div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:50%;background:var(--teal)"></div><span style="font-size:11px;color:var(--text-light)">Cardio / own workout</span></div>';
+  h += '</div>';
+
+  h += '</div>';
   el.innerHTML = h;
+
+  // Scroll today into view
+  setTimeout(function() {
+    var todayEl = el.querySelector('[style*="linear-gradient"]');
+    if (todayEl) todayEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 100);
 }
 
-function cvCalNav(dir) {
-  cvCalMonth += dir;
-  if (cvCalMonth > 11) { cvCalMonth = 0; cvCalYear++; }
-  if (cvCalMonth < 0)  { cvCalMonth = 11; cvCalYear--; }
-  renderCVCalendar();
-}
 
-
-function cvCloseCongrats() { var el = document.getElementById('cvCongratsOverlay'); if (el) el.remove(); }
 </script>
 </body>
 </html>
