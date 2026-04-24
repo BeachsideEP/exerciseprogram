@@ -1093,6 +1093,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 <!-- TEAM -->
 <div class="overlay" id="teamM" onclick="closeBg(event,'teamM')"><div class="modal">
   <div class="modal-title">🌐 Team Access</div><p class="modal-sub">How to share this tool with your whole team</p>
+
   <div class="info-box"><strong>⭐ Option 1 — Shared Drive (Free)</strong><br>Save <code>beachside_hep_v6.html</code> to clinic Google Drive / OneDrive. Staff open in Chrome and bookmark. Use Export JSON/Import JSON to share programs.</div>
   <div class="info-box"><strong>Option 2 — GitHub Pages (Free, always online)</strong><br>Upload to GitHub, enable Pages under Settings. Team gets a permanent URL like <code>yourclinic.github.io/hep</code></div>
   <div class="info-box" style="border-color:var(--coral)"><strong>Cliniko Launch Integration</strong><br>Requires Cliniko Integration Partner status — email <strong>support@cliniko.com</strong>. The 🔗 Cliniko button already lets staff search and import patients with one click.</div>
@@ -2423,6 +2424,7 @@ function openM(id) {
   if (id==='exMgrM') { renderEmList(); }
   if (id==='templatesM') { renderTemplates(); }
   if (id==='omHistM') { renderOMHistory(null); }
+  if (id==='teamM') { setTimeout(loadAnnaKeyStatus, 50); }
   if (id==='shareM') { renderShareClientList(); }
   const k = localStorage.getItem('bep_clk_key');
   if (id==='clinikoM'&&k) { sv('clkKey',k); document.getElementById('clkSearchSection').style.display=''; }
@@ -2448,6 +2450,7 @@ init();
 // AUTH & SUPABASE — v9
 // ================================================================
 const SUPA_URL = 'https://aujuspwdiscefdlowcdm.supabase.co';
+const ANNA_API_KEY_STORE = 'bep_anna_key'; // localStorage key for Anthropic API key
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1anVzcHdkaXNjZWZkbG93Y2RtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5OTg4OTAsImV4cCI6MjA5MjU3NDg5MH0.GAxdMUp3r6XLc4tzq2RvpXtPMTPCKUN-kFOjO0dnQIM';
 const PRACTITIONER_DOMAIN = '@beachsideep.com.au';
 const PRACTITIONER_WHITELIST = []; // add extra emails e.g. ['braeden@gmail.com']
@@ -5379,19 +5382,18 @@ async function annaSend() {
     if (data.content && data.content[0] && data.content[0].text) {
       reply = data.content[0].text;
     } else if (data.error) {
-      reply = 'Error from server: ' + (data.error.message || JSON.stringify(data.error));
+      reply = 'Error: ' + (data.error.message || JSON.stringify(data.error));
     } else if (!resp.ok) {
-      reply = 'HTTP ' + resp.status + ': ' + JSON.stringify(data).slice(0, 200);
+      reply = 'Server error ' + resp.status + ': ' + JSON.stringify(data).slice(0, 150);
     } else {
-      reply = 'Unexpected response: ' + JSON.stringify(data).slice(0, 200);
+      reply = 'Unexpected: ' + JSON.stringify(data).slice(0, 150);
     }
     annaHistory.push({ role: 'assistant', content: reply });
     annaHideTyping();
     annaAppendMsg('assistant', reply);
   } catch (e) {
     annaHideTyping();
-    var url = SUPA_URL + '/functions/v1/anna';
-    annaAppendMsg('assistant', 'Debug — URL: ' + url + ' | Error: ' + e.name + ': ' + e.message);
+    annaAppendMsg('assistant', 'Connection error: ' + e.message);
   }
 }
 
@@ -5400,6 +5402,30 @@ function annaSendChip(btn) {
   var input = document.getElementById('annaInput');
   if (input) { input.value = text; }
   annaSend();
+}
+
+
+function saveAnnaKey() {
+  var key = (document.getElementById('annaKeyInput').value || '').trim();
+  if (!key) { document.getElementById('annaKeyStatus').textContent = 'Enter a key first.'; return; }
+  localStorage.setItem(ANNA_API_KEY_STORE, key);
+  document.getElementById('annaKeyStatus').textContent = '✓ Key saved. Anna is ready to use.';
+  document.getElementById('annaKeyStatus').style.color = 'var(--teal)';
+  document.getElementById('annaKeyInput').value = '';
+}
+
+function loadAnnaKeyStatus() {
+  var key = localStorage.getItem(ANNA_API_KEY_STORE) || '';
+  var el = document.getElementById('annaKeyStatus');
+  if (el) {
+    if (key) {
+      el.textContent = '✓ API key set — Anna is active (sk-ant-…' + key.slice(-4) + ')';
+      el.style.color = 'var(--teal)';
+    } else {
+      el.textContent = 'No key set — Anna will not work until a key is added.';
+      el.style.color = 'var(--coral)';
+    }
+  }
 }
 
 </script>
