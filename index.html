@@ -2886,8 +2886,9 @@ async function syncTemplates() {
 // ================================================================
 function openPrintModal() {
   const cl = getClient(), p = getProg();
-  // Restore previously entered URL
-  setTimeout(function() { const el = document.getElementById('popt_appurl'); if (el && window._pdfAppUrl) el.value = window._pdfAppUrl; }, 10);
+  // Always ensure the default URL is set
+  window._pdfAppUrl = window._pdfAppUrl || 'https://beachsideep.github.io/exerciseprogram';
+  setTimeout(function() { const el = document.getElementById('popt_appurl'); if (el) el.value = window._pdfAppUrl || 'https://beachsideep.github.io/exerciseprogram'; }, 10);
   if (!cl) { toast('Select a client first', 'err'); return; }
   if (!p || !p.exercises.length) { toast('Add at least one exercise first', 'err'); return; }
   openM('printM');
