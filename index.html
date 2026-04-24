@@ -4523,8 +4523,38 @@ function renderCVHome() {
     // Log workout button
     h += '<button onclick="cvShowWorkoutModal()" style="width:100%;padding:14px;border-radius:12px;border:2px dashed var(--teal);background:transparent;color:var(--teal);font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;font-family:-apple-system,sans-serif">+ Log a Workout</button>';
 
+    // ── Clinic contact ──
+    h += '<div style="margin-top:24px;background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 1px 6px rgba(28,43,53,.07)">';
+    h += '<div style="font-size:13px;font-weight:700;color:var(--ocean-deep);margin-bottom:12px;font-family:Georgia,serif">Beachside Exercise Physiology</div>';
+    h += '<a href="tel:0409051260" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--sand-dark);text-decoration:none">' +
+      '<div style="width:36px;height:36px;border-radius:50%;background:var(--ocean-pale);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">&#128222;</div>' +
+      '<div><div style="font-size:13px;font-weight:600;color:var(--ocean)">Call Clinic</div><div style="font-size:11px;color:var(--text-light)">0409 051 260</div></div>' +
+      '</a>';
+    h += '<a href="mailto:admin@beachsideep.com.au" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--sand-dark);text-decoration:none">' +
+      '<div style="width:36px;height:36px;border-radius:50%;background:var(--ocean-pale);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">&#9993;</div>' +
+      '<div><div style="font-size:13px;font-weight:600;color:var(--ocean)">Email Clinic</div><div style="font-size:11px;color:var(--text-light)">admin@beachsideep.com.au</div></div>' +
+      '</a>';
+    h += '<button onclick="cvShowBooking()" style="display:flex;align-items:center;gap:10px;padding:10px 0;width:100%;background:none;border:none;cursor:pointer;text-align:left">' +
+      '<div style="width:36px;height:36px;border-radius:50%;background:var(--teal-light,#e6f7f4);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">&#128197;</div>' +
+      '<div><div style="font-size:13px;font-weight:600;color:var(--teal)">Book an Appointment</div><div style="font-size:11px;color:var(--text-light)">Online booking</div></div>' +
+      '</button>';
+    h += '</div>';
+
     h += '</div>';
     el.innerHTML = h;
+
+    // Inject Cliniko booking iframe listener once
+    if (!window._clinikoListenerAdded) {
+      window.addEventListener('message', function(e) {
+        var frame = document.getElementById('cliniko-31280155');
+        if (!frame || typeof e.data !== 'string') return;
+        if (e.data.indexOf('cliniko-bookings-resize') > -1) {
+          frame.style.height = Number(e.data.split(':')[1]) + 'px';
+        }
+        if (e.data.indexOf('cliniko-bookings-page') > -1) frame.scrollIntoView();
+      });
+      window._clinikoListenerAdded = true;
+    }
 
   } catch(err) {
     console.error('renderCVHome error:', err);
@@ -4606,8 +4636,10 @@ function showCVCongrats(name, ownWorkout) {
   overlay.innerHTML = '<div class="cv-congrats-emoji">' + emoji + '</div>' +
     '<div class="cv-congrats-title">' + title + '</div>' +
     '<div class="cv-congrats-sub">' + sub + '</div>' +
-    '<button class="cv-congrats-btn" onclick="cvCloseCongrats()">Thanks!</button>';
+    '<button class="cv-congrats-btn" onclick="cvGoHome()">Thanks!</button>';
   document.getElementById('viewClient').appendChild(overlay);
+  // Auto-dismiss after 3.5 seconds
+  setTimeout(function() { cvGoHome(); }, 3500);
 }
 
 // ── CALENDAR ──
@@ -4782,7 +4814,7 @@ function cvSaveOwnWorkout() {
 }
 
 function cvLogHealthKey(btn) {
-  var key = btn.dataset.key;
+  var key = btn.getAttribute('data-key');
   var input = btn.previousElementSibling;
   if (!input || !input.value.trim()) return;
   var val = input.value.trim();
@@ -4796,6 +4828,27 @@ function cvLogHealthKey(btn) {
   input.value = '';
   renderCVHome();
 }
+
+function cvGoHome() { cvSwitchTab('home'); }
+
+function cvShowBooking() {
+  var existing = document.getElementById('cvBookingModal');
+  if (existing) { existing.remove(); return; }
+  var modal = document.createElement('div');
+  modal.id = 'cvBookingModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:#fff;z-index:600;display:flex;flex-direction:column';
+  modal.innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--ocean-deep);color:#fff">' +
+      '<span style="font-size:15px;font-weight:700;font-family:Georgia,serif">Book an Appointment</span>' +
+      '<button onclick="cvCloseBooking()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1">&times;</button>' +
+    '</div>' +
+    '<div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch">' +
+      '<iframe id="cliniko-31280155" src="https://beachside-exercise-physiology.au2.cliniko.com/bookings?business_id=1335938640521468158&embedded=true" frameborder="0" scrolling="auto" width="100%" height="800" style="pointer-events:auto;display:block"></iframe>' +
+    '</div>';
+  document.getElementById('viewClient').appendChild(modal);
+}
+
+function cvCloseBooking() { var el=document.getElementById('cvBookingModal'); if(el) el.remove(); }
 </script>
 </body>
 </html>
