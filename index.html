@@ -638,6 +638,10 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     </div>
   </div>
   <div id="cvTabWorkouts" style="display:none">
+    <div id="cvWorkoutTopBar" style="background:var(--ocean-pale);border-bottom:1px solid var(--sand-dark);padding:8px 16px;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:12px;font-weight:600;color:var(--ocean-deep)">&#128170; Your Program</span>
+      <button onclick="cvSwitchTab('home')" style="background:none;border:none;color:var(--ocean);font-size:12px;font-weight:700;cursor:pointer">&#8592; Home</button>
+    </div>
     <div class="cv-body" id="cvBody">
       <div class="cv-empty"><div class="cv-empty-icon">&#9201;</div><p>Loading your program...</p></div>
     </div>
@@ -4409,100 +4413,123 @@ function cvSwitchTab(tab) {
 function renderCVHome() {
   var el = document.getElementById('cvHomeContent');
   if (!el) { setTimeout(renderCVHome, 200); return; }
-  if (!cvData) { el.innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#9201;</div><p>Loading your program...</p></div>'; setTimeout(renderCVHome, 500); return; }
+  if (!cvData) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-light)"><div style="font-size:32px;margin-bottom:8px">&#9201;</div><p>Loading...</p></div>'; setTimeout(renderCVHome, 500); return; }
+
   try {
-  var log = [];
-  (cvData.programs || []).forEach(function(p) { (p.log || []).forEach(function(e) { if (e.clientSubmitted) log.push(e); }); });
-  cvOwnWorkouts.forEach(function(w) { log.push({ date: w.date, clientSubmitted: true, ownWorkout: true }); });
+    var now = new Date();
+    var timeH = now.getHours();
+    var greeting = timeH < 12 ? 'Good morning' : timeH < 17 ? 'Good afternoon' : 'Good evening';
 
-  // Stats
-  var totalSessions = log.length;
-  var now = new Date();
-  var weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
-  var thisWeek = log.filter(function(e) { return new Date(e.date) >= weekAgo; }).length;
-
-  // Streak
-  var streak = 0;
-  var sortedDates = log.map(function(e) { return e.date.split(',')[0]; })
-    .filter(function(d,i,a) { return a.indexOf(d) === i; })
-    .sort().reverse();
-  var checkDate = new Date();
-  for (var i = 0; i < sortedDates.length; i++) {
-    var d = new Date(sortedDates[i]);
-    var diff = Math.floor((checkDate - d) / 86400000);
-    if (diff <= 1) { streak++; checkDate = d; } else break;
-  }
-
-  // Latest health values
-  var health = JSON.parse(localStorage.getItem('cv_health_' + cvData.id) || '{}');
-  var latestWeight = (health.weight || []).slice(-1)[0];
-  var latestBP     = (health.bp     || []).slice(-1)[0];
-  var latestBG     = (health.bg     || []).slice(-1)[0];
-  var latestHR     = (health.hr     || []).slice(-1)[0];
-  var latestSleep  = (health.sleep  || []).slice(-1)[0];
-
-  var timeOfDay = new Date().getHours();
-  var greeting = timeOfDay < 12 ? 'Good morning' : timeOfDay < 17 ? 'Good afternoon' : 'Good evening';
-
-  var h = '<div class="cv-greeting">' + greeting + ', ' + cvData.first + '!</div>';
-  h += '<div class="cv-greeting-sub">Here is your health summary</div>';
-
-  // Badges
-  h += '<div class="cv-badges">';
-  h += '<div class="cv-badge"><div class="cv-badge-icon">&#127942;</div><div class="cv-badge-info"><div class="cv-badge-val">' + streak + '</div><div class="cv-badge-lbl">Day Streak</div></div></div>';
-  h += '<div class="cv-badge"><div class="cv-badge-icon">&#128170;</div><div class="cv-badge-info"><div class="cv-badge-val">' + totalSessions + '</div><div class="cv-badge-lbl">Total Sessions</div></div></div>';
-  h += '<div class="cv-badge"><div class="cv-badge-icon">&#128293;</div><div class="cv-badge-info"><div class="cv-badge-val">' + thisWeek + '</div><div class="cv-badge-lbl">This Week</div></div></div>';
-  h += '</div>';
-
-  // Health metrics
-  h += '<div class="cv-metrics-title">Health Tracking</div>';
-  h += '<div class="cv-metrics-grid">';
-
-  function metricCard(icon, label, entry, unit, inputId, placeholder, inputType) {
-    var val = entry ? entry.val : '-';
-    var time = entry ? entry.date : '';
-    return '<div class="cv-metric-card">' +
-      '<div class="cv-metric-label">' + icon + ' ' + label + '</div>' +
-      '<div><span class="cv-metric-val">' + val + '</span><span class="cv-metric-unit">' + unit + '</span></div>' +
-      (time ? '<div class="cv-metric-time">' + time + '</div>' : '') +
-      '<div class="cv-metric-input">' +
-        '<input id="' + inputId + '" type="' + inputType + '" placeholder="' + placeholder + '">' +
-        '<button class="cv-metric-btn" data-id="' + inputId + '" data-key="' + key + '" onclick="cvLogHealth(this.dataset.id,this.dataset.key)">+</button>' +
-      '</div></div>';
-  }
-
-  h += metricCard('&#9878;', 'Weight', latestWeight, 'kg', 'cv_h_weight', '70', 'number');
-  h += metricCard('&#10084;', 'Blood Pressure', latestBP, '', 'cv_h_bp', '120/80', 'text');
-  h += metricCard('&#128164;', 'Blood Glucose', latestBG, 'mmol/L', 'cv_h_bg', '5.0', 'number');
-  h += metricCard('&#9829;', 'Heart Rate', latestHR, 'bpm', 'cv_h_hr', '72', 'number');
-  h += metricCard('&#128308;', 'Sleep', latestSleep, 'hrs', 'cv_h_sleep', '8', 'number');
-
-  // Apple Health / Samsung Health note
-  h += '<div class="cv-metric-card" style="grid-column:1/-1;border:1.5px dashed var(--sand-dark)">' +
-    '<div class="cv-metric-label">&#128241; Sync from Health App</div>' +
-    '<div style="font-size:11px;color:var(--text-light);margin-top:4px;line-height:1.5">Tap a metric above to log manually. For automatic sync from Apple Health or Samsung Health, ask your clinician about our upcoming app integration.</div>' +
-    '</div>';
-
-  h += '</div>';
-
-  // Own workouts this week
-  var recentOwn = (cvOwnWorkouts || []).slice(-3).reverse();
-  if (recentOwn.length) {
-    h += '<div class="cv-metrics-title">Recent Workouts</div>';
-    recentOwn.forEach(function(w) {
-      h += '<div style="background:#fff;border-radius:10px;padding:10px 14px;margin-bottom:8px;box-shadow:0 1px 6px rgba(28,43,53,.07);display:flex;align-items:center;gap:10px">';
-      h += '<div style="width:32px;height:32px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>';
-      h += '<div><div style="font-size:13px;font-weight:600;color:var(--text)">' + (w.type||'Workout') + '</div>';
-      h += '<div style="font-size:11px;color:var(--text-light)">' + (w.duration ? w.duration + ' min' : '') + (w.note ? ' · ' + w.note : '') + ' · ' + (w.date||'').split(',')[0] + '</div></div>';
-      h += '</div>';
+    // ── Stats ──
+    var allLog = [];
+    (cvData.programs || []).forEach(function(p) {
+      (p.log || []).forEach(function(e) { if (e.clientSubmitted) allLog.push(e); });
     });
+    var ownW = cvOwnWorkouts || [];
+    var totalSessions = allLog.length + ownW.length;
+
+    var weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
+    var thisWeek = allLog.filter(function(e) {
+      try { return new Date(e.date) >= weekAgo; } catch(x) { return false; }
+    }).length + ownW.filter(function(w) {
+      try { return new Date(w.date) >= weekAgo; } catch(x) { return false; }
+    }).length;
+
+    // ── Streak ──
+    var streak = 0;
+    var allDates = allLog.map(function(e) { return (e.date||'').split(',')[0].trim(); })
+      .concat(ownW.map(function(w) { return (w.date||'').split(',')[0].trim(); }))
+      .filter(function(d,i,a) { return d && a.indexOf(d)===i; })
+      .sort().reverse();
+    var check = new Date(now); check.setHours(0,0,0,0);
+    for (var si = 0; si < allDates.length; si++) {
+      try {
+        var dd = new Date(allDates[si]);
+        var diff = Math.floor((check - dd) / 86400000);
+        if (diff <= 1) { streak++; check = dd; } else break;
+      } catch(x) { break; }
+    }
+
+    // ── Health ──
+    var health = {};
+    try { health = JSON.parse(localStorage.getItem('cv_health_' + cvData.id) || '{}'); } catch(x) {}
+    var lw = (health.weight||[]).slice(-1)[0];
+    var lb = (health.bp||[]).slice(-1)[0];
+    var lg = (health.bg||[]).slice(-1)[0];
+    var lh = (health.hr||[]).slice(-1)[0];
+    var ls = (health.sleep||[]).slice(-1)[0];
+
+    var h = '';
+    h += '<div style="padding:16px 16px 80px">';
+
+    // Greeting
+    h += '<div style="font-size:22px;font-weight:800;color:var(--ocean-deep);margin-bottom:2px;font-family:Georgia,serif">' + greeting + ', ' + cvData.first + '!</div>';
+    h += '<div style="font-size:12px;color:var(--text-light);margin-bottom:20px">Your health at a glance</div>';
+
+    // Badges
+    h += '<div style="display:flex;gap:10px;margin-bottom:20px;overflow-x:auto;padding-bottom:4px">';
+    function badge(icon, val, lbl, color) {
+      return '<div style="flex-shrink:0;background:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.08);min-width:100px">' +
+        '<div style="font-size:24px;margin-bottom:4px">' + icon + '</div>' +
+        '<div style="font-size:20px;font-weight:800;color:' + (color||'var(--ocean-deep)') + ';line-height:1">' + val + '</div>' +
+        '<div style="font-size:10px;color:var(--text-light);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-top:3px">' + lbl + '</div>' +
+        '</div>';
+    }
+    h += badge('&#127942;', streak, 'Day Streak', streak > 0 ? 'var(--teal)' : 'var(--text-light)');
+    h += badge('&#128170;', totalSessions, 'Total Sessions', 'var(--ocean)');
+    h += badge('&#128293;', thisWeek, 'This Week', thisWeek > 0 ? '#f59e0b' : 'var(--text-light)');
+    h += '</div>';
+
+    // Health metrics
+    h += '<div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Health Tracking</div>';
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">';
+
+    function metricCard(icon, lbl, entry, unit, key, placeholder, inputType) {
+      var val = entry ? entry.val : '—';
+      var time = entry ? entry.date : '';
+      return '<div style="background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(28,43,53,.07)">' +
+        '<div style="font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">' + icon + ' ' + lbl + '</div>' +
+        '<div style="font-size:22px;font-weight:800;color:var(--ocean-deep);line-height:1">' + val + '<span style="font-size:11px;color:var(--text-light);margin-left:2px">' + unit + '</span></div>' +
+        (time ? '<div style="font-size:9px;color:var(--text-light);margin-top:2px">' + time + '</div>' : '') +
+        '<div style="display:flex;gap:6px;margin-top:8px">' +
+          '<input data-key="' + key + '" type="' + inputType + '" placeholder="' + placeholder + '" style="flex:1;padding:6px 8px;border:1.5px solid var(--sand-dark);border-radius:6px;font-size:12px;outline:none;background:var(--sand);min-width:0">' +
+          '<button data-key="' + key + '" onclick="cvLogHealthKey(this)" style="padding:6px 10px;border-radius:6px;border:none;background:var(--ocean);color:#fff;font-size:13px;font-weight:700;cursor:pointer">+</button>' +
+        '</div></div>';
+    }
+
+    h += metricCard('&#9878;', 'Weight', lw, 'kg', 'weight', '70', 'number');
+    h += metricCard('&#10084;', 'Blood Pressure', lb, '', 'bp', '120/80', 'text');
+    h += metricCard('&#128164;', 'Blood Glucose', lg, 'mmol', 'bg', '5.0', 'number');
+    h += metricCard('&#9829;', 'Heart Rate', lh, 'bpm', 'hr', '72', 'number');
+    h += metricCard('&#128308;', 'Sleep', ls, 'hrs', 'sleep', '8', 'number');
+    h += '<div style="background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(28,43,53,.07);border:1.5px dashed var(--sand-dark);display:flex;align-items:center">' +
+      '<div style="font-size:11px;color:var(--text-light);line-height:1.5">&#128241; Log metrics above. Apple Health &amp; Samsung Health sync coming soon.</div>' +
+      '</div>';
+    h += '</div>';
+
+    // Recent own workouts
+    var recent = ownW.slice(-3).reverse();
+    if (recent.length) {
+      h += '<div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Recent Workouts</div>';
+      recent.forEach(function(w) {
+        h += '<div style="background:#fff;border-radius:10px;padding:10px 14px;margin-bottom:8px;box-shadow:0 1px 6px rgba(28,43,53,.07);display:flex;align-items:center;gap:10px">' +
+          '<div style="width:32px;height:32px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>' +
+          '<div><div style="font-size:13px;font-weight:600;color:var(--text)">' + (w.type||'Workout') + '</div>' +
+          '<div style="font-size:11px;color:var(--text-light)">' + (w.duration?w.duration+' min':'') + (w.note?' · '+w.note:'') + ' · ' + (w.date||'').split(',')[0] + '</div></div>' +
+          '</div>';
+      });
+    }
+
+    // Log workout button
+    h += '<button onclick="cvShowWorkoutModal()" style="width:100%;padding:14px;border-radius:12px;border:2px dashed var(--teal);background:transparent;color:var(--teal);font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;font-family:-apple-system,sans-serif">+ Log a Workout</button>';
+
+    h += '</div>';
+    el.innerHTML = h;
+
+  } catch(err) {
+    console.error('renderCVHome error:', err);
+    el.innerHTML = '<div style="padding:20px;color:var(--coral);font-size:12px">Home error: ' + err.message + '</div>';
   }
-
-  // Floating add workout button
-  h += '<button onclick="cvShowWorkoutModal()" style="width:100%;padding:14px;border-radius:12px;border:2px dashed var(--teal);background:transparent;color:var(--teal);font-size:14px;font-weight:700;cursor:pointer;margin-top:8px;font-family:-apple-system,sans-serif">+ Log a Workout</button>';
-
-  el.innerHTML = h;
-  } catch(err) { console.error('renderCVHome crashed:', err); el.innerHTML = '<div style="padding:20px;color:var(--coral);font-size:12px">Error: ' + err.message + '</div>'; }
 }
 
 
@@ -4752,6 +4779,22 @@ function cvSaveOwnWorkout() {
   cvHideWorkoutModal();
   showCVCongrats(cvData.first, true);
   setTimeout(function() { cvSwitchTab('home'); }, 1500);
+}
+
+function cvLogHealthKey(btn) {
+  var key = btn.dataset.key;
+  var input = btn.previousElementSibling;
+  if (!input || !input.value.trim()) return;
+  var val = input.value.trim();
+  var now = new Date().toLocaleString('en-AU', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  var health = {};
+  try { health = JSON.parse(localStorage.getItem('cv_health_' + cvData.id) || '{}'); } catch(e) {}
+  if (!health[key]) health[key] = [];
+  health[key].push({ val: val, date: now });
+  if (health[key].length > 90) health[key] = health[key].slice(-90);
+  localStorage.setItem('cv_health_' + cvData.id, JSON.stringify(health));
+  input.value = '';
+  renderCVHome();
 }
 </script>
 </body>
