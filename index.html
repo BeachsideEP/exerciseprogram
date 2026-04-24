@@ -528,6 +528,70 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .cv-rest-countdown{font-size:18px;font-weight:700;color:var(--ocean-deep);font-variant-numeric:tabular-nums;min-width:36px;text-align:center}
 .cv-rest-countdown.done{color:var(--teal)}
 
+
+/* CLIENT APP TABS */
+.cv-tabs{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--sand-dark);display:flex;z-index:200;box-shadow:0 -2px 12px rgba(0,0,0,.08)}
+.cv-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px 10px;cursor:pointer;color:var(--text-light);font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;transition:color .15s;gap:3px;border:none;background:none}
+.cv-tab.active{color:var(--ocean)}
+.cv-tab svg{width:22px;height:22px}
+.cv-body{padding-bottom:72px}
+
+/* HOME SCREEN */
+.cv-home{padding:16px}
+.cv-greeting{font-size:20px;font-weight:700;color:var(--ocean-deep);margin-bottom:4px;font-family:Georgia,serif}
+.cv-greeting-sub{font-size:12px;color:var(--text-light);margin-bottom:16px}
+
+/* BADGES */
+.cv-badges{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px}
+.cv-badge{flex-shrink:0;background:#fff;border-radius:12px;padding:10px 14px;box-shadow:0 1px 6px rgba(28,43,53,.08);display:flex;align-items:center;gap:8px;min-width:120px}
+.cv-badge-icon{font-size:22px;line-height:1}
+.cv-badge-info{}
+.cv-badge-val{font-size:16px;font-weight:800;color:var(--ocean-deep);line-height:1}
+.cv-badge-lbl{font-size:9px;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+
+/* HEALTH METRICS */
+.cv-metrics-title{font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+.cv-metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.cv-metric-card{background:#fff;border-radius:10px;padding:12px 14px;box-shadow:0 1px 6px rgba(28,43,53,.07)}
+.cv-metric-label{font-size:9px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.cv-metric-val{font-size:20px;font-weight:800;color:var(--ocean-deep);line-height:1}
+.cv-metric-unit{font-size:10px;color:var(--text-light);margin-left:2px}
+.cv-metric-time{font-size:9px;color:var(--text-light);margin-top:3px}
+.cv-metric-input{display:flex;gap:6px;margin-top:8px}
+.cv-metric-input input{flex:1;padding:6px 8px;border:1.5px solid var(--sand-dark);border-radius:6px;font-size:12px;font-family:-apple-system,sans-serif;outline:none;background:var(--sand)}
+.cv-metric-input input:focus{border-color:var(--ocean);background:#fff}
+.cv-metric-btn{padding:6px 10px;border-radius:6px;border:none;background:var(--ocean);color:#fff;font-size:11px;font-weight:700;cursor:pointer}
+
+/* WORKOUT LOGGER */
+.cv-workout-logger{background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 6px rgba(28,43,53,.07)}
+.cv-workout-types{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.cv-wtype{padding:6px 14px;border-radius:20px;border:1.5px solid var(--sand-dark);background:#fff;font-size:11px;font-weight:600;color:var(--text-mid);cursor:pointer;transition:all .12s}
+.cv-wtype.sel{border-color:var(--teal);background:var(--teal);color:#fff}
+
+/* CONGRATS OVERLAY */
+.cv-congrats{position:fixed;inset:0;background:rgba(13,61,82,.92);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center}
+.cv-congrats-emoji{font-size:80px;margin-bottom:16px;animation:cv-bounce .6s ease}
+.cv-congrats-title{font-size:28px;font-weight:800;color:#fff;margin-bottom:8px;font-family:Georgia,serif}
+.cv-congrats-sub{font-size:14px;color:rgba(255,255,255,.7);margin-bottom:24px}
+.cv-congrats-btn{padding:14px 32px;border-radius:30px;border:none;background:#fff;color:var(--ocean-deep);font-size:14px;font-weight:800;cursor:pointer}
+@keyframes cv-bounce{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+
+/* CALENDAR */
+.cv-calendar{padding:16px}
+.cv-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:16px}
+.cv-cal-day-hdr{text-align:center;font-size:9px;font-weight:700;color:var(--text-light);padding:4px 0;text-transform:uppercase}
+.cv-cal-day{aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--text-mid);cursor:pointer;position:relative}
+.cv-cal-day.has-session{background:var(--ocean-pale);color:var(--ocean-deep)}
+.cv-cal-day.has-session::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--ocean)}
+.cv-cal-day.today{border:2px solid var(--ocean);color:var(--ocean);font-weight:800}
+.cv-cal-month{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cv-cal-month-title{font-size:16px;font-weight:700;color:var(--ocean-deep);font-family:Georgia,serif}
+.cv-cal-nav{background:none;border:none;font-size:18px;cursor:pointer;color:var(--ocean);padding:4px 8px}
+.cv-session-list{background:#fff;border-radius:10px;padding:12px 14px;box-shadow:0 1px 6px rgba(28,43,53,.07)}
+.cv-session-item{padding:8px 0;border-bottom:1px solid var(--sand-dark);font-size:11px;color:var(--text)}
+.cv-session-item:last-child{border-bottom:none}
+.cv-session-date{font-weight:700;color:var(--ocean-deep);margin-bottom:2px}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -567,8 +631,40 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <button id="cvBackBtn" onclick="closeClientDemo()" style="display:none;background:#f59e0b;color:#000;border:none;padding:5px 11px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">← Back to App</button>
     <button id="cvSignOutBtn" onclick="signOut()" style="background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);padding:5px 11px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">Sign Out</button>
   </div>
-  <div class="cv-body" id="cvBody"><div class="cv-empty"><div class="cv-empty-icon">&#9201;</div><p>Loading your program...</p></div></div>
-</div>
+  <!-- TAB CONTENT AREAS -->
+  <div id="cvTabHome" style="display:block">
+    <div class="cv-home" id="cvHomeContent">
+      <div class="cv-empty"><div class="cv-empty-icon">&#9201;</div><p>Loading...</p></div>
+    </div>
+  </div>
+  <div id="cvTabWorkouts" style="display:none">
+    <div class="cv-body" id="cvBody">
+      <div class="cv-empty"><div class="cv-empty-icon">&#9201;</div><p>Loading your program...</p></div>
+    </div>
+  </div>
+  <div id="cvTabCalendar" style="display:none">
+    <div class="cv-calendar" id="cvCalContent"></div>
+  </div>
+  <!-- BOTTOM TABS -->
+  <div class="cv-tabs">
+    <button class="cv-tab active" id="cvTabBtnHome" onclick="cvSwitchTab('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Home
+    </button>
+    <button class="cv-tab" id="cvTabBtnWorkouts" onclick="cvSwitchTab('workouts')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+      Workouts
+    </button>
+    <button class="cv-tab" id="cvTabBtnCalendar" onclick="cvSwitchTab('calendar')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Calendar
+    </button>
+  </div>
+
+
+
+
+</div><!-- /viewClient -->
 
 <div id="viewApp" style="display:none">
 
@@ -2460,8 +2556,6 @@ function renderCV() {
   h += '</div>';
 
   // ── Streak / adherence ──
-  h += streakBarHTML(prog);
-
   // ── Pre-session safety check ──
   h += '<div class="cv-session" id="cvSafetyPanel" style="margin-bottom:10px">';
   h += '<div class="cv-session-title">&#10084;&#65039; Pre-Session Check</div>';
@@ -4281,6 +4375,271 @@ function copyRLSSQL() {
   });
 }
 
+// ══════════════════════════════════════
+// CLIENT APP — TABS, HOME, HEALTH, WORKOUTS, CALENDAR
+// ══════════════════════════════════════
+
+var cvActiveTab = 'home';
+var cvCalMonth = new Date().getMonth();
+var cvCalYear = new Date().getFullYear();
+var cvHealthData = {}; // {weight:[], bp:[], bg:[], sleep:[], hr:[]}
+var cvOwnWorkouts = []; // [{date, type, duration, note}]
+
+function cvSwitchTab(tab) {
+  cvActiveTab = tab;
+  ['home','workouts','calendar'].forEach(function(t) {
+    var content = document.getElementById('cvTab' + t.charAt(0).toUpperCase() + t.slice(1));
+    var btn = document.getElementById('cvTabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (content) content.style.display = t === tab ? 'block' : 'none';
+    if (btn) btn.classList.toggle('active', t === tab);
+  });
+  if (tab === 'home') renderCVHome();
+  if (tab === 'workouts') renderCV();
+  if (tab === 'calendar') renderCVCalendar();
+}
+
+// ── HOME SCREEN ──
+function renderCVHome() {
+  var el = document.getElementById('cvHomeContent');
+  if (!el || !cvData) return;
+  var log = [];
+  (cvData.programs || []).forEach(function(p) { (p.log || []).forEach(function(e) { if (e.clientSubmitted) log.push(e); }); });
+  cvOwnWorkouts.forEach(function(w) { log.push({ date: w.date, clientSubmitted: true, ownWorkout: true }); });
+
+  // Stats
+  var totalSessions = log.length;
+  var now = new Date();
+  var weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
+  var thisWeek = log.filter(function(e) { return new Date(e.date) >= weekAgo; }).length;
+
+  // Streak
+  var streak = 0;
+  var sortedDates = log.map(function(e) { return e.date.split(',')[0]; })
+    .filter(function(d,i,a) { return a.indexOf(d) === i; })
+    .sort().reverse();
+  var checkDate = new Date();
+  for (var i = 0; i < sortedDates.length; i++) {
+    var d = new Date(sortedDates[i]);
+    var diff = Math.floor((checkDate - d) / 86400000);
+    if (diff <= 1) { streak++; checkDate = d; } else break;
+  }
+
+  // Latest health values
+  var health = JSON.parse(localStorage.getItem('cv_health_' + cvData.id) || '{}');
+  var latestWeight = (health.weight || []).slice(-1)[0];
+  var latestBP     = (health.bp     || []).slice(-1)[0];
+  var latestBG     = (health.bg     || []).slice(-1)[0];
+  var latestHR     = (health.hr     || []).slice(-1)[0];
+  var latestSleep  = (health.sleep  || []).slice(-1)[0];
+
+  var timeOfDay = new Date().getHours();
+  var greeting = timeOfDay < 12 ? 'Good morning' : timeOfDay < 17 ? 'Good afternoon' : 'Good evening';
+
+  var h = '<div class="cv-greeting">' + greeting + ', ' + cvData.first + '!</div>';
+  h += '<div class="cv-greeting-sub">Here is your health summary</div>';
+
+  // Badges
+  h += '<div class="cv-badges">';
+  h += '<div class="cv-badge"><div class="cv-badge-icon">&#127942;</div><div class="cv-badge-info"><div class="cv-badge-val">' + streak + '</div><div class="cv-badge-lbl">Day Streak</div></div></div>';
+  h += '<div class="cv-badge"><div class="cv-badge-icon">&#128170;</div><div class="cv-badge-info"><div class="cv-badge-val">' + totalSessions + '</div><div class="cv-badge-lbl">Total Sessions</div></div></div>';
+  h += '<div class="cv-badge"><div class="cv-badge-icon">&#128293;</div><div class="cv-badge-info"><div class="cv-badge-val">' + thisWeek + '</div><div class="cv-badge-lbl">This Week</div></div></div>';
+  h += '</div>';
+
+  // Health metrics
+  h += '<div class="cv-metrics-title">Health Tracking</div>';
+  h += '<div class="cv-metrics-grid">';
+
+  function metricCard(icon, label, entry, unit, inputId, placeholder, inputType) {
+    var val = entry ? entry.val : '-';
+    var time = entry ? entry.date : '';
+    return '<div class="cv-metric-card">' +
+      '<div class="cv-metric-label">' + icon + ' ' + label + '</div>' +
+      '<div><span class="cv-metric-val">' + val + '</span><span class="cv-metric-unit">' + unit + '</span></div>' +
+      (time ? '<div class="cv-metric-time">' + time + '</div>' : '') +
+      '<div class="cv-metric-input">' +
+        '<input id="' + inputId + '" type="' + inputType + '" placeholder="' + placeholder + '">' +
+        '<button class="cv-metric-btn" data-id="' + inputId + '" data-key="' + key + '" onclick="cvLogHealth(this.dataset.id,this.dataset.key)">+</button>' +
+      '</div></div>';
+  }
+
+  h += metricCard('&#9878;', 'Weight', latestWeight, 'kg', 'cv_h_weight', '70', 'number');
+  h += metricCard('&#10084;', 'Blood Pressure', latestBP, '', 'cv_h_bp', '120/80', 'text');
+  h += metricCard('&#128164;', 'Blood Glucose', latestBG, 'mmol/L', 'cv_h_bg', '5.0', 'number');
+  h += metricCard('&#9829;', 'Heart Rate', latestHR, 'bpm', 'cv_h_hr', '72', 'number');
+  h += metricCard('&#128308;', 'Sleep', latestSleep, 'hrs', 'cv_h_sleep', '8', 'number');
+
+  // Apple Health / Samsung Health note
+  h += '<div class="cv-metric-card" style="grid-column:1/-1;border:1.5px dashed var(--sand-dark)">' +
+    '<div class="cv-metric-label">&#128241; Sync from Health App</div>' +
+    '<div style="font-size:11px;color:var(--text-light);margin-top:4px;line-height:1.5">Tap a metric above to log manually. For automatic sync from Apple Health or Samsung Health, ask your clinician about our upcoming app integration.</div>' +
+    '</div>';
+
+  h += '</div>';
+
+  // Add own workout
+  h += '<div class="cv-metrics-title">Log Your Own Workout</div>';
+  h += renderOwnWorkoutLogger();
+
+  el.innerHTML = h;
+}
+
+function renderOwnWorkoutLogger() {
+  var types = ['Walking','Running','Cycling','Swimming','Yoga','Pilates','Weights','HIIT','Rowing','Other'];
+  var sel = cvOwnWorkoutType || '';
+  var h = '<div class="cv-workout-logger">';
+  h += '<div class="cv-workout-types">';
+  types.forEach(function(t) {
+    h += '<div class="cv-wtype' + (sel === t ? ' sel' : '') + '" data-type="' + t + '" onclick="cvSelectWorkoutType(this.dataset.type)">' + t + '</div>';
+  });
+  h += '</div>';
+  h += '<div style="display:flex;gap:8px;margin-bottom:8px">';
+  h += '<div class="cv-af" style="flex:1"><label style="font-size:9px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:3px">Duration (mins)</label>';
+  h += '<input id="cv_own_duration" type="number" min="1" max="300" placeholder="30" style="width:100%;padding:7px 8px;border:1.5px solid var(--sand-dark);border-radius:6px;font-size:13px;font-family:-apple-system,sans-serif;outline:none;background:var(--sand)"></div>';
+  h += '<div class="cv-af" style="flex:2"><label style="font-size:9px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:3px">Notes (optional)</label>';
+  h += '<input id="cv_own_note" type="text" placeholder="How did it feel?" style="width:100%;padding:7px 8px;border:1.5px solid var(--sand-dark);border-radius:6px;font-size:13px;font-family:-apple-system,sans-serif;outline:none;background:var(--sand)"></div>';
+  h += '</div>';
+  h += '<button class="cv-submit" onclick="cvLogOwnWorkout()" style="margin-top:0">Log Workout</button>';
+  h += '</div>';
+  return h;
+}
+
+var cvOwnWorkoutType = '';
+function cvSelectWorkoutType(t) {
+  cvOwnWorkoutType = t || event.target.dataset.type || '';
+  renderCVHome();
+  // Restore scroll position and inputs
+  setTimeout(function() {
+    var dur = document.getElementById('cv_own_duration');
+    if (dur) dur.focus();
+  }, 50);
+}
+
+function cvLogOwnWorkout() {
+  if (!cvOwnWorkoutType) { alert('Select a workout type first'); return; }
+  var dur = (document.getElementById('cv_own_duration') || {}).value || '';
+  var note = (document.getElementById('cv_own_note') || {}).value || '';
+  if (!dur) { alert('Enter duration'); return; }
+  var now = new Date().toLocaleString('en-AU', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  cvOwnWorkouts.push({ date: now, type: cvOwnWorkoutType, duration: dur, note: note });
+  // Save to localStorage
+  localStorage.setItem('cv_own_workouts_' + cvData.id, JSON.stringify(cvOwnWorkouts));
+  cvOwnWorkoutType = '';
+  showCVCongrats(cvOwnWorkoutType || cvData.first, true);
+}
+
+function cvLogHealth(inputId, metric) {
+  var el = document.getElementById(inputId);
+  if (!el || !el.value.trim()) return;
+  var val = el.value.trim();
+  var now = new Date().toLocaleString('en-AU', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  var health = JSON.parse(localStorage.getItem('cv_health_' + cvData.id) || '{}');
+  var key = metric === 'blood pressure' ? 'bp' : metric === 'blood glucose' ? 'bg' : metric === 'heart rate' ? 'hr' : metric;
+  if (!health[key]) health[key] = [];
+  health[key].push({ val: val, date: now });
+  // Keep last 90 days
+  if (health[key].length > 90) health[key] = health[key].slice(-90);
+  localStorage.setItem('cv_health_' + cvData.id, JSON.stringify(health));
+  el.value = '';
+  renderCVHome();
+}
+
+// ── CONGRATS OVERLAY ──
+function showCVCongrats(name, ownWorkout) {
+  var emojis = ['&#129305;','&#127881;','&#127942;','&#128170;','&#9889;'];
+  var emoji = emojis[Math.floor(Math.random() * emojis.length)];
+  var titles = ['High Five!', 'Crushed it!', 'Amazing work!', 'You legend!', 'Keep it up!'];
+  var title = titles[Math.floor(Math.random() * titles.length)];
+  var sub = ownWorkout ? 'Workout logged. Every session counts!' : 'Session submitted. Your clinician will be proud!';
+  var overlay = document.createElement('div');
+  overlay.className = 'cv-congrats';
+  overlay.id = 'cvCongratsOverlay';
+  overlay.innerHTML = '<div class="cv-congrats-emoji">' + emoji + '</div>' +
+    '<div class="cv-congrats-title">' + title + '</div>' +
+    '<div class="cv-congrats-sub">' + sub + '</div>' +
+    '<button class="cv-congrats-btn" onclick="cvCloseCongrats()">Thanks!</button>';
+  document.getElementById('viewClient').appendChild(overlay);
+}
+
+// ── CALENDAR ──
+function renderCVCalendar() {
+  var el = document.getElementById('cvCalContent');
+  if (!el || !cvData) return;
+
+  // Get all session dates
+  var sessionDates = {};
+  (cvData.programs || []).forEach(function(p) {
+    (p.log || []).forEach(function(e) {
+      if (e.clientSubmitted) {
+        var d = e.date.split(',')[0].trim();
+        sessionDates[d] = (sessionDates[d] || 0) + 1;
+      }
+    });
+  });
+  cvOwnWorkouts.forEach(function(w) {
+    var d = w.date.split(',')[0].trim();
+    sessionDates[d] = (sessionDates[d] || 0) + 1;
+  });
+
+  var monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var dayNames = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  var today = new Date();
+  var firstDay = new Date(cvCalYear, cvCalMonth, 1).getDay();
+  var daysInMonth = new Date(cvCalYear, cvCalMonth + 1, 0).getDate();
+
+  var h = '<div class="cv-cal-month">';
+  h += '<button class="cv-cal-nav" onclick="cvCalNav(-1)">&#8249;</button>';
+  h += '<div class="cv-cal-month-title">' + monthNames[cvCalMonth] + ' ' + cvCalYear + '</div>';
+  h += '<button class="cv-cal-nav" onclick="cvCalNav(1)">&#8250;</button>';
+  h += '</div>';
+  h += '<div class="cv-cal-grid">';
+  dayNames.forEach(function(d) { h += '<div class="cv-cal-day-hdr">' + d + '</div>'; });
+
+  for (var i = 0; i < firstDay; i++) h += '<div></div>';
+  for (var day = 1; day <= daysInMonth; day++) {
+    var dateStr = day + ' ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][cvCalMonth] + ' ' + cvCalYear;
+    var isToday = day === today.getDate() && cvCalMonth === today.getMonth() && cvCalYear === today.getFullYear();
+    var hasSess = !!sessionDates[dateStr];
+    h += '<div class="cv-cal-day' + (hasSess ? ' has-session' : '') + (isToday ? ' today' : '') + '">' + day + '</div>';
+  }
+  h += '</div>';
+
+  // Session list for this month
+  var monthSessions = [];
+  Object.keys(sessionDates).forEach(function(d) {
+    var parts = d.split(' ');
+    if (parts.length >= 3) {
+      var mIdx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(parts[1]);
+      if (mIdx === cvCalMonth && parseInt(parts[2]) === cvCalYear) {
+        monthSessions.push(d);
+      }
+    }
+  });
+  monthSessions.sort();
+
+  if (monthSessions.length) {
+    h += '<div class="cv-session-list">';
+    h += '<div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">' + monthSessions.length + ' sessions this month</div>';
+    monthSessions.forEach(function(d) {
+      h += '<div class="cv-session-item"><div class="cv-session-date">' + d + '</div>';
+      h += '<div style="color:var(--text-light)">' + sessionDates[d] + ' workout' + (sessionDates[d] > 1 ? 's' : '') + ' logged</div></div>';
+    });
+    h += '</div>';
+  } else {
+    h += '<div class="cv-empty" style="padding:24px"><div class="cv-empty-icon" style="font-size:30px">&#128197;</div><p>No sessions logged this month</p></div>';
+  }
+
+  el.innerHTML = h;
+}
+
+function cvCalNav(dir) {
+  cvCalMonth += dir;
+  if (cvCalMonth > 11) { cvCalMonth = 0; cvCalYear++; }
+  if (cvCalMonth < 0)  { cvCalMonth = 11; cvCalYear--; }
+  renderCVCalendar();
+}
+
+
+function cvCloseCongrats() { var el = document.getElementById('cvCongratsOverlay'); if (el) el.remove(); }
 </script>
 </body>
 </html>
