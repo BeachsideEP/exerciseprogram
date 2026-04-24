@@ -1688,12 +1688,15 @@ function selectClient() {
 function createClient() {
   const first = v('nc_first').trim(), last = v('nc_last').trim();
   if (!first) { toast('Enter a first name', 'err'); return; }
-  const cl = { id:'c_'+Date.now(), first, last, dob:v('nc_dob'), clinician:v('nc_clin'), goal:v('nc_goal'), review:v('nc_review'), phone:v('nc_phone'), programs:[mkProg('Home Exercise Program')] };
+  const email = v('nc_email') || '';
+  const cl = { id:'c_'+Date.now(), first, last, email, dob:v('nc_dob'), clinician:v('nc_clin'), goal:v('nc_goal'), review:v('nc_review'), phone:v('nc_phone'), programs:[mkProg('Home Exercise Program')] };
   clients.unshift(cl); saveDB();
+  // Push to Supabase immediately so it persists across all devices
+  pushClientToCloud(cl);
   currentClientId = cl.id; currentProgId = cl.programs[0].id;
   renderClientDropdown(); document.getElementById('clientSel').value = cl.id;
   selectClient(); closeM('newClientM');
-  toast(`${first} ${last} created`, 'ok');
+  toast(first + ' ' + last + ' created', 'ok');
 }
 
 function openEditClient() {
@@ -4403,18 +4406,8 @@ function cvSwitchTab(tab) {
 // ── HOME SCREEN ──
 function renderCVHome() {
   var el = document.getElementById('cvHomeContent');
-  if (!el) { setTimeout(renderCVHome, 100); return; }
-  if (!cvData) {
-    el.innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#9201;</div><p>Loading...</p><p style="font-size:10px;color:red">DEBUG: cvData is null</p></div>';
-    return;
-  }
-  // cvData exists - render home
-  el.innerHTML = '<div style="padding:16px"><p style="color:green;font-weight:700">DEBUG: cvData loaded for ' + cvData.first + '</p></div>';
-  setTimeout(function() { renderCVHomeReal(); }, 0);
-}
-function renderCVHomeReal() {
-  var el = document.getElementById('cvHomeContent');
-  if (!el || !cvData) return;
+  if (!el) { setTimeout(renderCVHome, 200); return; }
+  if (!cvData) { el.innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#9201;</div><p>Loading your program...</p></div>'; setTimeout(renderCVHome, 500); return; }
   var log = [];
   (cvData.programs || []).forEach(function(p) { (p.log || []).forEach(function(e) { if (e.clientSubmitted) log.push(e); }); });
   cvOwnWorkouts.forEach(function(w) { log.push({ date: w.date, clientSubmitted: true, ownWorkout: true }); });
@@ -4507,6 +4500,7 @@ function renderCVHomeReal() {
 
   el.innerHTML = h;
 }
+
 
 function renderOwnWorkoutLogger() {
   var types = ['Walking','Running','Cycling','Swimming','Yoga','Pilates','Weights','HIIT','Rowing','Other'];
