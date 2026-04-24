@@ -2456,7 +2456,7 @@ function onAuthSuccess(user) {
 
 // ── SUPABASE SYNC ──
 async function pushClientToCloud(cl) {
-  if (userRole !== 'practitioner') return;
+  if (userRole !== 'practitioner' && document.getElementById('viewApp').style.display === 'none') return;
   setSyncStatus('busy');
   try {
     const r = await fetch(SUPA_URL + '/rest/v1/clients', {
@@ -2522,7 +2522,8 @@ async function loadClientView(user) {
     const match = allClients.find(function(c) { return (c.email || '').toLowerCase() === email; });
     if (!match) {
       const found = allClients.map(function(c) { return c.first + ' ' + c.last + ' (' + (c.email||'no email') + ')'; }).join(', ');
-      el.innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#127945;</div>' +
+      var noMatchEl = document.getElementById('cvHomeContent') || document.getElementById('cvBody');
+      if (noMatchEl) noMatchEl.innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#127945;</div>' +
         '<p style="font-weight:600;margin-bottom:8px">No program assigned yet.</p>' +
         '<p style="font-size:11px;color:var(--text-light);margin-bottom:4px">Logged in as: ' + email + '</p>' +
         '<p style="font-size:11px;color:var(--text-light)">Clients in DB: ' + (found || 'none') + '</p>' +
@@ -2533,7 +2534,8 @@ async function loadClientView(user) {
     cvOwnWorkouts = JSON.parse(localStorage.getItem('cv_own_workouts_' + match.id) || '[]');
     cvSwitchTab('home');
   } catch (e) {
-    el.innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#9888;</div><p>Could not load: ' + e.message + '</p></div>';
+    var errEl = document.getElementById('cvHomeContent') || document.getElementById('cvBody');
+    if (errEl) errEl.innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#9888;</div><p>Could not load: ' + e.message + '</p></div>';
   }
 }
 
@@ -4408,6 +4410,7 @@ function renderCVHome() {
   var el = document.getElementById('cvHomeContent');
   if (!el) { setTimeout(renderCVHome, 200); return; }
   if (!cvData) { el.innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#9201;</div><p>Loading your program...</p></div>'; setTimeout(renderCVHome, 500); return; }
+  try {
   var log = [];
   (cvData.programs || []).forEach(function(p) { (p.log || []).forEach(function(e) { if (e.clientSubmitted) log.push(e); }); });
   cvOwnWorkouts.forEach(function(w) { log.push({ date: w.date, clientSubmitted: true, ownWorkout: true }); });
@@ -4499,6 +4502,7 @@ function renderCVHome() {
   h += '<button onclick="cvShowWorkoutModal()" style="width:100%;padding:14px;border-radius:12px;border:2px dashed var(--teal);background:transparent;color:var(--teal);font-size:14px;font-weight:700;cursor:pointer;margin-top:8px;font-family:-apple-system,sans-serif">+ Log a Workout</button>';
 
   el.innerHTML = h;
+  } catch(err) { console.error('renderCVHome crashed:', err); el.innerHTML = '<div style="padding:20px;color:var(--coral);font-size:12px">Error: ' + err.message + '</div>'; }
 }
 
 
