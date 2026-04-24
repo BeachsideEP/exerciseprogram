@@ -1609,9 +1609,9 @@ function openEditClient() {
 function saveClientEdit() {
   const cl = getClient(); if (!cl) return;
   cl.first=v('ec_first'); cl.last=v('ec_last'); cl.dob=v('ec_dob');
-  cl.clinician=v('ec_clin'); cl.goal=v('ec_goal'); cl.review=v('ec_review'); cl.phone=v('ec_phone');
-  saveDB(); renderClientDropdown(); document.getElementById('clientSel').value = cl.id;
-  closeM('editClientM'); updatePreview(); toast('Client updated','ok');
+  cl.clinician=v('ec_clin'); cl.goal=v('ec_goal'); cl.review=v('ec_review'); cl.phone=v('ec_phone'); cl.email=v('ec_email')||'';
+  saveDB(); pushClientToCloud(cl); renderClientDropdown(); document.getElementById('clientSel').value = cl.id;
+  closeM('editClientM'); updatePreview(); toast('Client updated ✓','ok');
 }
 
 function deleteClient() {
