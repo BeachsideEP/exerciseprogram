@@ -2316,10 +2316,15 @@ async function loadClientView(user) {
     if (!r.ok) throw new Error('Could not load data');
     const rows = await r.json();
     const email = (user.email || '').toLowerCase();
-    const match = rows.map(function(row) { return row.data; }).filter(Boolean)
-      .find(function(c) { return (c.email || '').toLowerCase() === email; });
+    const allClients = rows.map(function(row) { return row.data; }).filter(Boolean);
+    const match = allClients.find(function(c) { return (c.email || '').toLowerCase() === email; });
     if (!match) {
-      el.innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#127945;</div><p style="font-weight:600;margin-bottom:8px">No program assigned yet.</p><p style="font-size:12px;color:var(--text-light)">Your clinician will set up your program soon. Check back after your next appointment.</p></div>';
+      const found = allClients.map(function(c) { return c.first + ' ' + c.last + ' (' + (c.email||'no email') + ')'; }).join(', ');
+      el.innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#127945;</div>' +
+        '<p style="font-weight:600;margin-bottom:8px">No program assigned yet.</p>' +
+        '<p style="font-size:11px;color:var(--text-light);margin-bottom:4px">Logged in as: ' + email + '</p>' +
+        '<p style="font-size:11px;color:var(--text-light)">Clients in DB: ' + (found || 'none') + '</p>' +
+        '</div>';
       return;
     }
     cvData = match; cvState = {}; cvFeeling = ''; cvProgIdx = 0; cvSafetyDone = false; cvComment = '';
