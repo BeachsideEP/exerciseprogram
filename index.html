@@ -1671,18 +1671,17 @@ async function pullLibraryFromCloud() {
   } catch(e) {}
 }
 function saveDB() {
+  // Stamp current client with local edit time BEFORE saving
+  var cl = getClient();
+  if (cl) cl._localUpdatedAt = new Date().toISOString();
   localStorage.setItem(DB_KEY, JSON.stringify(clients));
   showAutosave();
-  // Debounced cloud push — waits 1.5s after last edit before pushing
+  // Debounced cloud push — waits 2s after last edit before pushing
   if (typeof saveDB._timer !== 'undefined') clearTimeout(saveDB._timer);
   saveDB._timer = setTimeout(function() {
-    var cl = getClient();
-    if (cl && userRole === 'practitioner') {
-      cl._localUpdatedAt = new Date().toISOString();
-      localStorage.setItem(DB_KEY, JSON.stringify(clients)); // re-save with timestamp
-      pushClientToCloud(cl);
-    }
-  }, 1500);
+    var cl2 = getClient();
+    if (cl2 && userRole === 'practitioner') pushClientToCloud(cl2);
+  }, 2000);
 }
 function showAutosave() { const el=document.getElementById('autosave'); if(!el)return; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),1800); }
 function saveCustomEx() {
@@ -1863,7 +1862,10 @@ function renderLib(list) {
 // DRAWER
 // ══════════════════════════════════════
 function openDrawer(id) {
-  const ex = getAllExercises().find(e => String(e.id) === String(id)); if (!ex) return;
+  var ex = getAllExercises().find(function(e) { return String(e.id) === String(id); }); if (!ex) return;
+  // Check if there's a custom override with a videoUrl for this exercise
+  var override = customExercises.find(function(e) { return e.name === ex.name && e.videoUrl; });
+  if (override && override.videoUrl) ex = Object.assign({}, ex, { videoUrl: override.videoUrl });
   document.getElementById('drThumb').innerHTML = getIllus(ex.name, ex.cat);
   document.getElementById('drNm').textContent = ex.name;
   document.getElementById('drCat').textContent = ex.cat;
@@ -1876,9 +1878,9 @@ function openDrawer(id) {
   // Show YouTube video if available
   var drVid = document.getElementById('drVideoWrap');
   if (drVid) {
-    // Re-fetch ex from library to get latest videoUrl
-  var freshEx = getAllExercises().find(function(le) { return String(le.id) === String(id); });
-  var vidUrl = (freshEx && freshEx.videoUrl) || ex.videoUrl || '';
+    // Look for videoUrl: check override by name first (overrides have different id)
+    var vidOverride = customExercises.find(function(e) { return e.name === ex.name && e.videoUrl; });
+    var vidUrl = (vidOverride && vidOverride.videoUrl) || ex.videoUrl || '';
     if (vidUrl && ytVideoId(vidUrl)) {
       drVid.style.display = '';
       drVid.innerHTML = ytBtnHTML(vidUrl, '&#9654; Watch Exercise Video on YouTube');
@@ -2085,13 +2087,21 @@ function saveExEdit() {
     delete customPhotos[oldName];
     saveCustomPhotos();
   }
-  // If it's a built-in exercise, we need to store overrides
+  // If it's a built-in exercise, update or create an override in customExercises
   const isCustom = customExercises.some(e => String(e.id) === String(id));
   if (!isCustom) {
-    // Store as override: create a custom entry that overrides the built-in
-    const override = {...ex, id: 'override_'+id, videoUrl: ex.videoUrl || ''};
-    customExercises.push(override);
-    // Also store the photo override mapping
+    const overrideId = 'override_' + id;
+    const existingIdx = customExercises.findIndex(e => e.id === overrideId);
+    const override = Object.assign({}, ex, { id: overrideId, videoUrl: ex.videoUrl || '' });
+    if (existingIdx !== -1) {
+      customExercises[existingIdx] = override; // update existing, don't duplicate
+    } else {
+      customExercises.push(override);
+    }
+  } else {
+    // It's already a custom exercise — update it in place
+    const idx2 = customExercises.findIndex(e => String(e.id) === String(id));
+    if (idx2 !== -1) customExercises[idx2] = Object.assign({}, customExercises[idx2], ex);
   }
   saveCustomEx();
   renderLib(); renderCatChips();
@@ -2579,8 +2589,19 @@ async function syncClients() {
       localStorage.setItem('bep_v6', JSON.stringify(merged));
       clients = merged;
       renderClientDropdown();
-      if (currentClientId && clients.find(function(c) { return c.id === currentClientId; })) {
-        renderProgTabs(); loadProg(); updatePreview();
+      // Only re-render current client if cloud gave us a NEWER version
+      // (i.e. we didn't keep the local version in the merge)
+      if (currentClientId) {
+        var mergedCl = merged.find(function(c) { return c.id === currentClientId; });
+        var localCl2 = local.find(function(c) { return c.id === currentClientId; });
+        // If local timestamp >= cloud timestamp, we kept local — don't re-render
+        var cloudRow = rows.find(function(row) { return row.data && row.data.id === currentClientId; });
+        var cloudT = cloudRow ? new Date(cloudRow.updated_at || 0).getTime() : 0;
+        var localT = localCl2 ? new Date(localCl2._localUpdatedAt || 0).getTime() : 0;
+        var cloudWon = cloudT > localT;
+        if (cloudWon && mergedCl) {
+          renderProgTabs(); loadProg(); updatePreview();
+        }
       }
     }
     setSyncStatus('ok');
