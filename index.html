@@ -2058,7 +2058,7 @@ function clkSearch() {
     const q = document.getElementById('clkSrch').value.trim(); if (q.length < 2) return;
     const key = localStorage.getItem('bep_clk_key'), shard = localStorage.getItem('bep_clk_shard') || 'au1';
     document.getElementById('clkResults').innerHTML = '<div style="font-size:11px;color:var(--text-light);padding:5px">Searching...</div>';
-    fetch(clkApiUrl(shard, '/v1/patients?q=' + encodeURIComponent(q) + '&per_page=10'), {
+    fetch(clkApiUrl(shard, '/v1/patients?q=' + encodeURIComponent(q) + '&per_page=20&sort=last_name&order=asc'), {
       method: 'GET',
       headers: {
         'Authorization': 'Basic ' + btoa(key + ':'),
@@ -2068,7 +2068,8 @@ function clkSearch() {
     }).then(function(r) { return r.json(); }).then(function(data) {
       const pts = data.patients || [];
       if (!pts.length) {
-        document.getElementById('clkResults').innerHTML = '<div style="font-size:11px;color:var(--text-light);padding:5px">No patients found</div>';
+        const rawMsg = JSON.stringify(data).substring(0, 200);
+        document.getElementById('clkResults').innerHTML = '<div style="font-size:11px;color:var(--text-light);padding:5px">No patients found. Response: ' + rawMsg + '</div>';
         return;
       }
       document.getElementById('clkResults').innerHTML = pts.map(function(pt) {
