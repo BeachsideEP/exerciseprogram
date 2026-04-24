@@ -2705,6 +2705,7 @@ function renderCV() {
   h += '<textarea id="cvSessionComment" placeholder="How are you going overall? Any pain, concerns or questions for your clinician?" style="width:100%;padding:9px 11px;border:1.5px solid var(--sand-dark);border-radius:7px;font-size:13px;font-family:-apple-system,sans-serif;color:var(--text);background:var(--sand);outline:none;resize:none;height:80px;line-height:1.5" oninput="cvComment=this.value">' + (cvComment||'') + '</textarea>';
   h += '</div>';
   h += '<button class="cv-submit" onclick="cvSubmit()">&#10003; Submit Session Log</button>';
+  h += '<button onclick="cvGoHome()" style="width:100%;padding:12px;border-radius:10px;border:none;background:none;color:var(--text-light);font-size:13px;font-weight:600;cursor:pointer;margin-top:6px">&#8592; Back to Home</button>';
   h += '</div>';
 
   document.getElementById('cvBody').innerHTML = h;
@@ -4405,6 +4406,9 @@ function cvSwitchTab(tab) {
     if (content) content.style.display = t === tab ? 'block' : 'none';
     if (btn) btn.classList.toggle('active', t === tab);
   });
+  // Remove congrats overlay if present
+  var congrats = document.getElementById('cvCongratsOverlay');
+  if (congrats) congrats.remove();
   if (tab === 'home') renderCVHome();
   if (tab === 'workouts') renderCV();
   if (tab === 'calendar') renderCVCalendar();
