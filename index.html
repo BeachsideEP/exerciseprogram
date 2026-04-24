@@ -1670,7 +1670,20 @@ async function pullLibraryFromCloud() {
     }
   } catch(e) {}
 }
-function saveDB() { localStorage.setItem(DB_KEY, JSON.stringify(clients)); showAutosave(); }
+function saveDB() {
+  localStorage.setItem(DB_KEY, JSON.stringify(clients));
+  showAutosave();
+  // Debounced cloud push — waits 1.5s after last edit before pushing
+  if (typeof saveDB._timer !== 'undefined') clearTimeout(saveDB._timer);
+  saveDB._timer = setTimeout(function() {
+    var cl = getClient();
+    if (cl && userRole === 'practitioner') {
+      cl._localUpdatedAt = new Date().toISOString();
+      localStorage.setItem(DB_KEY, JSON.stringify(clients)); // re-save with timestamp
+      pushClientToCloud(cl);
+    }
+  }, 1500);
+}
 function showAutosave() { const el=document.getElementById('autosave'); if(!el)return; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),1800); }
 function saveCustomEx() {
   localStorage.setItem(CUSTOM_EX_KEY, JSON.stringify(customExercises));
@@ -2504,12 +2517,15 @@ async function pushClientToCloud(cl) {
   if (userRole !== 'practitioner' && document.getElementById('viewApp').style.display === 'none') return;
   setSyncStatus('busy');
   try {
+    const now = new Date().toISOString();
+    cl._localUpdatedAt = now; // stamp so syncClients knows this version was pushed
     const r = await fetch(SUPA_URL + '/rest/v1/clients', {
       method: 'POST',
       headers: supaHeaders(),
-      body: JSON.stringify({ id: cl.id, data: cl, updated_at: new Date().toISOString() })
+      body: JSON.stringify({ id: cl.id, data: cl, updated_at: now })
     });
     setSyncStatus(r.ok ? 'ok' : 'err');
+    if (r.ok) localStorage.setItem(DB_KEY, JSON.stringify(clients));
   } catch (e) { setSyncStatus('err'); }
 }
 
@@ -2532,10 +2548,34 @@ async function syncClients() {
     if (!r.ok) { setSyncStatus('err'); return; }
     const rows = await r.json();
     if (rows && rows.length) {
-      const cloud = rows.map(function(row) { return row.data; }).filter(Boolean);
-      const cloudIds = new Set(cloud.map(function(c) { return c.id; }));
       const local = JSON.parse(localStorage.getItem('bep_v6') || '[]');
-      const merged = cloud.concat(local.filter(function(c) { return !cloudIds.has(c.id); }));
+      const localMap = {};
+      local.forEach(function(c) { localMap[c.id] = c; });
+
+      const merged = rows.map(function(row) {
+        var cloudCl = row.data;
+        if (!cloudCl) return null;
+        var localCl = localMap[cloudCl.id];
+        if (!localCl) return cloudCl; // new from cloud, use it
+
+        // Compare timestamps — keep whichever is newer
+        var cloudTime = new Date(row.updated_at || 0).getTime();
+        var localTime = new Date(localCl._localUpdatedAt || 0).getTime();
+        if (localTime > cloudTime) {
+          // Local is newer — push it to cloud in background, keep local
+          pushClientToCloud(localCl);
+          return localCl;
+        }
+        return cloudCl; // cloud is newer or equal
+      }).filter(Boolean);
+
+      // Add any local-only clients not in cloud
+      rows.forEach(function(row) { if (row.data) delete localMap[row.data.id]; });
+      Object.values(localMap).forEach(function(c) {
+        merged.push(c);
+        pushClientToCloud(c); // push local-only to cloud
+      });
+
       localStorage.setItem('bep_v6', JSON.stringify(merged));
       clients = merged;
       renderClientDropdown();
