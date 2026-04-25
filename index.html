@@ -5586,6 +5586,14 @@ function renderCVCalendar() {
 
   var sessionsByDate = {};
 
+  // Merge cvOwnWorkouts with cvData.ownWorkouts to catch all workouts
+  var allOwnWorkouts = [];
+  var seen = {};
+  (cvData.ownWorkouts || []).concat(cvOwnWorkouts || []).forEach(function(w) {
+    var key = (w.date || '') + (w.type || '');
+    if (!seen[key]) { seen[key] = true; allOwnWorkouts.push(w); }
+  });
+
   (cvData.programs || []).forEach(function(p) {
     (p.log || []).forEach(function(e) {
       if (!e.clientSubmitted) return;
@@ -5607,7 +5615,7 @@ function renderCVCalendar() {
     });
   });
 
-  (cvOwnWorkouts || []).forEach(function(w) {
+  allOwnWorkouts.forEach(function(w) {
     var d = (w.date||'').split(',')[0].trim();
     if (!d) return;
     if (!sessionsByDate[d]) sessionsByDate[d] = [];
@@ -5627,17 +5635,7 @@ function renderCVCalendar() {
     days.push(d);
   }
 
-  // Debug: show what data we have
-  var debugInfo = 'cvOwnWorkouts: ' + (cvOwnWorkouts ? cvOwnWorkouts.length : 'null') + ' entries. ';
-  if (cvOwnWorkouts && cvOwnWorkouts.length) {
-    debugInfo += 'Last: ' + JSON.stringify(cvOwnWorkouts[cvOwnWorkouts.length-1]).slice(0,100);
-  }
-  var progLogCount = 0;
-  (cvData.programs || []).forEach(function(p) { progLogCount += (p.log||[]).filter(function(e){return e.clientSubmitted;}).length; });
-  debugInfo += ' | Program logs (clientSubmitted): ' + progLogCount;
-
-  var h = '<div style="background:#162026;border-radius:8px;padding:10px 12px;margin:8px 16px;font-size:10px;color:#8B949E;word-break:break-all">' + debugInfo + '</div>';
-  h += '<div style="padding:0 0 80px">';
+  var h = '<div style="padding:0 0 80px">';
 
   days.forEach(function(d) {
     var dd = d.getDate(), mm = d.getMonth(), yyyy = d.getFullYear();
@@ -5694,7 +5692,7 @@ function renderCVCalendar() {
     }
   });
 
-  h += '</div></div>';
+  h += '</div>';
   el.innerHTML = h;
 
   setTimeout(function() {
