@@ -3292,7 +3292,10 @@ async function loadClientView(user) {
       var storedHealth = localStorage.getItem('cv_health_' + match.id);
       if (storedHealth) cvHealthData = JSON.parse(storedHealth);
     } catch(e) {}
-    cvOwnWorkouts = JSON.parse(localStorage.getItem('cv_own_workouts_' + match.id) || '[]');
+    // Load own workouts - prefer cvData.ownWorkouts (from Supabase), fall back to localStorage
+    var storedWorkouts = [];
+    try { storedWorkouts = JSON.parse(localStorage.getItem('cv_own_workouts_' + match.id) || '[]'); } catch(e) {}
+    cvOwnWorkouts = (match.ownWorkouts && match.ownWorkouts.length) ? match.ownWorkouts : storedWorkouts;
     cvSwitchTab('home');
   } catch (e) {
     var errEl = document.getElementById('cvHomeContent') || document.getElementById('cvBody');
@@ -6291,6 +6294,8 @@ async function cvSaveWkt() {
     });
   } catch(e) {}
 
+  // Update cvOwnWorkouts so calendar sees it immediately
+  cvOwnWorkouts = cvData.ownWorkouts || [];
   closeCVWkt();
   showCVCongrats(cvData.first, true);
 }
@@ -6513,6 +6518,9 @@ async function cvSubmitCustomWorkout() {
       body: JSON.stringify({ id: cvData.id, data: cvData, updated_at: new Date().toISOString() })
     });
   } catch(e) {}
+
+  // Update cvOwnWorkouts so calendar sees the new workout immediately
+  cvOwnWorkouts = cvData.ownWorkouts || [];
 
   // Reset and show congrats
   cvCustomWorkout = false;
