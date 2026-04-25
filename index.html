@@ -3121,7 +3121,10 @@ function renderCV() {
 function cvToggle(i) { if (!cvState[i]) cvState[i] = {}; cvState[i].open = !cvState[i].open; renderCV(); }
 function cvAdjSets(exIdx, delta) {
   if (!cvState[exIdx]) cvState[exIdx] = {};
-  var ex = (cvData.programs[cvProgIdx] || {exercises:[]}).exercises[exIdx] || {};
+  // Get exercise from custom list or program
+  var ex = cvCustomWorkout
+    ? (cvCustomExercises[exIdx] || {})
+    : ((cvData.programs[cvProgIdx] || {exercises:[]}).exercises[exIdx] || {});
   var current = (cvState[exIdx].sessionSets != null) ? cvState[exIdx].sessionSets : (parseInt(ex.sets) || 3);
   current = Math.max(1, Math.min(20, current + delta));
   cvState[exIdx].sessionSets = current;
@@ -5835,12 +5838,12 @@ function renderCVCustomWorkout() {
         // Set +/- controls
         h += '<div class="cv-set-ctrl">';
         h += '<button class="cv-set-ctrl-btn" onclick="cvAdjSets(' + i + ',-1)">&#8722;</button>';
-        h += '<span class="cv-set-ctrl-label">' + sessionSets + ' set' + (sessionSets !== 1 ? 's' : '') + '</span>';
+        h += '<span class="cv-set-ctrl-label">' + totalSessionSets + ' set' + (totalSessionSets !== 1 ? 's' : '') + '</span>';
         h += '<button class="cv-set-ctrl-btn" onclick="cvAdjSets(' + i + ',1)">+</button>';
         h += '</div>';
         h += '<div style="font-size:10px;color:var(--text-light);margin-bottom:8px;text-align:center">Fill in what you did, then tap &#10003; to mark each set complete</div>';
         h += '<table class="cv-set-table"><thead><tr><th>Set</th><th>Reps done</th><th>Weight used</th><th>&#10003; Done</th></tr></thead><tbody>';
-        for (var s = 0; s < totalSets; s++) {
+        for (var s = 0; s < totalSessionSets; s++) {
           var setDone = st.sets && st.sets[s];
           var setReps = (st.setReps && st.setReps[s]) || '';
           var setLoad = (st.setLoads && st.setLoads[s]) || '';
@@ -6004,7 +6007,8 @@ async function cvSubmitCustomWorkout() {
 // ════════════════════════════════════════════════════
 function toggleSuperset(uid) {
   var p = getProg(); if (!p) return;
-  var ex = p.exercises.find(function(e) { return e.uid === uid; });
+  // uid may come in as string from onclick but stored as number - compare both
+  var ex = p.exercises.find(function(e) { return String(e.uid) === String(uid); });
   if (!ex) return;
   ex.superset = !ex.superset;
   saveDB();
