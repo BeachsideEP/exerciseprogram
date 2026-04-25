@@ -943,7 +943,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   border: 1px solid #1F2A33 !important;
   box-shadow: none !important;
 }
-#viewClient .cv-prog-title { color: #2FD4F5 !important; }
+#viewClient .cv-prog-title { color: #2FD4F5 !important; font-size: 20px !important; font-weight: 800 !important; letter-spacing: -0.01em !important; }
 #viewClient .cv-prog-meta { color: #8B949E !important; }
 #viewClient .cv-freq-badge {
   background: rgba(47,212,245,.12) !important;
@@ -993,6 +993,17 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 
 /* Calendar */
 #viewClient .cv-calendar { background: var(--cv-bg) !important; color: var(--cv-text) !important; }
+#viewClient .cv-calendar * { color: inherit !important; }
+#viewClient .cv-calendar [style*="color:var(--text"] { color: var(--cv-text) !important; }
+#viewClient .cv-calendar [style*="color:#"] { color: var(--cv-text-2) !important; }
+#viewClient .cv-calendar [style*="background:#fff"] { background: var(--cv-card) !important; }
+#viewClient .cv-calendar [style*="border-bottom"] { border-color: var(--cv-border) !important; }
+
+
+/* Calendar dark theme */
+#viewClient .cv-calendar { color: var(--cv-text) !important; }
+#viewClient .cv-cal-day-header { color: var(--cv-text) !important; }
+#viewClient .cv-cal-month { color: var(--cv-accent) !important; border-color: var(--cv-border) !important; }
 
 /* Announce box */
 #viewClient .announce-box {
@@ -1013,7 +1024,15 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   background: var(--cv-input-bg) !important;
   border-color: var(--cv-input-border) !important;
   color: var(--cv-text) !important;
+  /* White dropdown arrow */
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23FFFFFF' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 10px center !important;
+  padding-right: 30px !important;
 }
+#viewClient .cv-prog-sel span { color: #8B949E !important; }
 
 /* Superset group */
 #viewClient .cv-superset-group { border-color: var(--cv-accent) !important; }
@@ -5337,18 +5356,20 @@ function renderCVHome() {
       '</button>';
     h += '</div>';
 
-    h += '</div>';
-    // ── Announcements ──
+    // ── Announcements (inside clinic card, at the bottom) ──
     if (window._announcements && window._announcements.length) {
+      h += '<div style="margin-top:14px;padding-top:14px;border-top:1px solid #1F2A33">';
       window._announcements.forEach(function(ann) {
-        h += '<div class="announce-box">';
+        h += '<div class="announce-box" style="margin-bottom:8px">';
         h += '<div class="announce-hdr"><span class="announce-icon">&#128226;</span>';
         h += '<span class="announce-title">From Beachside EP</span></div>';
         h += '<div class="announce-body">' + ann.text.replace(/</g,'&lt;') + '</div>';
         h += '<div class="announce-date">' + ann.date + '</div>';
         h += '</div>';
       });
+      h += '</div>';
     }
+    h += '</div>';
 
     el.innerHTML = h;
     // Apply dark theme to dynamically generated cards
