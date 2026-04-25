@@ -6631,15 +6631,18 @@ function openHealthReview() {
     } catch(e) {}
 
     // Also pull from cvData.outcomes if available (synced from Supabase)
-    var metricMap = {
-      'Weight (kg)': 'weight',
-      'Blood Pressure': 'bp',
-      'Blood Glucose (mmol/L)': 'bg',
-      'Heart Rate (bpm)': 'hr',
-      'Sleep (hrs)': 'sleep'
-    };
+    // Fuzzy match outcome names to health keys
+    function outcomeToKey(name) {
+      var n = (name || '').toLowerCase();
+      if (n.includes('weight')) return 'weight';
+      if (n.includes('blood pressure') || n.includes('bp')) return 'bp';
+      if (n.includes('glucose') || n.includes('bgl') || n.includes('blood g')) return 'bg';
+      if (n.includes('heart rate') || n.includes('hr') || n.includes('pulse')) return 'hr';
+      if (n.includes('sleep')) return 'sleep';
+      return null;
+    }
     (cvData.outcomes || []).forEach(function(om) {
-      var key = metricMap[om.name];
+      var key = outcomeToKey(om.name);
       if (key && om.entries && om.entries.length) {
         cvHealthData = cvHealthData || {};
         if (!cvHealthData[key]) cvHealthData[key] = [];
@@ -6651,6 +6654,27 @@ function openHealthReview() {
       }
     });
   }
+
+  // Also pull from safetyLog (pre-session checks have BP, BGL, HR, VAS)
+  var safetyKeyMap = { bpS: 'bp', bgl: 'bg', hr: 'hr', vas: 'vas' };
+  (cvData.safetyLog || []).forEach(function(entry) {
+    var d = entry.date ? entry.date.split(',')[0] : '';
+    if (entry.bp && entry.bpS) {
+      if (!cvHealthData.bp) cvHealthData.bp = [];
+      var exists = cvHealthData.bp.some(function(h) { return h.date === d && h.val === entry.bp; });
+      if (!exists) cvHealthData.bp.push({ val: entry.bp, date: d });
+    }
+    if (entry.bgl) {
+      if (!cvHealthData.bg) cvHealthData.bg = [];
+      var exists2 = cvHealthData.bg.some(function(h) { return h.date === d && h.val === String(entry.bgl); });
+      if (!exists2) cvHealthData.bg.push({ val: String(entry.bgl), date: d });
+    }
+    if (entry.hr) {
+      if (!cvHealthData.hr) cvHealthData.hr = [];
+      var exists3 = cvHealthData.hr.some(function(h) { return h.date === d && h.val === String(entry.hr); });
+      if (!exists3) cvHealthData.hr.push({ val: String(entry.hr), date: d });
+    }
+  });
 
   el.classList.add('open');
   renderHealthChart();
