@@ -3739,11 +3739,14 @@ async function cvSubmit() {
         const myProg = cvData.programs[cvProgIdx];
         if (myProg && fresh.programs && fresh.programs[cvProgIdx]) {
           const freshProg = fresh.programs[cvProgIdx];
-          // Append new log entries
+          // Append new log entries - merge by finding entries not already in fresh
           if (!freshProg.log) freshProg.log = [];
           const myLog = myProg.log || [];
-          const freshLogLen = freshProg.log.length;
-          freshProg.log = freshProg.log.concat(myLog.slice(freshLogLen));
+          myLog.forEach(function(entry) {
+            // Add if not already in freshProg.log (match by date+text)
+            var exists = freshProg.log.some(function(fe) { return fe.date === entry.date && fe.text === entry.text; });
+            if (!exists) freshProg.log.push(entry);
+          });
           // Copy exercise progress (lastReps, lastLoad, substitutions)
           (myProg.exercises || []).forEach(function(ex, ei) {
             if (freshProg.exercises && freshProg.exercises[ei]) {
@@ -6458,8 +6461,14 @@ function cvFilterCustomEx(q) {
 function cvAddCustomExByIdx(idx) {
   var matches = window._cvExMatches || [];
   var ex = matches[idx];
-  if (!ex) return;
-  if (cvCustomExercises.find(function(e) { return e.name === ex.name; })) return;
+  if (!ex) {
+    toast('Exercise not found (idx=' + idx + ', matches=' + matches.length + ')', 'err');
+    return;
+  }
+  if (cvCustomExercises.find(function(e) { return e.name === ex.name; })) {
+    toast(ex.name + ' already added', 'ok');
+    return;
+  }
   cvCustomExercises.push(Object.assign({}, ex, { uid: 'custom_' + Date.now() }));
   var srch = document.getElementById('cvCustomSrch');
   var res = document.getElementById('cvCustomExResults');
