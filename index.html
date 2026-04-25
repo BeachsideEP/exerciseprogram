@@ -2938,6 +2938,9 @@ function renderCV() {
   if (cvCustomWorkout) {
     h += renderCVCustomWorkout();
     document.getElementById('cvBody').innerHTML = h;
+    // Force select to show 'custom' selected
+    var _sel = document.getElementById('cvProgSel');
+    if (_sel) _sel.value = 'custom';
     return;
   }
 
@@ -3120,6 +3123,9 @@ function renderCV() {
   h += '</div>';
 
   document.getElementById('cvBody').innerHTML = h;
+  // Force select to show correct program selected
+  var _progSel = document.getElementById('cvProgSel');
+  if (_progSel && !cvCustomWorkout) _progSel.value = 'prog_' + cvProgIdx;
 }
 
 function cvToggle(i) { if (!cvState[i]) cvState[i] = {}; cvState[i].open = !cvState[i].open; renderCV(); }
