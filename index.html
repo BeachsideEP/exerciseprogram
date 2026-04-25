@@ -5377,23 +5377,31 @@ async function annaSend() {
       },
       body: JSON.stringify({ messages: annaHistory })
     });
-    var data = await resp.json();
     var reply = '';
-    if (data.content && data.content[0] && data.content[0].text) {
-      reply = data.content[0].text;
-    } else if (data.error) {
-      reply = 'Error: ' + (data.error.message || JSON.stringify(data.error));
-    } else if (!resp.ok) {
-      reply = 'Server error ' + resp.status + ': ' + JSON.stringify(data).slice(0, 150);
-    } else {
-      reply = 'Unexpected: ' + JSON.stringify(data).slice(0, 150);
+    var rawText = await resp.text();
+    try {
+      var data = JSON.parse(rawText);
+      if (data.content && data.content[0] && data.content[0].text) {
+        reply = data.content[0].text;
+      } else if (data.error) {
+        reply = 'API error: ' + (data.error.message || JSON.stringify(data.error));
+      } else {
+        reply = 'Status ' + resp.status + ': ' + rawText.slice(0, 200);
+      }
+    } catch(pe) {
+      reply = 'Status ' + resp.status + ' (not JSON): ' + rawText.slice(0, 200);
     }
     annaHistory.push({ role: 'assistant', content: reply });
     annaHideTyping();
     annaAppendMsg('assistant', reply);
   } catch (e) {
     annaHideTyping();
-    annaAppendMsg('assistant', 'Connection error: ' + e.message);
+    // CORS/network block - try to get more info
+    annaAppendMsg('assistant',
+      'Failed to reach Anna. Details: ' + e.name + ' — ' + e.message + '. ' +
+      'This usually means the Supabase edge function is blocked by CORS. ' +
+      'Check: 1) Function named exactly "anna" 2) Verify JWT = OFF 3) Function is deployed and not paused.'
+    );
   }
 }
 
