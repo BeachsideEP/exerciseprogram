@@ -1381,8 +1381,10 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <button class="btn btn-teal" onclick="openPrintModal()">📄 Generate PDF</button>
     <button class="btn btn-ghost btn-sm" onclick="saveProg()">💾 Save Program</button>
   </div>
-  <div class="clk-info-box">
-    <strong>🔗 Cliniko</strong> — connect your API key to import patients. For PDF save-back, see <strong>Team</strong> options.
+  <div class="clk-info-box" style="background:var(--ocean-pale);border:1.5px solid var(--ocean-l);padding:12px 14px;border-radius:8px;display:flex;flex-direction:column;gap:8px">
+    <div style="font-size:11px;font-weight:700;color:var(--ocean-dp)">📧 Email Program to Client</div>
+    <div style="font-size:10px;color:var(--text-m);line-height:1.5">Send the current program as a PDF directly to the client's email address.</div>
+    <button onclick="emailProgramToClient()" class="btn btn-primary btn-sm" style="width:100%;margin-top:2px">📧 Send PDF to Client</button>
   </div>
 </div>
 </div>
@@ -6908,6 +6910,150 @@ function renderHealthChart() {
       entries.slice().reverse().map(function(e) {
         return '<div class="hr-entry"><div class="hr-entry-date">' + (e.date||'') + '</div><div class="hr-entry-val">' + (e.val||e.value||'') + ' <span style="font-size:11px;color:#8B949E">' + units[metric] + '</span></div></div>';
       }).join('');
+  }
+}
+
+
+// ════════════════════════════════════════════════════
+// EMAIL PROGRAM TO CLIENT
+// ════════════════════════════════════════════════════
+async function emailProgramToClient() {
+  var cl = getClient();
+  if (!cl) { toast('Select a client first', 'err'); return; }
+  if (!cl.email) { toast('Client has no email address on file', 'err'); return; }
+
+  // Show confirmation modal
+  var confirmed = confirm('Send the current program PDF to ' + cl.first + ' ' + cl.last + ' at ' + cl.email + '?');
+  if (!confirmed) return;
+
+  toast('Generating PDF...', 'ok');
+
+  try {
+    // Generate PDF using existing printPDF logic
+    var pdfBlob = await generatePDFBlob();
+    if (!pdfBlob) { toast('Could not generate PDF', 'err'); return; }
+
+    // Convert to base64
+    var reader = new FileReader();
+    reader.readAsDataURL(pdfBlob);
+    reader.onload = async function() {
+      var base64 = reader.result.split(',')[1];
+      var prog = getProg();
+      var progTitle = prog ? prog.title : 'Exercise Program';
+
+      toast('Sending email...', 'ok');
+
+      try {
+        var resp = await fetch(SUPA_URL + '/functions/v1/cliniko?email=true', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + authToken() },
+          body: JSON.stringify({
+            to: cl.email,
+            name: cl.first + ' ' + cl.last,
+            subject: 'Your Exercise Program — ' + progTitle,
+            pdfBase64: base64,
+            filename: progTitle.replace(/[^a-z0-9]/gi,'_') + '.pdf'
+          })
+        });
+
+        if (resp.ok) {
+          toast('✓ Program sent to ' + cl.email, 'ok');
+        } else {
+          var err = await resp.text();
+          toast('Email error: ' + err.slice(0,80), 'err');
+        }
+      } catch(e) {
+        toast('Could not send: ' + e.message, 'err');
+      }
+    };
+    reader.onerror = function() { toast('PDF read error', 'err'); };
+
+  } catch(e) {
+    toast('PDF generation failed: ' + e.message, 'err');
+  }
+}
+
+async function generatePDFBlob() {
+  // Use jsPDF to generate a simple program PDF
+  try {
+    var cl = getClient();
+    var prog = getProg();
+    if (!cl || !prog) return null;
+
+    var doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
+    var y = 20;
+    var pageW = 210;
+    var margin = 15;
+    var col = margin;
+
+    // Header
+    doc.setFontSize(18);
+    doc.setTextColor(13, 61, 82);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Beachside Exercise Physiology', col, y);
+    y += 8;
+    doc.setFontSize(10);
+    doc.setTextColor(74, 96, 112);
+    doc.setFont('helvetica', 'normal');
+    doc.text('4/270 Lower Dandenong Rd, Mordialloc VIC  |  0409 051 260  |  beachsideep.com.au', col, y);
+    y += 10;
+
+    // Divider
+    doc.setDrawColor(200, 220, 230);
+    doc.setLineWidth(0.5);
+    doc.line(margin, y, pageW - margin, y);
+    y += 8;
+
+    // Client + Program info
+    doc.setFontSize(14);
+    doc.setTextColor(28, 43, 53);
+    doc.setFont('helvetica', 'bold');
+    doc.text(cl.first + ' ' + cl.last, col, y);
+    y += 6;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(prog.title || 'Exercise Program', col, y);
+    if (prog.freq) { y += 5; doc.text('Frequency: ' + prog.freq, col, y); }
+    y += 12;
+
+    // Exercises
+    (prog.exercises || []).forEach(function(ex, i) {
+      if (y > 265) { doc.addPage(); y = 20; }
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(13, 61, 82);
+      doc.text((i+1) + '. ' + ex.name, col, y);
+      y += 5;
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(74, 96, 112);
+      var params = [];
+      if (ex.sets) params.push(ex.sets + ' sets');
+      if (ex.reps) params.push(ex.reps + ' reps');
+      if (ex.hold) params.push('Hold ' + ex.hold + 's');
+      if (ex.load) params.push(ex.load);
+      if (ex.rest) params.push('Rest ' + ex.rest + 's');
+      if (params.length) { doc.text(params.join('  ·  '), col, y); y += 5; }
+      if (ex.notes) {
+        var noteLines = doc.splitTextToSize('Notes: ' + ex.notes, pageW - margin*2);
+        noteLines.forEach(function(line) { doc.text(line, col, y); y += 4; });
+      }
+      y += 4;
+    });
+
+    // Footer
+    if (y > 260) { doc.addPage(); y = 20; }
+    y = Math.max(y + 10, 275);
+    doc.setFontSize(8);
+    doc.setTextColor(122, 149, 165);
+    doc.text('Generated ' + new Date().toLocaleDateString('en-AU') + '  |  Beachside Exercise Physiology', margin, y);
+
+    return doc.output('blob');
+  } catch(e) {
+    console.error('PDF gen error:', e);
+    return null;
   }
 }
 
