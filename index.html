@@ -2842,7 +2842,7 @@ async function syncClients() {
 }
 
 // ── CLIENT VIEW ──
-let cvData = null, cvProgIdx = 0, cvState = {}, cvFeeling = '', cvSafetyDone = false, cvComment = '';
+let cvData = null, cvProgIdx = 0, cvState = {}, cvFeeling = '', cvSafetyDone = false, cvComment = '', cvCustomWorkout = false, cvCustomExercises = [];
 
 async function loadClientView(user) {
   // Show loading state in home tab
@@ -2926,12 +2926,20 @@ function renderCV() {
   }
   h += '</div>';
 
-  // ── Program selector ──
-  if (progs.length > 1) {
-    h += '<div class="cv-prog-sel"><span style="font-size:11px;font-weight:700;color:var(--text-light)">Program:</span><select onchange="cvProgIdx=+this.value;cvState={};renderCV()">';
-    progs.forEach(function(p, i) { h += '<option value="' + i + '"' + (i === cvProgIdx ? ' selected' : '') + '>' + (p.title || 'Program ' + (i+1)) + '</option>'; });
-    h += '</select></div>';
+  // If custom workout mode, render that instead
+  if (cvCustomWorkout) {
+    document.getElementById('cvBody').innerHTML = h + renderCVCustomWorkout();
+    return;
   }
+
+  // ── Program selector ──
+  // Program selector - always show (includes Build Your Own)
+  h += '<div class="cv-prog-sel"><span style="font-size:11px;font-weight:700;color:var(--text-light)">Program:</span><select onchange="cvSelectProg(this.value)" id="cvProgSel">';
+  progs.forEach(function(p, i) {
+    h += '<option value="prog_' + i + '"' + (i === cvProgIdx && !cvCustomWorkout ? ' selected' : '') + '>' + (p.title || 'Program ' + (i+1)) + '</option>';
+  });
+  h += '<option value="custom"' + (cvCustomWorkout ? ' selected' : '') + '>+ Build Your Own Workout</option>';
+  h += '</select></div>';
 
   // ── Exercise cards ──
   (prog.exercises || []).forEach(function(ex, i) {
@@ -4826,9 +4834,7 @@ function cvSwitchTab(tab) {
     }
     if (btn) btn.classList.toggle('active', t === tab);
   });
-  // Remove congrats overlay if present
-  var congrats = document.getElementById('cvCongratsOverlay');
-  if (congrats) congrats.remove();
+  // Note: congrats overlay is removed by cvGoHome() only, not on tab switch
   // Light sync on tab switch if data is stale (>60s)
   if (cvSyncUser && Date.now() - cvLastSync > 60000) cvSilentSync();
   if (tab === 'home') renderCVHome();
@@ -5714,6 +5720,223 @@ async function cvSaveWkt() {
 
   closeCVWkt();
   showCVCongrats(cvData.first, true);
+}
+
+
+// ════════════════════════════════════════════════════
+// CLIENT BUILD-YOUR-OWN WORKOUT
+// ════════════════════════════════════════════════════
+function cvSelectProg(val) {
+  if (val === 'custom') {
+    cvCustomWorkout = true;
+    cvCustomExercises = [];
+    cvState = {};
+    renderCV();
+  } else {
+    cvCustomWorkout = false;
+    cvProgIdx = parseInt(val.replace('prog_', '')) || 0;
+    cvState = {};
+    renderCV();
+  }
+}
+
+function renderCVCustomWorkout() {
+  // Render the build-your-own workout interface
+  var h = '';
+
+  // Search box
+  h += '<div style="background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:10px;box-shadow:0 1px 5px rgba(28,43,53,.06)">';
+  h += '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">&#127947; Build Your Own Workout</div>';
+  h += '<div style="font-size:11px;color:var(--text-light);margin-bottom:10px">Search for exercises to add to your session</div>';
+  h += '<input id="cvCustomSrch" type="text" placeholder="Search exercises..." oninput="cvFilterCustomEx(this.value)" '
+     + 'style="width:100%;padding:9px 12px;border:1.5px solid var(--sand-dark);border-radius:8px;font-size:14px;'
+     + 'font-family:-apple-system,sans-serif;outline:none;background:var(--sand);box-sizing:border-box">';
+  h += '<div id="cvCustomExResults" style="margin-top:8px;max-height:200px;overflow-y:auto"></div>';
+  h += '</div>';
+
+  // Added exercises
+  if (cvCustomExercises.length > 0) {
+    h += '<div style="background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:10px;box-shadow:0 1px 5px rgba(28,43,53,.06)">';
+    h += '<div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Your exercises</div>';
+
+    cvCustomExercises.forEach(function(ex, i) {
+      var st = cvState[i] || {};
+      var setsDone = (st.sets || []).filter(Boolean).length;
+      var totalSets = parseInt(ex.sets) || 3;
+      var allDone = setsDone >= totalSets;
+
+      h += '<div class="cv-ex-card' + (allDone ? ' done' : '') + '" style="margin-bottom:8px">';
+      h += '<div class="cv-ex-hdr" onclick="cvToggle(' + i + ')">';
+      h += '<div class="cv-check' + (allDone ? ' on' : '') + '">';
+      if (allDone) h += '<svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" width="12" height="12"><polyline points="2,6 5,9 10,3"/></svg>';
+      h += '</div>';
+      h += '<div class="cv-ex-thumb">' + getExIllusStr(ex) + '</div>';
+      h += '<div style="flex:1;min-width:0"><div class="cv-ex-name">' + ex.name + '</div>';
+      h += '<div class="cv-ex-params">' + totalSets + ' sets' + (ex.reps ? ' \xd7 ' + ex.reps : '') + (setsDone > 0 ? ' <strong style="color:var(--teal)">' + setsDone + '/' + totalSets + ' done</strong>' : '') + '</div></div>';
+      h += '<button onclick="event.stopPropagation();cvCustomExercises.splice(' + i + ',1);cvState={};renderCV()" '
+         + 'style="background:none;border:none;color:var(--coral);font-size:18px;cursor:pointer;padding:0 4px">&times;</button>';
+      h += '</div>';
+
+      if (st.open || allDone) {
+        h += '<div class="cv-ex-body">';
+        h += '<div style="font-size:10px;color:var(--text-light);margin-bottom:8px;text-align:center">Fill in what you did, then tap &#10003; to mark each set complete</div>';
+        h += '<table class="cv-set-table"><thead><tr><th>Set</th><th>Reps done</th><th>Weight used</th><th>&#10003; Done</th></tr></thead><tbody>';
+        for (var s = 0; s < totalSets; s++) {
+          var setDone = st.sets && st.sets[s];
+          var setReps = (st.setReps && st.setReps[s]) || '';
+          var setLoad = (st.setLoads && st.setLoads[s]) || '';
+          h += '<tr style="' + (setDone ? 'background:#f7fffc' : '') + '">';
+          h += '<td class="cv-set-num">' + (s+1) + '</td>';
+          h += '<td><input class="cv-set-inp" type="text" placeholder="' + (ex.reps || '-') + '" value="' + setReps + '" oninput="cvSetRow(' + i + ',' + s + ',\'reps\',this.value)"></td>';
+          h += '<td><input class="cv-set-inp" type="text" placeholder="' + (ex.load || 'kg') + '" value="' + setLoad + '" oninput="cvSetRow(' + i + ',' + s + ',\'load\',this.value)"></td>';
+          h += '<td class="cv-set-tick" style="padding-bottom:16px"><div class="cv-set-tickbox' + (setDone ? ' on' : '') + '" onclick="cvTickSet(' + i + ',' + s + ')">';
+          if (setDone) h += '<svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" width="12" height="12"><polyline points="2,6 5,9 10,3"/></svg>';
+          h += '</div></td></tr>';
+        }
+        h += '</tbody></table>';
+        h += '</div>';
+      }
+      h += '</div>';
+    });
+    h += '</div>';
+  }
+
+  // Session feel + submit
+  if (cvCustomExercises.length > 0) {
+    h += '<div class="cv-session">';
+    h += '<div class="cv-session-title">How did the session feel?</div>';
+    h += '<div class="cv-feel-row">';
+    ['Hard','Good','Easy','Pain','Great'].forEach(function(f) {
+      h += '<div class="cv-feel' + (cvFeeling === f ? ' sel' : '') + '" onclick="cvFeeling=\'' + f + '\';renderCV()">' + f + '</div>';
+    });
+    h += '</div>';
+    h += '<button class="cv-submit" onclick="cvSubmitCustomWorkout()">&#10003; Submit Workout</button>';
+    h += '</div>';
+  }
+
+  return h;
+}
+
+function cvFilterCustomEx(q) {
+  var res = document.getElementById('cvCustomExResults');
+  if (!res) return;
+  q = (q || '').toLowerCase().trim();
+  if (!q) { res.innerHTML = ''; return; }
+
+  var matches = (typeof getAllExercises === 'function' ? getAllExercises() : [])
+    .filter(function(ex) {
+      return ex.name.toLowerCase().includes(q) ||
+             (ex.cat || '').toLowerCase().includes(q) ||
+             (ex.muscles || '').toLowerCase().includes(q);
+    }).slice(0, 12);
+
+  if (!matches.length) {
+    res.innerHTML = '<div style="font-size:11px;color:var(--text-light);padding:8px">No exercises found</div>';
+    return;
+  }
+
+  res.innerHTML = matches.map(function(ex) {
+    var thumb = getExIllusStr(ex);
+    return '<div onclick="cvAddCustomEx(' + JSON.stringify(ex.id) + ')" '
+      + 'style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer;border-bottom:1px solid var(--sand-dark)">'
+      + '<div style="width:36px;height:36px;border-radius:6px;overflow:hidden;flex-shrink:0;background:var(--sand)">' + thumb + '</div>'
+      + '<div><div style="font-size:13px;font-weight:600;color:var(--text)">' + ex.name + '</div>'
+      + '<div style="font-size:10px;color:var(--text-light)">' + (ex.cat || '') + '</div></div>'
+      + '</div>';
+  }).join('');
+}
+
+function cvAddCustomEx(exId) {
+  var allEx = typeof getAllExercises === 'function' ? getAllExercises() : [];
+  var ex = allEx.find(function(e) { return String(e.id) === String(exId); });
+  if (!ex) return;
+  // Check not already added
+  if (cvCustomExercises.find(function(e) { return e.name === ex.name; })) {
+    return; // already in list
+  }
+  cvCustomExercises.push(Object.assign({}, ex, { uid: 'custom_' + Date.now() }));
+  // Clear search
+  var srch = document.getElementById('cvCustomSrch');
+  var res = document.getElementById('cvCustomExResults');
+  if (srch) srch.value = '';
+  if (res) res.innerHTML = '';
+  renderCV();
+}
+
+async function cvSubmitCustomWorkout() {
+  var doneSets = 0;
+  cvCustomExercises.forEach(function(ex, i) {
+    var st = cvState[i] || {};
+    doneSets += (st.sets || []).filter(Boolean).length;
+  });
+  if (!doneSets) { alert('Tick at least one set before submitting.'); return; }
+
+  var today = new Date().toLocaleString('en-AU', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
+  // Build log text
+  var lines = [];
+  if (cvFeeling) lines.push('Feeling: ' + cvFeeling);
+  lines.push('Own workout: ' + cvCustomExercises.length + ' exercises');
+  cvCustomExercises.forEach(function(ex, i) {
+    var st = cvState[i] || {};
+    var tickedSets = (st.sets || []).filter(Boolean).length;
+    if (!tickedSets) return;
+    var setDetails = [];
+    for (var s = 0; s < (parseInt(ex.sets)||3); s++) {
+      if (st.sets && st.sets[s]) {
+        var r = (st.setReps && st.setReps[s]) || '';
+        var l = (st.setLoads && st.setLoads[s]) || '';
+        setDetails.push('Set' + (s+1) + ': ' + (r||'-') + (l ? ' @' + l : ''));
+      }
+    }
+    lines.push(ex.name + ' [' + tickedSets + '/' + (parseInt(ex.sets)||3) + ' sets]' + (setDetails.length ? ': ' + setDetails.join(', ') : ''));
+  });
+  var logText = lines.join(' | ');
+
+  // Save to ownWorkouts
+  if (!cvData.ownWorkouts) cvData.ownWorkouts = [];
+  cvData.ownWorkouts.push({
+    date: today,
+    type: 'Custom',
+    exercises: cvCustomExercises.map(function(ex) { return ex.name; }),
+    summary: logText
+  });
+
+  // Also add to the first program's log
+  var prog = cvData.programs && cvData.programs[0];
+  if (prog) {
+    if (!prog.log) prog.log = [];
+    prog.log.push({ date: today, clinician: 'Client', text: logText, clientSubmitted: true });
+  }
+
+  // Sync
+  try {
+    var freshResp = await fetch(SUPA_URL + '/rest/v1/clients?select=data&id=eq.' + cvData.id, { headers: supaHeaders() });
+    if (freshResp.ok) {
+      var rows = await freshResp.json();
+      if (rows && rows.length && rows[0].data) {
+        var fresh = rows[0].data;
+        fresh.ownWorkouts = cvData.ownWorkouts;
+        if (fresh.programs && fresh.programs[0]) {
+          if (!fresh.programs[0].log) fresh.programs[0].log = [];
+          fresh.programs[0].log.push({ date: today, clinician: 'Client', text: logText, clientSubmitted: true });
+        }
+        cvData = fresh;
+      }
+    }
+    await fetch(SUPA_URL + '/rest/v1/clients', {
+      method: 'POST', headers: supaHeaders(),
+      body: JSON.stringify({ id: cvData.id, data: cvData, updated_at: new Date().toISOString() })
+    });
+  } catch(e) {}
+
+  // Reset and show congrats
+  cvCustomWorkout = false;
+  cvCustomExercises = [];
+  cvState = {};
+  cvFeeling = '';
+  showCVCongrats(cvData.first, true);
+  cvSwitchTab('home');
 }
 
 </script>
