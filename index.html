@@ -909,7 +909,6 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <button class="btn btn-teal btn-sm" onclick="openPrintModal()">📄 PDF</button>
     <span id="syncBadge" class="sync-badge sync-idle">Offline</span>
     <button class="btn btn-ghost btn-sm" onclick="openClientDemo()" title="Preview how clients see their program">&#128247; Client View</button>
-    <button class="btn btn-ghost btn-sm" onclick="openM('announceM')">&#128226; Announce</button>
     <button class="btn btn-ghost btn-sm" id="signOutBtn" onclick="signOut()" style="display:none">Sign Out</button>
   </div>
 </header>
@@ -949,7 +948,10 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 <!-- CENTRE -->
 <div class="col col-mid">
   <div class="dash-panel" id="dashPanel">
-    <div class="dash-title">&#128101; All Clients</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div class="dash-title" style="margin-bottom:0">&#128101; All Clients</div>
+      <button class="btn btn-outline btn-sm" onclick="openM('announceM')">&#128226; Announcements</button>
+    </div>
     <div class="dash-grid" id="dashStats"></div>
     <div id="dashList"></div>
   </div>
