@@ -5795,12 +5795,12 @@ function cvSelectProg(val) {
   if (val === 'custom') {
     cvCustomWorkout = true;
     cvCustomExercises = [];
-    cvState = {};
+    // Don't reset cvState - preserve safety check and any ticked sets
     renderCV();
   } else {
     cvCustomWorkout = false;
     cvProgIdx = parseInt(val.replace('prog_', '')) || 0;
-    cvState = {};
+    // Don't reset cvState - preserve safety check completion
     renderCV();
   }
 }
@@ -6035,7 +6035,7 @@ function toggleSuperset(uid) {
 function cvExitCustomWorkout() {
   cvCustomWorkout = false;
   cvCustomExercises = [];
-  cvState = {};
+  // Don't reset cvState or cvSafetyDone - preserve safety check completion
   renderCV();
 }
 
