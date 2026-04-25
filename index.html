@@ -6944,17 +6944,16 @@ async function emailProgramToClient() {
       toast('Sending email...', 'ok');
 
       try {
-        var resp = await fetch(SUPA_URL + '/functions/v1/cliniko?email=true', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + authToken() },
-          body: JSON.stringify({
-            to: cl.email,
-            name: cl.first + ' ' + cl.last,
-            subject: 'Your Exercise Program — ' + progTitle,
-            pdfBase64: base64,
-            filename: progTitle.replace(/[^a-z0-9]/gi,'_') + '.pdf'
-          })
+        // Use GET to avoid CORS preflight — encode payload as base64
+        var payload = JSON.stringify({
+          to: cl.email,
+          name: cl.first + ' ' + cl.last,
+          subject: 'Your Exercise Program — ' + progTitle,
+          pdfBase64: base64,
+          filename: progTitle.replace(/[^a-z0-9]/gi,'_') + '.pdf'
         });
+        var encodedPayload = btoa(unescape(encodeURIComponent(payload)));
+        var resp = await fetch(SUPA_URL + '/functions/v1/cliniko?email=true&apikey=' + encodeURIComponent(SUPA_KEY) + '&d=' + encodeURIComponent(encodedPayload));
 
         if (resp.ok) {
           toast('✓ Program sent to ' + cl.email, 'ok');
