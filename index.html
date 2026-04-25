@@ -6632,13 +6632,27 @@ function renderHealthChart() {
   var health = cvHealthData || {};
   var allEntries = health[metric] || [];
 
-  // Filter by period
+  // Filter by period — parse AU date format e.g. "12 Jan 2026" or "12 Jan 2026, 09:30 am"
+  function parseAUDate(str) {
+    if (!str) return null;
+    var months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+    var parts = str.replace(',','').split(' ');
+    if (parts.length >= 3) {
+      var d = new Date(parseInt(parts[2]), months[parts[1]], parseInt(parts[0]));
+      if (!isNaN(d)) return d;
+    }
+    // Fallback to native parse
+    var d2 = new Date(str);
+    return isNaN(d2) ? null : d2;
+  }
   var cutoff = new Date();
   cutoff.setMonth(cutoff.getMonth() - hrMonths);
   var entries = allEntries.filter(function(e) {
-    var d = new Date(e.date);
-    return !isNaN(d) && d >= cutoff;
+    var d = parseAUDate(e.date);
+    return d && d >= cutoff;
   });
+  // If nothing in period, show all entries (so user sees data regardless)
+  if (!entries.length && allEntries.length) entries = allEntries.slice();
 
   var wrap = document.getElementById('hrChartWrap');
   var list = document.getElementById('hrEntries');
@@ -6658,7 +6672,12 @@ function renderHealthChart() {
   var latestVal = latest.val || latest.value || '—';
 
   // Build SVG chart
-  var vals = entries.map(function(e) { return parseFloat(e.val || e.value); }).filter(function(v) { return !isNaN(v); });
+  // For BP, use systolic (first number) for charting
+  var vals = entries.map(function(e) {
+    var v = e.val || e.value || '';
+    if (v.indexOf('/') !== -1) v = v.split('/')[0]; // use systolic for BP
+    return parseFloat(v);
+  }).filter(function(v) { return !isNaN(v); });
   var chartHTML = '';
 
   if (vals.length >= 2) {
