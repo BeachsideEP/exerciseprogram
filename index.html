@@ -3274,6 +3274,11 @@ async function loadClientView(user) {
     cvData = match; cvState = {}; cvFeeling = ''; cvProgIdx = 0; cvSafetyDone = false; cvComment = '';
     cvStartSync(user); // Begin live sync
     loadAnnouncements().then(function() { if (cvActiveTab === 'home') renderCVHome(); }); // Load announcements
+    // Load health data from localStorage into cvHealthData
+    try {
+      var storedHealth = localStorage.getItem('cv_health_' + match.id);
+      if (storedHealth) cvHealthData = JSON.parse(storedHealth);
+    } catch(e) {}
     cvOwnWorkouts = JSON.parse(localStorage.getItem('cv_own_workouts_' + match.id) || '[]');
     cvSwitchTab('home');
   } catch (e) {
@@ -5721,13 +5726,52 @@ function cvLogHealthKey(btn) {
   var input = btn.previousElementSibling;
   if (!input || !input.value.trim()) return;
   var val = input.value.trim();
-  var now = new Date().toLocaleString('en-AU', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  var now = new Date().toLocaleString('en-AU', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  var dateOnly = new Date().toLocaleDateString('en-AU', {day:'numeric',month:'short',year:'numeric'});
+
+  // 1. Save to localStorage (for client-side health review chart)
   var health = {};
   try { health = JSON.parse(localStorage.getItem('cv_health_' + cvData.id) || '{}'); } catch(e) {}
   if (!health[key]) health[key] = [];
   health[key].push({ val: val, date: now });
   if (health[key].length > 90) health[key] = health[key].slice(-90);
   localStorage.setItem('cv_health_' + cvData.id, JSON.stringify(health));
+
+  // 2. Update in-memory cvHealthData so chart shows immediately
+  if (!cvHealthData) cvHealthData = {};
+  if (!cvHealthData[key]) cvHealthData[key] = [];
+  cvHealthData[key].push({ val: val, date: now });
+
+  // 3. Push to cvData.outcomes so practitioner can see it
+  var metricNames = { weight: 'Weight (kg)', bp: 'Blood Pressure', bg: 'Blood Glucose (mmol/L)', hr: 'Heart Rate (bpm)', sleep: 'Sleep (hrs)' };
+  var metricName = metricNames[key] || key;
+  if (!cvData.outcomes) cvData.outcomes = [];
+  var om = cvData.outcomes.find(function(o) { return o.name === metricName; });
+  if (!om) { om = { name: metricName, entries: [] }; cvData.outcomes.push(om); }
+  om.entries.push({ date: dateOnly, val: val });
+
+  // 4. Sync to Supabase (fetch fresh first to avoid overwriting program)
+  fetch(SUPA_URL + '/rest/v1/clients?select=data&id=eq.' + cvData.id, { headers: supaHeaders() })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(rows) {
+      var saveData = cvData;
+      if (rows && rows.length && rows[0].data) {
+        var fresh = rows[0].data;
+        // Merge outcomes
+        if (!fresh.outcomes) fresh.outcomes = [];
+        var freshOm = fresh.outcomes.find(function(o) { return o.name === metricName; });
+        if (!freshOm) { freshOm = { name: metricName, entries: [] }; fresh.outcomes.push(freshOm); }
+        freshOm.entries.push({ date: dateOnly, val: val });
+        cvData = fresh;
+        saveData = fresh;
+      }
+      return fetch(SUPA_URL + '/rest/v1/clients', {
+        method: 'POST',
+        headers: supaHeaders(),
+        body: JSON.stringify({ id: saveData.id, data: saveData, updated_at: new Date().toISOString() })
+      });
+    }).catch(function() {});
+
   input.value = '';
   renderCVHome();
 }
