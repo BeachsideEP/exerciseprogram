@@ -5396,7 +5396,7 @@ function renderCVHome() {
         '<div style="font-size:22px;font-weight:800;color:var(--ocean-deep);line-height:1">' + val + '<span style="font-size:11px;color:var(--text-light);margin-left:2px">' + unit + '</span></div>' +
         (time ? '<div style="font-size:9px;color:var(--text-light);margin-top:2px">' + time + '</div>' : '') +
         '<div style="display:flex;gap:6px;margin-top:8px">' +
-          '<input data-key="' + key + '" type="' + inputType + '" placeholder="' + placeholder + '" style="flex:1;padding:6px 8px;border:1.5px solid var(--sand-dark);border-radius:6px;font-size:12px;outline:none;background:var(--sand);min-width:0">' +
+          '<input data-key="' + key + '" type="' + inputType + '" inputmode="' + (key === 'bp' ? 'text' : (inputType === 'number' ? 'decimal' : 'text')) + '" placeholder="' + placeholder + '" style="flex:1;padding:6px 8px;border:1.5px solid var(--sand-dark);border-radius:6px;font-size:12px;outline:none;background:var(--sand);min-width:0">' +
           '<button data-key="' + key + '" onclick="cvLogHealthKey(this)" style="padding:6px 10px;border-radius:6px;border:none;background:var(--ocean);color:#fff;font-size:13px;font-weight:700;cursor:pointer">+</button>' +
         '</div></div>';
     }
