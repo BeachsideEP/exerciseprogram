@@ -5773,6 +5773,16 @@ function cvLogHealthKey(btn) {
     }).catch(function() {});
 
   input.value = '';
+
+  // Update local clients[] so practitioner demo sees changes immediately
+  if (typeof clients !== 'undefined' && Array.isArray(clients)) {
+    var localIdx = clients.findIndex(function(c) { return c.id === cvData.id; });
+    if (localIdx !== -1) {
+      clients[localIdx] = JSON.parse(JSON.stringify(cvData));
+      if (typeof saveDB === 'function') saveDB();
+    }
+  }
+
   renderCVHome();
 }
 
@@ -6700,13 +6710,7 @@ function renderHealthChart() {
   var health = cvHealthData || {};
   var allEntries = health[metric] || [];
 
-  // Debug: show data summary in chart area temporarily
-  var wrap = document.getElementById('hrChartWrap');
-  if (wrap) {
-    var keys = Object.keys(health);
-    var total = keys.reduce(function(sum, k) { return sum + (health[k]||[]).length; }, 0);
-    wrap.innerHTML = '<div style="color:#8B949E;font-size:11px;padding:8px">Loading: ' + metric + ' has ' + allEntries.length + ' entries | Total data: ' + total + ' readings across [' + keys.join(', ') + ']</div>';
-  }
+
 
   // Filter by period — parse AU date format e.g. "12 Jan 2026" or "12 Jan 2026, 09:30 am"
   function parseAUDate(str) {
