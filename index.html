@@ -6461,14 +6461,8 @@ function cvFilterCustomEx(q) {
 function cvAddCustomExByIdx(idx) {
   var matches = window._cvExMatches || [];
   var ex = matches[idx];
-  if (!ex) {
-    toast('Exercise not found (idx=' + idx + ', matches=' + matches.length + ')', 'err');
-    return;
-  }
-  if (cvCustomExercises.find(function(e) { return e.name === ex.name; })) {
-    toast(ex.name + ' already added', 'ok');
-    return;
-  }
+  if (!ex) return;
+  if (cvCustomExercises.find(function(e) { return e.name === ex.name; })) return;
   cvCustomExercises.push(Object.assign({}, ex, { uid: 'custom_' + Date.now() }));
   var srch = document.getElementById('cvCustomSrch');
   var res = document.getElementById('cvCustomExResults');
