@@ -3634,11 +3634,11 @@ function cvSavePreSession() {
       }).then(function(pr) {
         if (!pr.ok) {
           pr.text().then(function(t) {
-            console.error('Health save failed:', pr.status, t);
+            toast('Sync error ' + pr.status + ': ' + t.slice(0,80), 'err');
           });
         }
       });
-    }).catch(function(e) { console.error('Health save error:', e); });
+    }).catch(function(e) { toast('Sync error: ' + e.message, 'err'); });
 
   cvSafetyDone = true;
   renderCV();
@@ -3746,11 +3746,12 @@ async function cvSubmit() {
         cvData = fresh;
       }
     }
-    await fetch(SUPA_URL + '/rest/v1/clients', {
+    const _sr = await fetch(SUPA_URL + '/rest/v1/clients', {
       method: 'POST',
       headers: supaHeaders(),
       body: JSON.stringify({ id: cvData.id, data: cvData, updated_at: new Date().toISOString() })
     });
+    if (!_sr.ok) { const _st = await _sr.text(); toast('Save error ' + _sr.status + ': ' + _st.slice(0,80), 'err'); }
     cvLastSync = 0; // Force next sync to refresh
     cvState = {}; cvFeeling = ''; cvComment = ''; cvSafetyDone = false;
     showCVCongrats(cvData.first, false);
