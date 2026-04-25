@@ -3631,8 +3631,14 @@ function cvSavePreSession() {
         method: 'POST',
         headers: supaHeaders(),
         body: JSON.stringify({ id: saveData.id, data: saveData, updated_at: new Date().toISOString() })
+      }).then(function(pr) {
+        if (!pr.ok) {
+          pr.text().then(function(t) {
+            console.error('Health save failed:', pr.status, t);
+          });
+        }
       });
-    }).catch(function() {});
+    }).catch(function(e) { console.error('Health save error:', e); });
 
   cvSafetyDone = true;
   renderCV();
