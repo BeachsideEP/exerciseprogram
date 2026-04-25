@@ -765,6 +765,18 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .ann-item-body{flex:1;font-size:12px;color:var(--text);line-height:1.5;white-space:pre-wrap}
 .ann-item-date{font-size:9px;color:var(--text-light);margin-top:2px}
 
+
+.dash-stat{background:#fff;border-radius:8px;padding:8px;text-align:center;box-shadow:0 1px 4px rgba(28,43,53,.06)}
+.ds-val{font-size:20px;font-weight:700;color:var(--ocean)}
+.ds-lbl{font-size:9px;color:var(--text-light);text-transform:uppercase;letter-spacing:.06em;margin-top:1px}
+.dash-row{padding:8px 10px;border-radius:8px;cursor:pointer;border-bottom:1px solid var(--sand-dark)}
+.dash-row:hover{background:var(--sand)}
+.dash-row-name{font-size:12px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px}
+.dash-row-meta{font-size:10px;color:var(--text-light);margin-top:2px}
+.rev-badge{font-size:8px;font-weight:700;padding:1px 5px;border-radius:10px}
+.rev-badge.overdue{background:#FAEAE5;color:var(--coral)}
+.rev-badge.soon{background:#FFF3E0;color:#E67E22}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -904,7 +916,8 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <button class="btn btn-ghost btn-sm" onclick="openM('clinikoM')">🔗 Cliniko</button>
     <button class="btn btn-ghost btn-sm" onclick="openM('savedM')">📂 Programs</button>
     <button class="btn btn-ghost btn-sm" onclick="openM('templatesM')">&#128196; Templates</button>
-    
+    <button class="btn btn-ghost btn-sm" onclick="toggleDashboard()" id="dashBtn">&#128101; Dashboard</button>
+    <button class="btn btn-ghost btn-sm" onclick="openM('announceM')">&#128226; Announce</button>
     <button class="btn btn-ghost btn-sm" onclick="saveProg()">💾 Save</button>
     <button class="btn btn-teal btn-sm" onclick="openPrintModal()">📄 PDF</button>
     <span id="syncBadge" class="sync-badge sync-idle">Offline</span>
@@ -6148,6 +6161,47 @@ function renderAnnList() {
       'style="background:none;border:none;color:var(--coral);cursor:pointer;font-size:18px;flex-shrink:0;padding:0 2px">&times;</button>' +
     '</div>';
   }).join('');
+}
+
+
+function toggleDashboard() {
+  var p = document.getElementById('dashPanel');
+  var btn = document.getElementById('dashBtn');
+  if (!p) return;
+  var showing = p.style.display !== 'none' && p.style.display !== '';
+  p.style.display = showing ? 'none' : 'block';
+  if (btn) btn.classList.toggle('active', !showing);
+  if (!showing) {
+    // Populate dashboard with client list
+    var stats = document.getElementById('dashStats');
+    var list = document.getElementById('dashList');
+    if (stats) {
+      var total = clients.length;
+      var withProg = clients.filter(function(c) { return c.programs && c.programs.length; }).length;
+      stats.innerHTML =
+        '<div class="dash-stat"><div class="ds-val">' + total + '</div><div class="ds-lbl">Clients</div></div>' +
+        '<div class="dash-stat"><div class="ds-val">' + withProg + '</div><div class="ds-lbl">With programs</div></div>' +
+        '<div class="dash-stat"><div class="ds-val">' + (total - withProg) + '</div><div class="ds-lbl">No program</div></div>';
+    }
+    if (list) {
+      var now = new Date();
+      list.innerHTML = clients.map(function(cl) {
+        var review = cl.review ? new Date(cl.review) : null;
+        var overdue = review && review < now;
+        var soon = review && !overdue && (review - now) < 7*24*60*60*1000;
+        var badge = overdue ? '<span class="rev-badge overdue">Overdue</span>' :
+                   soon    ? '<span class="rev-badge soon">Due soon</span>' : '';
+        var lastLog = '';
+        (cl.programs || []).forEach(function(p) {
+          (p.log || []).forEach(function(e) { if (e.date > lastLog) lastLog = e.date; });
+        });
+        return '<div class="dash-row" onclick="document.getElementById('clientSel').value='' + cl.id + '';selectClient();toggleDashboard()">' +
+          '<div class="dash-row-name">' + cl.first + ' ' + cl.last + badge + '</div>' +
+          '<div class="dash-row-meta">' + (cl.clinician || '') + (lastLog ? ' · Last: ' + lastLog.split(',')[0] : ' · No sessions') + '</div>' +
+        '</div>';
+      }).join('') || '<div style="color:var(--text-light);font-size:12px;padding:8px">No clients yet</div>';
+    }
+  }
 }
 
 </script>
