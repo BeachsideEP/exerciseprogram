@@ -286,7 +286,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .auth-msg-err{background:var(--coral-light);color:#a0301a}
 .auth-panel{display:none}.auth-panel.active{display:block}
 /* CLIENT VIEW */
-#viewClient{min-height:100vh;background:var(--sand)}
+#viewClient{min-height:100vh;background:#0B0F12}
 .cv-header{background:var(--ocean-deep);color:#fff;padding:0 16px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .cv-logo{display:flex;align-items:center;gap:9px}
 .cv-logo img{height:34px;width:34px;border-radius:50%;object-fit:contain}
@@ -777,6 +777,205 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .rev-badge{font-size:8px;font-weight:700;padding:1px 5px;border-radius:10px}
 .rev-badge.overdue{background:#FAEAE5;color:var(--coral)}
 .rev-badge.soon{background:#FFF3E0;color:#E67E22}
+
+
+/* ── CLIENT VIEW DARK THEME ── */
+#viewClient {
+  --cv-bg: #0B0F12;
+  --cv-card: #12181D;
+  --cv-card-2: #162026;
+  --cv-border: #1F2A33;
+  --cv-border-2: #26323A;
+  --cv-text: #FFFFFF;
+  --cv-text-2: #C9D1D9;
+  --cv-text-3: #8B949E;
+  --cv-accent: #2FD4F5;
+  --cv-accent-2: #1FBAD6;
+  --cv-accent-glow: rgba(47,212,245,.25);
+  --cv-input-bg: #0F1419;
+  --cv-input-border: #22303A;
+  --cv-input-text: #E6EDF3;
+  min-height: 100vh;
+  background: var(--cv-bg) !important;
+}
+
+/* Header */
+#viewClient .cv-header {
+  background: #0B0F12 !important;
+  border-bottom: 1px solid var(--cv-border) !important;
+}
+#viewClient .cv-header-title { color: var(--cv-text) !important; }
+
+/* Tab bar */
+#viewClient .cv-tabs {
+  background: rgba(11,15,18,.97) !important;
+  border-top: 1px solid var(--cv-border) !important;
+  backdrop-filter: blur(20px);
+}
+#viewClient .cv-tab { color: var(--cv-text-3) !important; }
+#viewClient .cv-tab.active { color: var(--cv-accent) !important; }
+
+/* Body */
+#viewClient .cv-body { background: var(--cv-bg) !important; color: var(--cv-text) !important; }
+
+/* Exercise cards */
+#viewClient .cv-ex-card {
+  background: var(--cv-card) !important;
+  border-color: var(--cv-border) !important;
+}
+#viewClient .cv-ex-name { color: var(--cv-text) !important; }
+#viewClient .cv-ex-params { color: var(--cv-text-2) !important; }
+#viewClient .cv-ex-hdr { background: var(--cv-card) !important; }
+
+/* Set table */
+#viewClient .cv-set-table th {
+  color: var(--cv-text-3) !important;
+  border-color: var(--cv-border-2) !important;
+}
+#viewClient .cv-set-table td { border-color: var(--cv-border) !important; }
+#viewClient .cv-set-inp {
+  background: var(--cv-input-bg) !important;
+  border-color: var(--cv-input-border) !important;
+  color: var(--cv-input-text) !important;
+}
+
+/* Tick button */
+#viewClient .cv-set-tickbox {
+  border-color: var(--cv-accent) !important;
+  background: transparent !important;
+}
+#viewClient .cv-set-tickbox.on {
+  background: var(--cv-accent) !important;
+  border-color: var(--cv-accent) !important;
+}
+
+/* Set +/- controls */
+#viewClient .cv-set-ctrl-btn {
+  background: var(--cv-card-2) !important;
+  border-color: var(--cv-border-2) !important;
+  color: var(--cv-accent) !important;
+}
+#viewClient .cv-set-ctrl-label { color: var(--cv-text-2) !important; }
+
+/* Submit button */
+#viewClient .cv-submit {
+  background: linear-gradient(135deg, var(--cv-accent) 0%, var(--cv-accent-2) 100%) !important;
+  color: #0B0F12 !important;
+  font-weight: 800 !important;
+  box-shadow: 0 4px 24px var(--cv-accent-glow) !important;
+}
+
+/* Feel buttons */
+#viewClient .cv-feel {
+  background: var(--cv-card) !important;
+  border-color: var(--cv-border) !important;
+  color: var(--cv-text-3) !important;
+}
+#viewClient .cv-feel.sel {
+  background: rgba(47,212,245,.15) !important;
+  border-color: var(--cv-accent) !important;
+  color: var(--cv-accent) !important;
+}
+
+/* Session panel */
+#viewClient .cv-session {
+  background: var(--cv-card) !important;
+  border-color: var(--cv-border) !important;
+}
+#viewClient .cv-session-title { color: var(--cv-text) !important; }
+
+/* Notes textarea */
+#viewClient .cv-note textarea {
+  background: var(--cv-input-bg) !important;
+  border-color: var(--cv-input-border) !important;
+  color: var(--cv-input-text) !important;
+}
+#viewClient .cv-note label { color: var(--cv-text-3) !important; }
+
+/* Streak bar */
+#viewClient .streak-bar {
+  background: linear-gradient(135deg, #0D1D2E 0%, #0B1929 100%) !important;
+  border: 1px solid var(--cv-border) !important;
+}
+
+/* Anna */
+#viewClient .anna-header {
+  background: linear-gradient(135deg, #0D1D2E, #0B1929) !important;
+  border: 1px solid var(--cv-border) !important;
+}
+#viewClient .anna-msg.assistant .anna-bubble {
+  background: var(--cv-card) !important;
+  border-color: var(--cv-border) !important;
+  color: var(--cv-text) !important;
+}
+#viewClient .anna-msg.user .anna-bubble {
+  background: var(--cv-accent) !important;
+  color: #0B0F12 !important;
+}
+#viewClient .anna-input {
+  background: var(--cv-input-bg) !important;
+  border-color: var(--cv-input-border) !important;
+  color: var(--cv-input-text) !important;
+}
+#viewClient .anna-input::placeholder { color: var(--cv-text-3) !important; }
+#viewClient .anna-input-row { border-color: var(--cv-border-2) !important; }
+#viewClient .anna-chip {
+  background: var(--cv-card) !important;
+  border-color: var(--cv-border-2) !important;
+  color: var(--cv-accent) !important;
+}
+#viewClient .anna-send { background: var(--cv-accent) !important; }
+#viewClient .anna-typing { background: var(--cv-card) !important; border-color: var(--cv-border) !important; }
+#viewClient .anna-typing span { background: var(--cv-text-3) !important; }
+
+/* Calendar */
+#viewClient .cv-calendar { background: var(--cv-bg) !important; color: var(--cv-text) !important; }
+
+/* Announce box */
+#viewClient .announce-box {
+  background: #12180A !important;
+  border-color: #2FD4A0 !important;
+}
+#viewClient .announce-body { color: #C9D1B9 !important; }
+#viewClient .announce-title { color: #2FD4A0 !important; }
+
+/* Sub/back buttons */
+#viewClient .cv-sub-btn {
+  border-color: var(--cv-border-2) !important;
+  color: var(--cv-text-3) !important;
+}
+
+/* Program selector */
+#viewClient .cv-prog-sel select {
+  background: var(--cv-input-bg) !important;
+  border-color: var(--cv-input-border) !important;
+  color: var(--cv-text) !important;
+}
+
+/* Superset group */
+#viewClient .cv-superset-group { border-color: var(--cv-accent) !important; }
+#viewClient .cv-superset-label { background: var(--cv-accent) !important; color: #0B0F12 !important; }
+
+/* Workout modal sheet */
+.cv-wkt-sheet {
+  background: #0F1419 !important;
+  color: #E6EDF3 !important;
+}
+.cv-wkt-type {
+  background: #12181D !important;
+  border-color: #1F2A33 !important;
+  color: #8B949E !important;
+}
+.cv-wkt-type.sel {
+  border-color: #2FD4F5 !important;
+  background: rgba(47,212,245,.15) !important;
+  color: #2FD4F5 !important;
+}
+.cv-wkt-field input, .cv-wkt-field select, .cv-wkt-field textarea {
+  background: #0F1419 !important;
+  border-color: #22303A !important;
+  color: #E6EDF3 !important;
+}
 
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -5089,6 +5288,20 @@ function renderCVHome() {
     }
 
     el.innerHTML = h;
+    // Apply dark theme to dynamically generated cards
+    el.querySelectorAll('[style*="background:#fff"]').forEach(function(card) {
+      card.style.background = '#12181D';
+      card.style.color = '#E8EAF0';
+    });
+    el.querySelectorAll('[style*="color:var(--text)"]').forEach(function(el2) {
+      el2.style.color = '#FFFFFF';
+    });
+    el.querySelectorAll('[style*="color:var(--text-light)"]').forEach(function(el2) {
+      el2.style.color = '#8B949E';
+    });
+    el.querySelectorAll('[style*="color:var(--ocean)"]').forEach(function(el2) {
+      el2.style.color = '#2FD4F5';
+    });
 
     // Inject Cliniko booking iframe listener once
     if (!window._clinikoListenerAdded) {
