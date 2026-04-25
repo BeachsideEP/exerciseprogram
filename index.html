@@ -3207,7 +3207,20 @@ async function syncClients() {
         var cloudTime = new Date(row.updated_at || 0).getTime();
         var localTime = new Date(localCl._localUpdatedAt || 0).getTime();
         if (localTime > cloudTime) {
-          // Local is newer — push it to cloud in background, keep local
+          // Local is newer for program data — but still merge client-submitted data from cloud
+          // Client may have logged sessions, health data, safety checks after practitioner last edited
+          if (cloudCl.outcomes && cloudCl.outcomes.length) localCl.outcomes = cloudCl.outcomes;
+          if (cloudCl.safetyLog && cloudCl.safetyLog.length) localCl.safetyLog = cloudCl.safetyLog;
+          if (cloudCl.ownWorkouts && cloudCl.ownWorkouts.length) localCl.ownWorkouts = cloudCl.ownWorkouts;
+          // Merge program logs (client session submissions)
+          if (cloudCl.programs) {
+            cloudCl.programs.forEach(function(cloudProg) {
+              var localProg = (localCl.programs || []).find(function(p) { return p.id === cloudProg.id; });
+              if (localProg && cloudProg.log && cloudProg.log.length > (localProg.log || []).length) {
+                localProg.log = cloudProg.log;
+              }
+            });
+          }
           pushClientToCloud(localCl);
           return localCl;
         }
