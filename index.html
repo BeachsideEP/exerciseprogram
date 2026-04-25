@@ -705,6 +705,20 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .cv-ex-built-name{flex:1;font-size:12px;font-weight:600;color:var(--text)}
 .cv-ex-built-meta{font-size:10px;color:var(--text-light)}
 
+
+/* Client search dropdown */
+.client-search-wrap{position:relative;flex:1}
+.client-dropdown{position:absolute;top:100%;left:0;right:0;background:#fff;
+  border:1.5px solid var(--sand-d);border-radius:8px;box-shadow:0 4px 16px rgba(28,43,53,.12);
+  z-index:200;max-height:220px;overflow-y:auto;display:none;margin-top:2px}
+.client-dropdown.open{display:block}
+.client-dd-item{padding:9px 12px;cursor:pointer;font-size:12px;color:var(--text);
+  border-bottom:1px solid var(--sand-d);font-family:'DM Sans',sans-serif}
+.client-dd-item:last-child{border-bottom:none}
+.client-dd-item:hover,.client-dd-item.active{background:var(--ocean-pale);color:var(--ocean)}
+.client-dd-item-sub{font-size:10px;color:var(--text-light);margin-top:1px}
+.client-dd-empty{padding:10px 12px;font-size:11px;color:var(--text-light);font-style:italic}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -729,15 +743,15 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     </div>
     <div id="panelMagic" class="auth-panel">
       <div id="otpStep1">
-        <p style="font-size:11px;color:var(--text-mid);margin-bottom:12px">Enter your email and we&rsquo;ll send you a 6-digit code to sign in.</p>
+        <p style="font-size:11px;color:var(--text-mid);margin-bottom:12px">Enter your email and we'll send you a 6-digit sign-in code.</p><p style="font-size:10px;color:var(--text-light);margin-bottom:10px">Check your inbox and spam folder for an email with a 6-digit code.</p>
         <div class="auth-field"><label>Your Email</label><input id="magicEmail" type="email" placeholder="client@email.com" onkeydown="if(event.key==='Enter')sendOTP()"></div>
         <button class="auth-btn" onclick="sendOTP()">Send Code</button>
       </div>
       <div id="otpStep2" style="display:none">
-        <p style="font-size:11px;color:var(--text-mid);margin-bottom:12px">Enter the 6-digit code sent to <strong id="otpEmailShow"></strong></p>
+        <p style="font-size:11px;color:var(--text-mid);margin-bottom:12px">Enter the code sent to <strong id="otpEmailShow"></strong></p>
         <div class="auth-field"><label>6-Digit Code</label>
           <input id="otpCode" type="number" placeholder="123456" maxlength="6"
-            style="font-size:24px;font-weight:700;text-align:center;letter-spacing:8px"
+            style="font-size:20px;font-weight:700;text-align:center;letter-spacing:6px"
             onkeydown="if(event.key==='Enter')verifyOTP()">
         </div>
         <button class="auth-btn" onclick="verifyOTP()">Sign In</button>
@@ -762,7 +776,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   </div>
   <!-- TAB CONTENT AREAS -->
   <div id="cvTabHome" style="display:block">
-    <div class="cv-home" id="cvHomeContent">
+    <div class="cv-home" id="cvHomeContent" style="width:100%;overflow-x:hidden">
       <div class="cv-empty"><div class="cv-empty-icon">&#9201;</div><p>Loading...</p></div>
     </div>
   </div>
@@ -892,11 +906,15 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <div id="dashList"></div>
   </div>
   <div class="client-bar">
-    <div style="position:relative;flex:1">
+    <div class="client-search-wrap">
       <input id="clientSearch" type="text" placeholder="&#128269; Search clients…"
         style="width:100%;padding:5px 8px 5px 28px;border:1.5px solid var(--sand-d);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;background:var(--sand)"
-        oninput="filterClientDropdown(this.value)" onfocus="this.select()" onkeydown="if(event.key==='Enter'){var m=clients.filter(function(c){return(c.first+' '+c.last).toLowerCase().includes(this.value.toLowerCase())},this);if(m.length===1){document.getElementById('clientSel').value=m[0].id;selectClient();}}">
+        oninput="filterClientDropdown(this.value)"
+        onfocus="filterClientDropdown(this.value)"
+        onblur="setTimeout(function(){closeClientDropdown()},200)"
+        onkeydown="clientSearchKeydown(event)">
       <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:12px;pointer-events:none">&#128269;</span>
+      <div class="client-dropdown" id="clientDropdown"></div>
     </div>
     <select id="clientSel" onchange="selectClient()" style="display:none"><option value="">— Select —</option></select>
     <button class="btn btn-primary btn-sm" onclick="openM('newClientM')">+ New</button>
@@ -1845,6 +1863,11 @@ function getProg() { const cl = getClient(); if (!cl) return null; return cl.pro
 // CLIENTS
 // ══════════════════════════════════════
 function renderClientDropdown() {
+  // Clear search if no client selected
+  if (!currentClientId) {
+    var inp = document.getElementById('clientSearch');
+    if (inp) inp.value = '';
+  }
   const sel = document.getElementById('clientSel');
   sel.innerHTML = '<option value="">— Select or create client —</option>';
   clients.forEach(c => {
@@ -2607,15 +2630,21 @@ async function sendOTP() {
     var r = await fetch(SUPA_URL + '/auth/v1/otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
-      body: JSON.stringify({ email: email, create_user: false })
+      body: JSON.stringify({ email: email, create_user: false, options: { shouldCreateUser: false } })
     });
+    var d = await r.json();
     if (r.ok) {
       setAuthMsg('', 'ok');
       document.getElementById('otpEmailShow').textContent = email;
       showOTPStep(2);
     } else {
-      var d = await r.json();
-      setAuthMsg(d.error_description || d.msg || 'Could not send code — check your email.', 'err');
+      var msg = d.error_description || d.msg || d.error || JSON.stringify(d);
+      // If OTP not enabled, fall back to magic link
+      if (msg.includes('Email logins are disabled') || msg.includes('not enabled')) {
+        setAuthMsg('Code sign-in not enabled — ask your clinician to enable it in settings.', 'err');
+      } else {
+        setAuthMsg('Could not send: ' + msg, 'err');
+      }
     }
   } catch (e) { setAuthMsg('Connection error: ' + e.message, 'err'); }
 }
@@ -2623,7 +2652,7 @@ async function sendOTP() {
 async function verifyOTP() {
   var email = (document.getElementById('magicEmail').value || '').trim();
   var token = (document.getElementById('otpCode').value || '').trim();
-  if (!token || token.length < 6) { setAuthMsg('Enter the 6-digit code.', 'err'); return; }
+  if (!token || token.length < 6) { setAuthMsg('Enter the code from your email.', 'err'); return; }
   setAuthMsg('Verifying...', 'ok');
   try {
     var r = await fetch(SUPA_URL + '/auth/v1/verify', {
@@ -4859,8 +4888,8 @@ function renderCVHome() {
     h += '<div style="padding:16px 16px 80px">';
 
     // Greeting
-    h += '<div style="font-size:22px;font-weight:800;color:var(--ocean-deep);margin-bottom:2px;font-family:Georgia,serif">' + greeting + ', ' + cvData.first + '!</div>';
-    h += '<div style="font-size:12px;color:var(--text-light);margin-bottom:20px">Your health at a glance</div>';
+    h += '<div style="font-size:22px;font-weight:800;color:var(--ocean-deep);margin-bottom:2px;font-family:Georgia,serif;padding:0 2px">' + greeting + ', ' + cvData.first + '!</div>';
+    h += '<div style="font-size:12px;color:var(--text-light);margin-bottom:16px">Your health at a glance</div>';
 
     // Badges
     h += '<div style="display:flex;gap:10px;margin-bottom:20px;overflow-x:auto;padding-bottom:4px">';
@@ -5562,27 +5591,64 @@ function annaXHR(messages, callback) {
 }
 
 
+var clientDDIndex = -1;
+
 function filterClientDropdown(q) {
-  q = q.toLowerCase();
-  var sel = document.getElementById('clientSel');
-  if (!sel) return;
-  // Rebuild options matching query
-  sel.innerHTML = '<option value="">— Select client —</option>';
-  var matches = clients.filter(function(cl) {
+  var dd = document.getElementById('clientDropdown');
+  if (!dd) return;
+  clientDDIndex = -1;
+  q = (q || '').toLowerCase().trim();
+  
+  var pool = q ? clients.filter(function(cl) {
     return (cl.first + ' ' + cl.last).toLowerCase().includes(q) ||
            (cl.email || '').toLowerCase().includes(q);
-  });
-  matches.forEach(function(cl) {
-    var opt = document.createElement('option');
-    opt.value = cl.id;
-    opt.textContent = cl.first + ' ' + cl.last + (cl.clinician ? ' · ' + cl.clinician : '');
-    if (cl.id === currentClientId) opt.selected = true;
-    sel.appendChild(opt);
-  });
-  // Auto-select if only one result
-  if (matches.length === 1 && q.length > 1) {
-    sel.value = matches[0].id;
-    selectClient();
+  }) : clients.slice(0, 20); // show first 20 when empty
+
+  if (!pool.length) {
+    dd.innerHTML = '<div class="client-dd-empty">' + (q ? 'No clients found' : 'No clients yet') + '</div>';
+    dd.classList.add('open');
+    return;
+  }
+
+  dd.innerHTML = pool.map(function(cl) {
+    return '<div class="client-dd-item" data-id="' + cl.id + '" onclick="selectClientFromDD('' + cl.id + '')">' +
+      '<div>' + cl.first + ' ' + cl.last + '</div>' +
+      '<div class="client-dd-item-sub">' + (cl.clinician || '') + (cl.email ? (cl.clinician ? ' · ' : '') + cl.email : '') + '</div>' +
+    '</div>';
+  }).join('');
+  dd.classList.add('open');
+}
+
+function selectClientFromDD(id) {
+  var sel = document.getElementById('clientSel');
+  if (sel) sel.value = id;
+  var cl = clients.find(function(c) { return c.id === id; });
+  if (cl) {
+    var inp = document.getElementById('clientSearch');
+    if (inp) inp.value = cl.first + ' ' + cl.last;
+  }
+  closeClientDropdown();
+  selectClient();
+}
+
+function closeClientDropdown() {
+  var dd = document.getElementById('clientDropdown');
+  if (dd) dd.classList.remove('open');
+}
+
+function clientSearchKeydown(e) {
+  var dd = document.getElementById('clientDropdown');
+  var items = dd ? dd.querySelectorAll('.client-dd-item') : [];
+  if (e.key === 'ArrowDown') {
+    clientDDIndex = Math.min(clientDDIndex + 1, items.length - 1);
+    items.forEach(function(el, i) { el.classList.toggle('active', i === clientDDIndex); });
+  } else if (e.key === 'ArrowUp') {
+    clientDDIndex = Math.max(clientDDIndex - 1, 0);
+    items.forEach(function(el, i) { el.classList.toggle('active', i === clientDDIndex); });
+  } else if (e.key === 'Enter' && clientDDIndex >= 0 && items[clientDDIndex]) {
+    items[clientDDIndex].click();
+  } else if (e.key === 'Escape') {
+    closeClientDropdown();
   }
 }
 
@@ -5612,7 +5678,8 @@ function closeCVWkt() {
 function cvSelectWktType(type) {
   cvWktType = type;
   document.querySelectorAll('.cv-wkt-type').forEach(function(el) {
-    el.classList.toggle('sel', el.textContent.trim() === type);
+    // textContent includes icon emoji, so check if it ends with the type name
+    el.classList.toggle('sel', el.textContent.trim().endsWith(type));
   });
   // Show exercise builder for weights/other
   var showEx = (type === 'Weights' || type === 'Other' || type === 'HIIT');
