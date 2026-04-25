@@ -5408,13 +5408,12 @@ function loadAnnaKeyStatus() {
 
 
 function annaXHR(messages, callback) {
-  // Use GET to avoid CORS preflight (POST triggers preflight, GET with simple headers does not)
+  // Simple GET with NO custom headers = no CORS preflight at all
+  // Pass apikey in URL since JWT verification is off
   var encoded = btoa(unescape(encodeURIComponent(JSON.stringify(messages))));
-  var url = SUPA_URL + '/functions/v1/cliniko?anna=true&m=' + encodeURIComponent(encoded);
+  var url = SUPA_URL + '/functions/v1/cliniko?anna=true&apikey=' + encodeURIComponent(SUPA_KEY) + '&m=' + encodeURIComponent(encoded);
   var xhr = new XMLHttpRequest();
   xhr.open('GET', url, true);
-  xhr.setRequestHeader('apikey', SUPA_KEY);
-  xhr.setRequestHeader('Authorization', 'Bearer ' + authToken());
   xhr.timeout = 30000;
 
   xhr.onload = function() {
