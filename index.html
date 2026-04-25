@@ -747,6 +747,24 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .cv-superset-label{background:var(--teal);color:#fff;font-size:9px;font-weight:700;
   padding:3px 10px;border-radius:20px;display:inline-block;margin-bottom:6px;letter-spacing:.05em}
 
+
+/* Announcements */
+.announce-box{background:linear-gradient(135deg,#FFF8E7 0%,#FFF3D0 100%);
+  border:1.5px solid #F5C842;border-radius:12px;padding:14px 16px;margin-top:16px}
+.announce-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.announce-icon{font-size:18px}
+.announce-title{font-size:12px;font-weight:700;color:#7A5C00;text-transform:uppercase;letter-spacing:.06em}
+.announce-body{font-size:13px;color:#4A3800;line-height:1.55;white-space:pre-wrap}
+.announce-date{font-size:9px;color:#A08040;margin-top:6px}
+/* Practitioner announcement manager */
+.ann-mgr{background:var(--sand);border-radius:10px;padding:14px;margin-bottom:12px}
+.ann-mgr-title{font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;
+  letter-spacing:.07em;margin-bottom:10px}
+.ann-item{background:#fff;border-radius:8px;padding:10px 12px;margin-bottom:8px;
+  border:1.5px solid var(--sand-dark);display:flex;gap:8px;align-items:flex-start}
+.ann-item-body{flex:1;font-size:12px;color:var(--text);line-height:1.5;white-space:pre-wrap}
+.ann-item-date{font-size:9px;color:var(--text-light);margin-top:2px}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -2542,6 +2560,7 @@ function openM(id) {
   if (id==='exMgrM') { renderEmList(); }
   if (id==='templatesM') { renderTemplates(); }
   if (id==='omHistM') { renderOMHistory(null); }
+  if (id==='announceM') { loadAnnouncements().then(renderAnnList); }
   if (id==='teamM') { setTimeout(loadAnnaKeyStatus, 50); }
   if (id==='shareM') { renderShareClientList(); }
   const k = localStorage.getItem('bep_clk_key');
@@ -2900,6 +2919,7 @@ async function loadClientView(user) {
     }
     cvData = match; cvState = {}; cvFeeling = ''; cvProgIdx = 0; cvSafetyDone = false; cvComment = '';
     cvStartSync(user); // Begin live sync
+    loadAnnouncements(); // Load announcements for home screen
     cvOwnWorkouts = JSON.parse(localStorage.getItem('cv_own_workouts_' + match.id) || '[]');
     cvSwitchTab('home');
   } catch (e) {
@@ -5040,6 +5060,18 @@ function renderCVHome() {
     h += '</div>';
 
     h += '</div>';
+    // ── Announcements ──
+    if (window._announcements && window._announcements.length) {
+      window._announcements.forEach(function(ann) {
+        h += '<div class="announce-box">';
+        h += '<div class="announce-hdr"><span class="announce-icon">&#128226;</span>';
+        h += '<span class="announce-title">From Beachside EP</span></div>';
+        h += '<div class="announce-body">' + ann.text.replace(/</g,'&lt;') + '</div>';
+        h += '<div class="announce-date">' + ann.date + '</div>';
+        h += '</div>';
+      });
+    }
+
     el.innerHTML = h;
 
     // Inject Cliniko booking iframe listener once
@@ -6039,6 +6071,81 @@ function cvExitCustomWorkout() {
   renderCV();
 }
 
+
+// ════════════════════════════════════════════════════
+// ANNOUNCEMENTS
+// ════════════════════════════════════════════════════
+window._announcements = [];
+
+async function loadAnnouncements() {
+  try {
+    var r = await fetch(SUPA_URL + '/rest/v1/library?id=like.announce_%&order=updated_at.desc', {
+      headers: supaHeaders()
+    });
+    if (!r.ok) return;
+    var rows = await r.json();
+    window._announcements = (rows || []).map(function(row) {
+      return { id: row.id, text: (row.data && row.data.text) || '', date: (row.data && row.data.date) || '' };
+    });
+  } catch(e) {}
+}
+
+async function saveAnnouncement() {
+  var text = (document.getElementById('annText').value || '').trim();
+  if (!text) { toast('Enter an announcement first', 'err'); return; }
+  var id = 'announce_' + Date.now();
+  var date = new Date().toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' });
+  var payload = { id: id, data: { text: text, date: date }, updated_at: new Date().toISOString() };
+  try {
+    var r = await fetch(SUPA_URL + '/rest/v1/library', {
+      method: 'POST',
+      headers: supaHeaders(),
+      body: JSON.stringify(payload)
+    });
+    if (r.ok) {
+      toast('Announcement posted', 'ok');
+      document.getElementById('annText').value = '';
+      window._announcements.unshift({ id: id, text: text, date: date });
+      renderAnnList();
+    } else {
+      var d = await r.json();
+      toast('Error: ' + (d.message || JSON.stringify(d)), 'err');
+    }
+  } catch(e) { toast('Connection error', 'err'); }
+}
+
+async function deleteAnnouncement(id) {
+  if (!confirm('Delete this announcement? Clients will no longer see it.')) return;
+  try {
+    await fetch(SUPA_URL + '/rest/v1/library?id=eq.' + id, {
+      method: 'DELETE',
+      headers: supaHeaders()
+    });
+    window._announcements = window._announcements.filter(function(a) { return a.id !== id; });
+    renderAnnList();
+    toast('Announcement deleted', 'ok');
+  } catch(e) { toast('Connection error', 'err'); }
+}
+
+function renderAnnList() {
+  var el = document.getElementById('annList');
+  if (!el) return;
+  if (!window._announcements.length) {
+    el.innerHTML = '<div style="text-align:center;color:var(--text-light);font-size:12px;padding:16px">No announcements yet</div>';
+    return;
+  }
+  el.innerHTML = window._announcements.map(function(ann) {
+    return '<div class="ann-item">' +
+      '<div class="ann-item-body">' +
+        '<div>' + ann.text.replace(/</g,'&lt;') + '</div>' +
+        '<div class="ann-item-date">Posted ' + ann.date + '</div>' +
+      '</div>' +
+      '<button onclick="deleteAnnouncement(\'' + ann.id + '\')" ' +
+      'style="background:none;border:none;color:var(--coral);cursor:pointer;font-size:18px;flex-shrink:0;padding:0 2px">&times;</button>' +
+    '</div>';
+  }).join('');
+}
+
 </script>
 
 <!-- PWA Service Worker -->
@@ -6061,6 +6168,34 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+
+
+<!-- ANNOUNCEMENT MODAL -->
+<div class="overlay" id="announceM" onclick="closeBg(event,'announceM')">
+<div class="modal" style="width:500px">
+  <div class="modal-title">&#128226; Announcements</div>
+  <p class="modal-sub">Messages shown on the client home screen</p>
+
+  <div class="ann-mgr">
+    <div class="ann-mgr-title">New Announcement</div>
+    <textarea id="annText" placeholder="e.g. The clinic will be closed on Monday 28th April for ANZAC Day. Happy training!" rows="3"
+      style="width:100%;padding:9px 11px;border:1.5px solid var(--sand-dark);border-radius:8px;
+      font-size:13px;font-family:'DM Sans',sans-serif;outline:none;resize:none;
+      background:#fff;box-sizing:border-box"></textarea>
+    <button class="btn btn-primary" style="margin-top:8px;width:100%" onclick="saveAnnouncement()">
+      &#128226; Post Announcement
+    </button>
+  </div>
+
+  <div id="annList">
+    <div style="text-align:center;color:var(--text-light);font-size:12px;padding:12px">Loading...</div>
+  </div>
+
+  <div class="modal-footer">
+    <button class="btn btn-outline" onclick="closeM('announceM')">Close</button>
+  </div>
+</div>
+</div>
 
 </body>
 </html>
