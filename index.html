@@ -6612,7 +6612,48 @@ var hrMonths = 1;
 
 function openHealthReview() {
   var el = document.getElementById('cvHealthReview');
-  if (el) { el.classList.add('open'); renderHealthChart(); }
+  if (!el) return;
+
+  // Always reload from localStorage to catch latest readings
+  if (cvData && cvData.id) {
+    try {
+      var stored = localStorage.getItem('cv_health_' + cvData.id);
+      if (stored) {
+        var parsed = JSON.parse(stored);
+        // Merge into cvHealthData
+        cvHealthData = cvHealthData || {};
+        Object.keys(parsed).forEach(function(k) {
+          if (!cvHealthData[k] || cvHealthData[k].length < parsed[k].length) {
+            cvHealthData[k] = parsed[k];
+          }
+        });
+      }
+    } catch(e) {}
+
+    // Also pull from cvData.outcomes if available (synced from Supabase)
+    var metricMap = {
+      'Weight (kg)': 'weight',
+      'Blood Pressure': 'bp',
+      'Blood Glucose (mmol/L)': 'bg',
+      'Heart Rate (bpm)': 'hr',
+      'Sleep (hrs)': 'sleep'
+    };
+    (cvData.outcomes || []).forEach(function(om) {
+      var key = metricMap[om.name];
+      if (key && om.entries && om.entries.length) {
+        cvHealthData = cvHealthData || {};
+        if (!cvHealthData[key]) cvHealthData[key] = [];
+        // Add entries not already in cvHealthData
+        om.entries.forEach(function(e) {
+          var exists = cvHealthData[key].some(function(h) { return h.date === e.date && h.val === e.val; });
+          if (!exists) cvHealthData[key].push({ val: e.val, date: e.date });
+        });
+      }
+    });
+  }
+
+  el.classList.add('open');
+  renderHealthChart();
 }
 
 function closeHealthReview() {
