@@ -731,8 +731,9 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 
 
 /* Supersets */
-.ss-active{background:var(--teal)!important;color:#fff!important}
-.ss-inactive{background:none;color:var(--teal)}
+.pe-ss{width:22px;height:19px;border-radius:4px;border:1.5px solid var(--teal);background:none;color:var(--teal);cursor:pointer;font-size:9px;font-weight:700;font-family:"DM Sans",sans-serif;transition:all .12s}
+.pe-ss.ss-active{background:var(--teal);color:#fff}
+.pe-ss:hover{background:var(--teal);color:#fff}
 .superset-badge{display:inline-block;background:var(--teal);color:#fff;font-size:8px;
   font-weight:700;padding:2px 6px;border-radius:10px;letter-spacing:.04em;margin-left:4px}
 .superset-connector{border-left:3px solid var(--teal);margin-left:14px;padding-left:8px;
@@ -2139,7 +2140,7 @@ function renderDropZone() {
         <div class="pe-ctrl">
           <button class="mv" onclick="moveEx(${ex.uid},-1)">↑</button>
           <button class="mv" onclick="moveEx(${ex.uid},1)">↓</button>
-          <button class="mv ${ex.superset ? 'ss-active' : 'ss-inactive'}" onclick="toggleSuperset('${ex.uid}')" title="Superset" style="border-color:var(--teal);font-weight:700;font-size:9px">SS</button>
+          <button class="pe-ss ${ex.superset ? 'ss-active' : ''}" onclick="toggleSuperset('${ex.uid}')" title="Toggle superset with next exercise">SS</button>
           <button class="rm" onclick="removeEx(${ex.uid})">✕</button>
         </div>
       </div>
@@ -2932,6 +2933,13 @@ function renderCV() {
   h += '</div>';
 
   // ── Streak / adherence ──
+    // Custom workout mode
+  if (cvCustomWorkout) {
+    h += renderCVCustomWorkout();
+    document.getElementById('cvBody').innerHTML = h;
+    return;
+  }
+
   // ── Pre-session safety check ──
   h += '<div class="cv-session" id="cvSafetyPanel" style="margin-bottom:10px">';
   h += '<div class="cv-session-title">&#10084;&#65039; Pre-Session Check</div>';
@@ -2952,12 +2960,6 @@ function renderCV() {
     }
   }
   h += '</div>';
-
-  // If custom workout mode, render that instead
-  if (cvCustomWorkout) {
-    document.getElementById('cvBody').innerHTML = h + renderCVCustomWorkout();
-    return;
-  }
 
   // ── Program selector ──
   // Program selector - always show (includes Build Your Own)
