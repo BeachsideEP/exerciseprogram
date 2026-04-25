@@ -5597,7 +5597,11 @@ function renderCVCalendar() {
   (cvData.programs || []).forEach(function(p) {
     (p.log || []).forEach(function(e) {
       if (!e.clientSubmitted) return;
-      var d = (e.date||'').split(',')[0].trim();
+      // Robust date parsing - handle "26 Apr 2026, 9:30 am" or "26 Apr. 2026"
+      var rawDate = (e.date||'').split(',')[0].trim().replace('.','');
+      // Normalize: "26 Apr 2026"
+      var dateParts = rawDate.split(' ').filter(Boolean);
+      var d = dateParts.slice(0,3).join(' ');
       if (!d) return;
       if (!sessionsByDate[d]) sessionsByDate[d] = [];
       var raw = e.text || '';
@@ -5622,7 +5626,7 @@ function renderCVCalendar() {
   });
 
   allOwnWorkouts.forEach(function(w) {
-    var d = (w.date||'').split(',')[0].trim();
+    var d = (w.date||'').split(',')[0].trim().replace('.','').split(' ').filter(Boolean).slice(0,3).join(' ');
     if (!d) return;
     if (!sessionsByDate[d]) sessionsByDate[d] = [];
     var details = [];
@@ -6438,15 +6442,31 @@ function cvFilterCustomEx(q) {
     return;
   }
 
-  res.innerHTML = matches.map(function(ex) {
+  // Store matches globally for selection by index (avoids quote issues in onclick)
+  window._cvExMatches = matches;
+  res.innerHTML = matches.map(function(ex, idx) {
     var thumb = getExIllusStr(ex);
-    return '<div onclick="cvAddCustomEx(' + JSON.stringify(ex.id) + ')" '
+    return '<div onclick="cvAddCustomExByIdx(' + idx + ')" '
       + 'style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer;border-bottom:1px solid var(--sand-dark)">'
       + '<div style="width:36px;height:36px;border-radius:6px;overflow:hidden;flex-shrink:0;background:var(--sand)">' + thumb + '</div>'
       + '<div><div style="font-size:13px;font-weight:600;color:var(--text)">' + ex.name + '</div>'
       + '<div style="font-size:10px;color:var(--text-light)">' + (ex.cat || '') + '</div></div>'
       + '</div>';
   }).join('');
+}
+
+function cvAddCustomExByIdx(idx) {
+  var matches = window._cvExMatches || [];
+  var ex = matches[idx];
+  if (!ex) return;
+  if (cvCustomExercises.find(function(e) { return e.name === ex.name; })) return;
+  cvCustomExercises.push(Object.assign({}, ex, { uid: 'custom_' + Date.now() }));
+  var srch = document.getElementById('cvCustomSrch');
+  var res = document.getElementById('cvCustomExResults');
+  if (srch) srch.value = '';
+  if (res) res.innerHTML = '';
+  window._cvExMatches = [];
+  renderCV();
 }
 
 function cvAddCustomEx(exId) {
