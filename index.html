@@ -1869,18 +1869,20 @@ function renderClientDropdown() {
     var inp = document.getElementById('clientSearch');
     if (inp) inp.value = '';
   }
-  const sel = document.getElementById('clientSel');
+  var sel = document.getElementById('clientSel');
+  if (!sel) return; // guard against null
   sel.innerHTML = '<option value="">— Select or create client —</option>';
-  clients.forEach(c => {
-    const o = document.createElement('option');
-    o.value = c.id; o.textContent = `${c.first} ${c.last}`;
+  clients.forEach(function(c) {
+    var o = document.createElement('option');
+    o.value = c.id;
+    o.textContent = c.first + ' ' + c.last;
     sel.appendChild(o);
   });
   if (currentClientId) sel.value = currentClientId;
 }
 
 function selectClient() {
-  currentClientId = document.getElementById('clientSel').value || null;
+  var _selEl = document.getElementById('clientSel'); currentClientId = _selEl ? _selEl.value || null : null;
   currentProgId = null;
   const cl = getClient();
   document.getElementById('clientDetails').style.display = cl ? '' : 'none';
