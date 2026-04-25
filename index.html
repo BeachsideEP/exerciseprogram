@@ -3447,8 +3447,8 @@ function renderCV() {
         const loadPlaceholder = ex.load || 'kg';
         h += '<tr style="' + (setDone ? 'background:#f7fffc' : '') + '">';
         h += '<td class="cv-set-num">' + (s+1) + '</td>';
-        h += '<td><input class="cv-set-inp" type="text" placeholder="' + repsPlaceholder + '" value="' + setReps + '" oninput="cvSetRow(' + i + ',' + s + ',\'reps\',this.value)"></td>';
-        h += '<td><input class="cv-set-inp" type="text" placeholder="' + loadPlaceholder + '" value="' + setLoad + '" oninput="cvSetRow(' + i + ',' + s + ',\'load\',this.value)"></td>';
+        h += '<td><input class="cv-set-inp" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="' + repsPlaceholder + '" value="' + setReps + '" oninput="cvSetRow(' + i + ',' + s + ',\'reps\',this.value)"></td>';
+        h += '<td><input class="cv-set-inp" type="text" inputmode="decimal" placeholder="' + loadPlaceholder + '" value="' + setLoad + '" oninput="cvSetRow(' + i + ',' + s + ',\'load\',this.value)"></td>';
         h += '<td class="cv-set-tick"><div class="cv-set-tickbox' + (setDone ? ' on' : '') + '" onclick="cvTickSet(' + i + ',' + s + ')">';
         if (setDone) h += '<svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" width="12" height="12"><polyline points="2,6 5,9 10,3"/></svg>';
         h += '</div></td>';
@@ -5581,25 +5581,42 @@ function renderCVCalendar() {
   var ORDINALS    = ['th','st','nd','rd'];
   function ordinal(n) { var v=n%100; return n+(ORDINALS[(v-20)%10]||ORDINALS[v]||ORDINALS[0]); }
 
-  // Build session map keyed by "D MMM YYYY"
   var sessionsByDate = {};
+
   (cvData.programs || []).forEach(function(p) {
     (p.log || []).forEach(function(e) {
       if (!e.clientSubmitted) return;
       var d = (e.date||'').split(',')[0].trim();
       if (!d) return;
       if (!sessionsByDate[d]) sessionsByDate[d] = [];
-      sessionsByDate[d].push({ type: 'prescribed', text: e.text || 'Workout of the day' });
+      var raw = e.text || '';
+      var feeling = '';
+      var details = [];
+      raw.split('|').forEach(function(part) {
+        part = part.trim();
+        if (!part) return;
+        if (part.startsWith('Feeling:')) { feeling = part.replace('Feeling:','').trim(); return; }
+        if (part.startsWith('Own workout:')) return;
+        details.push(part);
+      });
+      var exCount = details.filter(function(d) { return d.match(/\[.+sets\]/); }).length;
+      sessionsByDate[d].push({ type: 'prescribed', title: p.title || 'Home Exercise Program', feeling: feeling, exCount: exCount, details: details });
     });
   });
+
   (cvOwnWorkouts || []).forEach(function(w) {
     var d = (w.date||'').split(',')[0].trim();
     if (!d) return;
     if (!sessionsByDate[d]) sessionsByDate[d] = [];
-    sessionsByDate[d].push({ type: 'cardio', text: w.type || 'Workout', duration: w.duration, note: w.note });
+    var details = [];
+    if (w.exercises && Array.isArray(w.exercises) && w.exercises.length) {
+      w.exercises.forEach(function(ex) { details.push(typeof ex === 'string' ? ex : (ex.name || '')); });
+    } else if (w.summary) {
+      w.summary.split('|').forEach(function(p) { var t = p.trim(); if (t && !t.startsWith(w.type) && !t.startsWith('Felt:')) details.push(t); });
+    }
+    sessionsByDate[d].push({ type: 'own', title: w.type || 'Workout', feeling: w.feel || '', duration: w.duration || '', details: details });
   });
 
-  // Generate 60 days: 30 past + today + 29 future
   var today = new Date(); today.setHours(0,0,0,0);
   var days = [];
   for (var offset = -30; offset <= 29; offset++) {
@@ -5608,73 +5625,85 @@ function renderCVCalendar() {
   }
 
   var h = '<div style="padding:0 0 80px">';
-  var lastMonth = -1;
 
   days.forEach(function(d) {
-    var dd = d.getDate();
-    var mm = d.getMonth();
-    var yyyy = d.getFullYear();
-    var dayName = DAY_LONG[d.getDay()];
+    var dd = d.getDate(), mm = d.getMonth(), yyyy = d.getFullYear();
     var dateKey = dd + ' ' + MONTH_SHORT[mm] + ' ' + yyyy;
     var isToday = d.getTime() === today.getTime();
     var isFuture = d > today;
     var sessions = sessionsByDate[dateKey] || [];
+    if (!sessions.length && !isToday) return;
+
     var labelText = isToday ? 'Today, ' + MONTH_LONG[mm] + ' ' + ordinal(dd) :
-                    (d.getTime() === today.getTime() - 86400000 ? 'Yesterday' : dayName) +
-                    ', ' + MONTH_LONG[mm] + ' ' + ordinal(dd);
+      (d.getTime() === today.getTime() - 86400000 ? 'Yesterday' : DAY_LONG[d.getDay()]) +
+      ', ' + MONTH_LONG[mm] + ' ' + ordinal(dd);
 
-    // Day header row
     h += '<div style="display:flex;align-items:center;gap:8px;padding:14px 16px 8px">';
-    if (isToday) {
-      h += '<div style="width:12px;height:12px;border-radius:50%;background:#f59e0b;flex-shrink:0"></div>';
-    }
-    h += '<div style="font-size:' + (isToday ? '17px' : '15px') + ';font-weight:700;color:' +
-         (isToday ? 'var(--text)' : (isFuture ? 'var(--text-light)' : 'var(--text)')) + '">' + labelText + '</div>';
+    if (isToday) h += '<div style="width:10px;height:10px;border-radius:50%;background:#f59e0b;flex-shrink:0"></div>';
+    h += '<div style="font-size:' + (isToday ? '15px' : '13px') + ';font-weight:700;color:#C9D1D9">' + labelText + '</div>';
     h += '</div>';
-    h += '<div style="height:1px;background:var(--sand-dark);margin:0 16px"></div>';
+    h += '<div style="height:1px;background:#1F2A33;margin:0 16px"></div>';
 
-    // Session cards
     if (sessions.length) {
-      sessions.forEach(function(s) {
+      sessions.forEach(function(s, si) {
+        var uid = 'cal_' + dateKey.replace(/ /g,'_') + '_' + si;
         var isPrescribed = s.type === 'prescribed';
-        var circleColor = isPrescribed ? 'var(--ocean)' : 'var(--teal)';
-        var icon = isPrescribed
-          ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
-          : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
-        var sub = 'Completed.';
-        if (!isPrescribed) {
-          if (s.duration) sub += ' ⏱ ' + s.duration + ' minutes';
-          if (s.note) sub += ' · ' + s.note;
-        }
+        var accent = isPrescribed ? '#2FD4F5' : '#5BBFAA';
+        var icon = isPrescribed ? '&#127947;' : '&#127939;';
+        var sub = '';
+        if (s.feeling) sub += 'Felt: ' + s.feeling;
+        if (s.duration) sub += (sub ? ' · ' : '') + s.duration + ' min';
+        if (s.exCount) sub += (sub ? ' · ' : '') + s.exCount + ' exercises';
+        if (!sub) sub = 'Completed';
 
-        h += '<div style="margin:8px 16px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.07);display:flex;align-items:center;gap:12px">';
-        h += '<div style="width:34px;height:34px;border-radius:50%;background:' + circleColor + ';display:flex;align-items:center;justify-content:center;flex-shrink:0">' + icon + '</div>';
+        h += '<div id="' + uid + '" style="margin:8px 16px;background:#12181D;border-radius:12px;border:1px solid #1F2A33;overflow:hidden">';
+        h += '<div onclick="cvCalToggle('' + uid + '')" style="padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer">';
+        h += '<div style="width:36px;height:36px;border-radius:50%;background:' + accent + '22;border:1.5px solid ' + accent + ';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">' + icon + '</div>';
         h += '<div style="flex:1;min-width:0">';
-        h += '<div style="font-size:14px;font-weight:600;color:var(--text)">' + s.text.split('|')[0].replace(/^Feeling:[^|]+\|?\s*/,'').split('[')[0].trim() + '</div>';
-        h += '<div style="font-size:12px;color:var(--text-light);margin-top:2px">' + sub + '</div>';
+        h += '<div style="font-size:14px;font-weight:700;color:#FFFFFF">' + s.title + '</div>';
+        h += '<div style="font-size:11px;color:#8B949E;margin-top:2px">' + sub + '</div>';
         h += '</div>';
-        h += '<div style="color:var(--text-light);font-size:18px">&#8250;</div>';
+        h += '<div id="' + uid + '_arr" style="color:#8B949E;font-size:20px;transition:transform .2s">&#8250;</div>';
+        h += '</div>';
+
+        if (s.details && s.details.length) {
+          h += '<div id="' + uid + '_det" style="display:none;border-top:1px solid #1F2A33;padding:10px 14px 12px">';
+          s.details.forEach(function(line) {
+            if (!line.trim()) return;
+            h += '<div style="font-size:12px;color:#C9D1D9;padding:5px 0;border-bottom:1px solid #26323A">' + line + '</div>';
+          });
+          h += '</div>';
+        }
         h += '</div>';
       });
-    } else if (!isFuture && !isToday) {
-      // Past day with no sessions - show nothing (keep it clean)
+    } else {
+      h += '<div style="margin:8px 16px;padding:12px;color:#8B949E;font-size:12px;text-align:center">No session logged today</div>';
     }
   });
 
   h += '</div>';
   el.innerHTML = h;
 
-  // Scroll today into view
   setTimeout(function() {
-    var allDayHeaders = el.querySelectorAll('div');
-    for (var i = 0; i < allDayHeaders.length; i++) {
-      if (allDayHeaders[i].textContent.indexOf('Today') === 0) {
-        allDayHeaders[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    var allEls = el.querySelectorAll('div');
+    for (var i = 0; i < allEls.length; i++) {
+      if (allEls[i].textContent.trim().indexOf('Today') === 0) {
+        allEls[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
         break;
       }
     }
   }, 100);
 }
+
+function cvCalToggle(uid) {
+  var det = document.getElementById(uid + '_det');
+  var arr = document.getElementById(uid + '_arr');
+  if (!det) return;
+  var open = det.style.display !== 'none';
+  det.style.display = open ? 'none' : 'block';
+  if (arr) arr.style.transform = open ? '' : 'rotate(90deg)';
+}
+
 
 
 
@@ -6342,8 +6371,8 @@ function renderCVCustomWorkout() {
           var setLoad = (st.setLoads && st.setLoads[s]) || '';
           h += '<tr style="' + (setDone ? 'background:#f7fffc' : '') + '">';
           h += '<td class="cv-set-num">' + (s+1) + '</td>';
-          h += '<td><input class="cv-set-inp" type="text" placeholder="' + (ex.reps || '-') + '" value="' + setReps + '" oninput="cvSetRow(' + i + ',' + s + ',\'reps\',this.value)"></td>';
-          h += '<td><input class="cv-set-inp" type="text" placeholder="' + (ex.load || 'kg') + '" value="' + setLoad + '" oninput="cvSetRow(' + i + ',' + s + ',\'load\',this.value)"></td>';
+          h += '<td><input class="cv-set-inp" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="' + (ex.reps || '-') + '" value="' + setReps + '" oninput="cvSetRow(' + i + ',' + s + ',\'reps\',this.value)"></td>';
+          h += '<td><input class="cv-set-inp" type="text" inputmode="decimal" placeholder="' + (ex.load || 'kg') + '" value="' + setLoad + '" oninput="cvSetRow(' + i + ',' + s + ',\'load\',this.value)"></td>';
           h += '<td class="cv-set-tick" style="padding-bottom:16px"><div class="cv-set-tickbox' + (setDone ? ' on' : '') + '" onclick="cvTickSet(' + i + ',' + s + ')">';
           if (setDone) h += '<svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" width="12" height="12"><polyline points="2,6 5,9 10,3"/></svg>';
           h += '</div></td></tr>';
