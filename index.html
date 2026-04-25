@@ -5603,15 +5603,21 @@ function renderCVCalendar() {
       var raw = e.text || '';
       var feeling = '';
       var details = [];
+      var isCustom = raw.indexOf('Own workout:') !== -1;
       raw.split('|').forEach(function(part) {
         part = part.trim();
         if (!part) return;
         if (part.startsWith('Feeling:')) { feeling = part.replace('Feeling:','').trim(); return; }
-        if (part.startsWith('Own workout:')) return;
+        if (part.startsWith('Own workout:')) return; // skip summary line
         details.push(part);
       });
       var exCount = details.filter(function(d) { return d.match(/\[.+sets\]/); }).length;
-      sessionsByDate[d].push({ type: 'prescribed', title: p.title || 'Home Exercise Program', feeling: feeling, exCount: exCount, details: details });
+      if (isCustom) {
+        // Custom "Build Your Own" workout — show as own workout type
+        sessionsByDate[d].push({ type: 'own', title: 'Own Workout', feeling: feeling, exCount: exCount, details: details });
+      } else {
+        sessionsByDate[d].push({ type: 'prescribed', title: p.title || 'Home Exercise Program', feeling: feeling, exCount: exCount, details: details });
+      }
     });
   });
 
