@@ -2922,7 +2922,7 @@ async function loadClientView(user) {
     }
     cvData = match; cvState = {}; cvFeeling = ''; cvProgIdx = 0; cvSafetyDone = false; cvComment = '';
     cvStartSync(user); // Begin live sync
-    loadAnnouncements(); // Load announcements for home screen
+    loadAnnouncements().then(function() { if (cvActiveTab === 'home') renderCVHome(); }); // Load announcements
     cvOwnWorkouts = JSON.parse(localStorage.getItem('cv_own_workouts_' + match.id) || '[]');
     cvSwitchTab('home');
   } catch (e) {
@@ -5490,7 +5490,8 @@ async function cvSilentSync() {
       if (localIdx !== -1) { clients[localIdx] = match; if (typeof saveDB === 'function') saveDB(); }
     }
 
-    // Re-render the current tab silently
+    // Refresh announcements then re-render
+    await loadAnnouncements();
     var activeTab = cvActiveTab || 'home';
     if (activeTab === 'home') renderCVHome();
     else if (activeTab === 'workouts') renderCV();
@@ -6082,7 +6083,7 @@ window._announcements = [];
 
 async function loadAnnouncements() {
   try {
-    var r = await fetch(SUPA_URL + '/rest/v1/library?id=like.announce_%&order=updated_at.desc', {
+    var r = await fetch(SUPA_URL + '/rest/v1/library?id=like.announce_%25&order=updated_at.desc', {
       headers: supaHeaders()
     });
     if (!r.ok) return;
