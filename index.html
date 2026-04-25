@@ -400,7 +400,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 
 
 /* Client dashboard */
-.dash-panel{background:#fff;border-radius:var(--r);padding:12px 13px;margin-bottom:9px;box-shadow:0 1px 5px rgba(28,43,53,.06);display:none}
+.dash-panel{background:#fff;border-radius:var(--r);padding:12px 13px;margin-bottom:9px;box-shadow:0 1px 5px rgba(28,43,53,.06);display:block}
 .dash-title{font-size:10px;font-weight:700;color:var(--text-l);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
 .dash-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px}
 .dash-stat{background:var(--sand);border-radius:7px;padding:8px 10px;text-align:center}
@@ -917,7 +917,6 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <button class="btn btn-ghost btn-sm" onclick="openM('savedM')">📂 Programs</button>
     <button class="btn btn-ghost btn-sm" onclick="openM('templatesM')">&#128196; Templates</button>
     <button class="btn btn-ghost btn-sm" onclick="toggleDashboard()" id="dashBtn">&#128101; Dashboard</button>
-    <button class="btn btn-ghost btn-sm" onclick="openM('announceM')">&#128226; Announce</button>
     <button class="btn btn-ghost btn-sm" onclick="saveProg()">💾 Save</button>
     <button class="btn btn-teal btn-sm" onclick="openPrintModal()">📄 PDF</button>
     <span id="syncBadge" class="sync-badge sync-idle">Offline</span>
