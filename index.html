@@ -719,6 +719,30 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .client-dd-item-sub{font-size:10px;color:var(--text-light);margin-top:1px}
 .client-dd-empty{padding:10px 12px;font-size:11px;color:var(--text-light);font-style:italic}
 
+
+/* Set +/- controls */
+.cv-set-ctrl{display:flex;align-items:center;gap:10px;margin-bottom:8px;justify-content:center}
+.cv-set-ctrl-btn{width:32px;height:32px;border-radius:50%;border:2px solid var(--sand-dark);
+  background:#fff;font-size:18px;font-weight:700;cursor:pointer;display:flex;
+  align-items:center;justify-content:center;color:var(--ocean);font-family:-apple-system,sans-serif;
+  line-height:1;transition:all .12s}
+.cv-set-ctrl-btn:hover{border-color:var(--ocean);background:var(--ocean-pale)}
+.cv-set-ctrl-label{font-size:13px;font-weight:700;color:var(--text);min-width:70px;text-align:center}
+
+
+/* Supersets */
+.superset-badge{display:inline-block;background:var(--teal);color:#fff;font-size:8px;
+  font-weight:700;padding:2px 6px;border-radius:10px;letter-spacing:.04em;margin-left:4px}
+.superset-connector{border-left:3px solid var(--teal);margin-left:14px;padding-left:8px;
+  position:relative;margin-top:-4px;margin-bottom:4px}
+.superset-connector::before{content:'SS';position:absolute;left:-16px;top:50%;
+  transform:translateY(-50%);background:var(--teal);color:#fff;font-size:8px;
+  font-weight:700;padding:1px 3px;border-radius:3px;line-height:1.4}
+/* Client superset */
+.cv-superset-group{border:2px solid var(--teal);border-radius:12px;padding:4px;margin-bottom:10px}
+.cv-superset-label{background:var(--teal);color:#fff;font-size:9px;font-weight:700;
+  padding:3px 10px;border-radius:20px;display:inline-block;margin-bottom:6px;letter-spacing:.05em}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -2109,10 +2133,11 @@ function renderDropZone() {
       <div class="pe-hdr">
         <div class="pe-num">${i+1}</div>
         <div class="pe-thumb">${getIllus(ex.name, ex.cat)}</div>
-        <div class="pe-name">${ex.name}</div>
+        <div class="pe-name">${ex.name}${ex.superset ? '<span class="superset-badge" style="margin-left:6px">SS ↓</span>' : ''}</div>
         <div class="pe-ctrl">
           <button class="mv" onclick="moveEx(${ex.uid},-1)">↑</button>
           <button class="mv" onclick="moveEx(${ex.uid},1)">↓</button>
+          <button class="mv" onclick="toggleSuperset('${ex.uid}')" title="${ex.superset ? 'Remove superset' : 'Pair with next exercise as superset'}" style="background:${ex.superset ? 'var(--teal)' : ''};color:${ex.superset ? '#fff' : 'var(--teal)'};border-color:var(--teal);font-weight:700;font-size:9px">SS</button>
           <button class="rm" onclick="removeEx(${ex.uid})">✕</button>
         </div>
       </div>
@@ -2942,9 +2967,22 @@ function renderCV() {
   h += '</select></div>';
 
   // ── Exercise cards ──
-  (prog.exercises || []).forEach(function(ex, i) {
+  // Render exercises with superset grouping
+  var _exList = prog.exercises || [];
+  var _ssOpen = false;
+  _exList.forEach(function(ex, i) {
+    // Check if previous exercise started a superset group
+    var prevEx = i > 0 ? _exList[i-1] : null;
+    var nextEx = i < _exList.length - 1 ? _exList[i+1] : null;
+    var isSSStart = ex.superset && nextEx;
+    var isSSMid = prevEx && prevEx.superset;
+
+    if (isSSMid && !_ssOpen) { h += '<div class="cv-superset-group">'; _ssOpen = true; }
+    else if (!isSSMid && !isSSStart && _ssOpen) { h += '</div>'; _ssOpen = false; }
+
     const st = cvState[i] || {};
     const sets = parseInt(ex.sets) || 3;
+    const sessionSets = (st.sessionSets != null) ? st.sessionSets : sets;
     // Count ticked sets
     const setStates = st.sets || [];
     const tickedSets = setStates.filter(Boolean).length;
@@ -2958,7 +2996,8 @@ function renderCV() {
     if (allDone) h += '<svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" width="12" height="12"><polyline points="2,6 5,9 10,3"/></svg>';
     h += '</div>';
     h += '<div class="cv-ex-thumb">' + getExIllusStr(ex) + '</div>';
-    h += '<div style="flex:1;min-width:0"><div class="cv-ex-name">' + ex.name + (ex.substitutedFor ? ' <span style="font-size:9px;background:var(--ocean-pale);color:var(--ocean);padding:1px 5px;border-radius:10px;font-weight:600">sub</span>' : '') + '</div>';
+    var ssLabel = isSSStart ? ' <span class="superset-badge">SUPERSET</span>' : (isSSMid ? ' <span class="superset-badge" style="background:var(--ocean)">SS</span>' : '');
+    h += '<div style="flex:1;min-width:0"><div class="cv-ex-name">' + ex.name + (ex.substitutedFor ? ' <span style="font-size:9px;background:var(--ocean-pale);color:var(--ocean);padding:1px 5px;border-radius:10px;font-weight:600">sub</span>' : '') + ssLabel + '</div>';
     h += '<div class="cv-ex-params">' + sets + ' sets';
     if (ex.reps) h += ' &times; ' + ex.reps;
     if (ex.load) h += ' &middot; ' + ex.load;
@@ -2997,9 +3036,15 @@ function renderCV() {
       if (ex.progression) h += '<div style="font-size:10px;color:var(--teal);margin-bottom:10px">&#8593; Goal: ' + ex.progression + '</div>';
 
       // Per-set table
+      // Sets +/- control (sessionSets already computed above)
+      h += '<div class="cv-set-ctrl">';
+      h += '<button class="cv-set-ctrl-btn" onclick="cvAdjSets(' + i + ',-1)" title="Remove a set">&#8722;</button>';
+      h += '<span class="cv-set-ctrl-label">' + sessionSets + ' set' + (sessionSets !== 1 ? 's' : '') + '</span>';
+      h += '<button class="cv-set-ctrl-btn" onclick="cvAdjSets(' + i + ',1)" title="Add a set">+</button>';
+      h += '</div>';
       h += '<div style="font-size:10px;color:var(--text-light);margin-bottom:6px;text-align:center">Fill in what you did, then tap &#10003; to mark each set complete</div>';
       h += '<table class="cv-set-table"><thead><tr><th>Set</th><th>Reps done</th><th>Weight used</th><th>&#10003; Done</th></tr></thead><tbody>';
-      for (let s = 0; s < sets; s++) {
+      for (let s = 0; s < sessionSets; s++) {
         const setDone = (st.sets && st.sets[s]) || false;
         const setReps = (st.setReps && st.setReps[s] != null) ? st.setReps[s] : (ex.lastReps || '');
         const setLoad = (st.setLoads && st.setLoads[s] != null) ? st.setLoads[s] : (ex.lastLoad || '');
@@ -3056,6 +3101,7 @@ function renderCV() {
     }
     h += '</div>';
   });
+  if (_ssOpen) { h += '</div>'; } // close any open superset group
 
   // ── Session feel + submit ──
   h += '<div class="cv-session">';
@@ -3077,6 +3123,16 @@ function renderCV() {
 }
 
 function cvToggle(i) { if (!cvState[i]) cvState[i] = {}; cvState[i].open = !cvState[i].open; renderCV(); }
+function cvAdjSets(exIdx, delta) {
+  if (!cvState[exIdx]) cvState[exIdx] = {};
+  var ex = (cvData.programs[cvProgIdx] || {exercises:[]}).exercises[exIdx] || {};
+  var current = (cvState[exIdx].sessionSets != null) ? cvState[exIdx].sessionSets : (parseInt(ex.sets) || 3);
+  current = Math.max(1, Math.min(20, current + delta));
+  cvState[exIdx].sessionSets = current;
+  cvState[exIdx].open = true;
+  renderCV();
+}
+
 function cvTick(i) { if (!cvState[i]) cvState[i] = {}; cvState[i].done = !cvState[i].done; renderCV(); }
 function cvSet(i, f, val) { if (!cvState[i]) cvState[i] = {}; cvState[i][f] = val; }
 
@@ -5763,7 +5819,8 @@ function renderCVCustomWorkout() {
       var st = cvState[i] || {};
       var setsDone = (st.sets || []).filter(Boolean).length;
       var totalSets = parseInt(ex.sets) || 3;
-      var allDone = setsDone >= totalSets;
+      var totalSessionSets = (cvState[i] && cvState[i].sessionSets != null) ? cvState[i].sessionSets : totalSets;
+      var allDone = setsDone >= totalSessionSets;
 
       h += '<div class="cv-ex-card' + (allDone ? ' done' : '') + '" style="margin-bottom:8px">';
       h += '<div class="cv-ex-hdr" onclick="cvToggle(' + i + ')">';
@@ -5937,6 +5994,21 @@ async function cvSubmitCustomWorkout() {
   cvFeeling = '';
   showCVCongrats(cvData.first, true);
   cvSwitchTab('home');
+}
+
+
+// ════════════════════════════════════════════════════
+// SUPERSETS
+// ════════════════════════════════════════════════════
+function toggleSuperset(uid) {
+  var p = getProg(); if (!p) return;
+  var ex = p.exercises.find(function(e) { return e.uid === uid; });
+  if (!ex) return;
+  ex.superset = !ex.superset;
+  saveDB();
+  renderDropZone();
+  updatePreview();
+  toast(ex.superset ? 'Superset linked — this exercise pairs with the next one' : 'Superset removed', 'ok');
 }
 
 </script>
