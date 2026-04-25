@@ -5367,42 +5367,12 @@ async function annaSend() {
   annaHistory.push({ role: 'user', content: text });
   annaShowTyping();
 
-  try {
-    var resp = await fetch(SUPA_URL + '/functions/v1/anna', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPA_KEY,
-        'Authorization': 'Bearer ' + authToken()
-      },
-      body: JSON.stringify({ messages: annaHistory })
-    });
-    var reply = '';
-    var rawText = await resp.text();
-    try {
-      var data = JSON.parse(rawText);
-      if (data.content && data.content[0] && data.content[0].text) {
-        reply = data.content[0].text;
-      } else if (data.error) {
-        reply = 'API error: ' + (data.error.message || JSON.stringify(data.error));
-      } else {
-        reply = 'Status ' + resp.status + ': ' + rawText.slice(0, 200);
-      }
-    } catch(pe) {
-      reply = 'Status ' + resp.status + ' (not JSON): ' + rawText.slice(0, 200);
-    }
+  // Use XMLHttpRequest for better CORS compatibility with Supabase Edge Functions
+  annaXHR(annaHistory, function(reply) {
     annaHistory.push({ role: 'assistant', content: reply });
     annaHideTyping();
     annaAppendMsg('assistant', reply);
-  } catch (e) {
-    annaHideTyping();
-    // CORS/network block - try to get more info
-    annaAppendMsg('assistant',
-      'Failed to reach Anna. Details: ' + e.name + ' — ' + e.message + '. ' +
-      'This usually means the Supabase edge function is blocked by CORS. ' +
-      'Check: 1) Function named exactly "anna" 2) Verify JWT = OFF 3) Function is deployed and not paused.'
-    );
-  }
+  });
 }
 
 function annaSendChip(btn) {
@@ -5434,6 +5404,43 @@ function loadAnnaKeyStatus() {
       el.style.color = 'var(--coral)';
     }
   }
+}
+
+
+function annaXHR(messages, callback) {
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', SUPA_URL + '/functions/v1/anna', true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('apikey', SUPA_KEY);
+  xhr.setRequestHeader('Authorization', 'Bearer ' + authToken());
+  xhr.timeout = 30000;
+
+  xhr.onload = function() {
+    var reply = '';
+    try {
+      var data = JSON.parse(xhr.responseText);
+      if (data.content && data.content[0] && data.content[0].text) {
+        reply = data.content[0].text;
+      } else if (data.error) {
+        reply = 'Error: ' + (data.error.message || JSON.stringify(data.error).slice(0, 150));
+      } else {
+        reply = 'HTTP ' + xhr.status + ': ' + xhr.responseText.slice(0, 150);
+      }
+    } catch(e) {
+      reply = 'HTTP ' + xhr.status + ' (parse error): ' + xhr.responseText.slice(0, 150);
+    }
+    callback(reply);
+  };
+
+  xhr.onerror = function() {
+    callback('Connection error — could not reach Anna. Please check your internet connection and try again.');
+  };
+
+  xhr.ontimeout = function() {
+    callback('Anna took too long to respond. Please try again.');
+  };
+
+  xhr.send(JSON.stringify({ messages: messages }));
 }
 
 </script>
