@@ -290,7 +290,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .cv-logo{display:flex;align-items:center;gap:9px}
 .cv-logo img{height:34px;width:34px;border-radius:50%;object-fit:contain}
 .cv-logo-text{font-family:Georgia,serif;font-size:13px;color:#fff}
-.cv-body{max-width:100%;margin:0;padding:12px 12px 80px}
+.cv-body{max-width:100%;margin:0;padding:12px 10px 80px;overflow-x:hidden;box-sizing:border-box}
 .cv-prog-sel{display:flex;align-items:center;gap:8px;margin-bottom:12px}
 .cv-prog-sel select{flex:1;padding:7px 9px;border:1.5px solid var(--sand-dark);border-radius:6px;font-size:12px;font-family:-apple-system,sans-serif;color:var(--text);background:#fff;outline:none}
 .cv-prog-hdr{background:#fff;border-radius:10px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 6px rgba(28,43,53,.07)}
@@ -4895,7 +4895,7 @@ function renderCVHome() {
     h += '<div style="font-size:12px;color:var(--text-light);margin-bottom:16px">Your health at a glance</div>';
 
     // Badges
-    h += '<div style="display:flex;gap:10px;margin-bottom:20px;overflow-x:auto;padding-bottom:4px">';
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px">';
     function badge(icon, val, lbl, color) {
       return '<div style="flex-shrink:0;background:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.08);min-width:100px">' +
         '<div style="font-size:24px;margin-bottom:4px">' + icon + '</div>' +
@@ -4910,12 +4910,12 @@ function renderCVHome() {
 
     // Health metrics
     h += '<div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Health Tracking</div>';
-    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">';
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;width:100%;min-width:0">';
 
     function metricCard(icon, lbl, entry, unit, key, placeholder, inputType) {
       var val = entry ? entry.val : '—';
       var time = entry ? entry.date : '';
-      return '<div style="background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(28,43,53,.07)">' +
+      return '<div style="background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(28,43,53,.07);min-width:0;overflow:hidden">' +
         '<div style="font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">' + icon + ' ' + lbl + '</div>' +
         '<div style="font-size:22px;font-weight:800;color:var(--ocean-deep);line-height:1">' + val + '<span style="font-size:11px;color:var(--text-light);margin-left:2px">' + unit + '</span></div>' +
         (time ? '<div style="font-size:9px;color:var(--text-light);margin-top:2px">' + time + '</div>' : '') +
@@ -4949,7 +4949,7 @@ function renderCVHome() {
     }
 
     // Log workout button
-    h += '<button onclick="cvShowWorkoutModal()" style="width:100%;padding:14px;border-radius:12px;border:2px dashed var(--teal);background:transparent;color:var(--teal);font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;font-family:-apple-system,sans-serif">+ Log a Workout</button>';
+    h += '<button onclick="cvShowWorkoutModal()" style="width:100%;box-sizing:border-box;padding:14px;border-radius:12px;border:2px dashed var(--teal);background:transparent;color:var(--teal);font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;font-family:-apple-system,sans-serif">+ Log a Workout</button>';
 
     // ── Clinic contact ──
     h += '<div style="margin-top:24px;background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 1px 6px rgba(28,43,53,.07)">';
@@ -5065,7 +5065,7 @@ function showCVCongrats(name, ownWorkout) {
     '<div class="cv-congrats-title">' + title + '</div>' +
     '<div class="cv-congrats-sub">' + sub + '</div>' +
     '<button class="cv-congrats-btn" onclick="cvGoHome()">Thanks!</button>';
-  document.getElementById('viewClient').appendChild(overlay);
+  document.body.appendChild(overlay); // append to body so it's always on top
   // Auto-dismiss after 3.5 seconds
   setTimeout(function() { cvGoHome(); }, 3500);
 }
@@ -5658,6 +5658,62 @@ function clientSearchKeydown(e) {
   } else if (e.key === 'Escape') {
     closeClientDropdown();
   }
+}
+
+
+async function cvSaveWkt() {
+  if (!cvWktType) { alert('Select a workout type first.'); return; }
+  var dur = (document.getElementById('cvWktDur') || {}).value || '';
+  var feel = (document.getElementById('cvWktFeel') || {}).value || '';
+  var notes = (document.getElementById('cvWktNotes') || {}).value || '';
+
+  var today = new Date().toLocaleString('en-AU', {
+    day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'
+  });
+
+  var parts = [cvWktType];
+  if (dur) parts.push(dur + ' min');
+  if (feel) parts.push('Felt: ' + feel);
+  if (cvWktExercises.length) {
+    parts.push('Exercises: ' + cvWktExercises.map(function(ex) {
+      return ex.name + (ex.sets ? ' ' + ex.sets + 'x' : '') + (ex.reps || '') + (ex.load ? ' @' + ex.load : '');
+    }).join(', '));
+  }
+  if (notes) parts.push(notes);
+
+  if (!cvData.ownWorkouts) cvData.ownWorkouts = [];
+  cvData.ownWorkouts.push({
+    date: today,
+    type: cvWktType,
+    duration: dur,
+    feel: feel,
+    exercises: cvWktExercises,
+    notes: notes,
+    summary: parts.join(' | ')
+  });
+
+  // Sync to Supabase
+  try {
+    var freshResp = await fetch(SUPA_URL + '/rest/v1/clients?select=data&id=eq.' + cvData.id, {
+      headers: supaHeaders()
+    });
+    if (freshResp.ok) {
+      var freshRows = await freshResp.json();
+      if (freshRows && freshRows.length && freshRows[0].data) {
+        var fresh = freshRows[0].data;
+        fresh.ownWorkouts = cvData.ownWorkouts;
+        cvData = fresh;
+      }
+    }
+    await fetch(SUPA_URL + '/rest/v1/clients', {
+      method: 'POST',
+      headers: supaHeaders(),
+      body: JSON.stringify({ id: cvData.id, data: cvData, updated_at: new Date().toISOString() })
+    });
+  } catch(e) {}
+
+  closeCVWkt();
+  showCVCongrats(cvData.first, true);
 }
 
 </script>
