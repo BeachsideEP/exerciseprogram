@@ -748,10 +748,11 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
         <button class="auth-btn" onclick="sendOTP()">Send Code</button>
       </div>
       <div id="otpStep2" style="display:none">
-        <p style="font-size:11px;color:var(--text-mid);margin-bottom:12px">Enter the code sent to <strong id="otpEmailShow"></strong></p>
-        <div class="auth-field"><label>6-Digit Code</label>
-          <input id="otpCode" type="number" placeholder="123456" maxlength="6"
-            style="font-size:20px;font-weight:700;text-align:center;letter-spacing:6px"
+        <p style="font-size:11px;color:var(--text-mid);margin-bottom:6px">Check your email sent to <strong id="otpEmailShow"></strong></p>
+        <p style="font-size:10px;color:var(--text-light);margin-bottom:12px">Enter the code from the email — it appears as a 6-8 digit number near the sign-in button.</p>
+        <div class="auth-field"><label>Sign-in Code</label>
+          <input id="otpCode" type="text" inputmode="numeric" placeholder="12345678"
+            style="font-size:22px;font-weight:700;text-align:center;letter-spacing:4px"
             onkeydown="if(event.key==='Enter')verifyOTP()">
         </div>
         <button class="auth-btn" onclick="verifyOTP()">Sign In</button>
@@ -2652,7 +2653,7 @@ async function sendOTP() {
 async function verifyOTP() {
   var email = (document.getElementById('magicEmail').value || '').trim();
   var token = (document.getElementById('otpCode').value || '').trim();
-  if (!token || token.length < 6) { setAuthMsg('Enter the code from your email.', 'err'); return; }
+  if (!token || token.length < 4) { setAuthMsg('Enter the code from your email.', 'err'); return; }
   setAuthMsg('Verifying...', 'ok');
   try {
     var r = await fetch(SUPA_URL + '/auth/v1/verify', {
@@ -5598,11 +5599,11 @@ function filterClientDropdown(q) {
   if (!dd) return;
   clientDDIndex = -1;
   q = (q || '').toLowerCase().trim();
-  
+
   var pool = q ? clients.filter(function(cl) {
     return (cl.first + ' ' + cl.last).toLowerCase().includes(q) ||
            (cl.email || '').toLowerCase().includes(q);
-  }) : clients.slice(0, 20); // show first 20 when empty
+  }) : clients.slice(0, 20);
 
   if (!pool.length) {
     dd.innerHTML = '<div class="client-dd-empty">' + (q ? 'No clients found' : 'No clients yet') + '</div>';
@@ -5611,13 +5612,18 @@ function filterClientDropdown(q) {
   }
 
   dd.innerHTML = pool.map(function(cl) {
-    return '<div class="client-dd-item" data-id="' + cl.id + '" onclick="selectClientFromDD('' + cl.id + '')">' +
-      '<div>' + cl.first + ' ' + cl.last + '</div>' +
-      '<div class="client-dd-item-sub">' + (cl.clinician || '') + (cl.email ? (cl.clinician ? ' · ' : '') + cl.email : '') + '</div>' +
+    var id = cl.id;
+    var name = cl.first + ' ' + cl.last;
+    var sub = (cl.clinician || '') + (cl.email ? (cl.clinician ? ' · ' : '') + cl.email : '');
+    return '<div class="client-dd-item" data-id="' + id + '" onmousedown="selectClientFromDD(\'' + id + '\')">' +
+      '<div>' + name + '</div>' +
+      (sub ? '<div class="client-dd-item-sub">' + sub + '</div>' : '') +
     '</div>';
   }).join('');
   dd.classList.add('open');
 }
+
+var clientDDIndex = -1;
 
 function selectClientFromDD(id) {
   var sel = document.getElementById('clientSel');
@@ -5646,112 +5652,10 @@ function clientSearchKeydown(e) {
     clientDDIndex = Math.max(clientDDIndex - 1, 0);
     items.forEach(function(el, i) { el.classList.toggle('active', i === clientDDIndex); });
   } else if (e.key === 'Enter' && clientDDIndex >= 0 && items[clientDDIndex]) {
-    items[clientDDIndex].click();
+    items[clientDDIndex].dispatchEvent(new MouseEvent('mousedown'));
   } else if (e.key === 'Escape') {
     closeClientDropdown();
   }
-}
-
-
-// ════════════════════════════════════════════════════
-// CLIENT CUSTOM WORKOUT LOGGER
-// ════════════════════════════════════════════════════
-var cvWktType = '';
-var cvWktExercises = [];
-
-function openCVWkt() {
-  cvWktType = '';
-  cvWktExercises = [];
-  document.getElementById('cvWktModal').style.display = 'flex';
-  document.getElementById('cvWktDur').value = '';
-  document.getElementById('cvWktFeel').value = '';
-  document.getElementById('cvWktNotes').value = '';
-  document.getElementById('cvWktExList').innerHTML = '';
-  document.getElementById('cvWktExSection').style.display = 'none';
-  document.querySelectorAll('.cv-wkt-type').forEach(function(el) { el.classList.remove('sel'); });
-}
-
-function closeCVWkt() {
-  document.getElementById('cvWktModal').style.display = 'none';
-}
-
-function cvSelectWktType(type) {
-  cvWktType = type;
-  document.querySelectorAll('.cv-wkt-type').forEach(function(el) {
-    // textContent includes icon emoji, so check if it ends with the type name
-    el.classList.toggle('sel', el.textContent.trim().endsWith(type));
-  });
-  // Show exercise builder for weights/other
-  var showEx = (type === 'Weights' || type === 'Other' || type === 'HIIT');
-  document.getElementById('cvWktExSection').style.display = showEx ? '' : 'none';
-}
-
-function cvAddWktEx() {
-  var name = (document.getElementById('cvWktExName').value || '').trim();
-  if (!name) { alert('Enter an exercise name.'); return; }
-  var sets = document.getElementById('cvWktExSets').value || '';
-  var reps = document.getElementById('cvWktExReps').value || '';
-  var load = document.getElementById('cvWktExLoad').value || '';
-  cvWktExercises.push({ name: name, sets: sets, reps: reps, load: load });
-  // Clear fields
-  ['cvWktExName','cvWktExSets','cvWktExReps','cvWktExLoad'].forEach(function(id) {
-    document.getElementById(id).value = '';
-  });
-  // Render list
-  var listEl = document.getElementById('cvWktExList');
-  listEl.innerHTML = cvWktExercises.map(function(ex, i) {
-    var meta = [ex.sets ? ex.sets + ' sets' : '', ex.reps ? ex.reps + ' reps' : '', ex.load || ''].filter(Boolean).join(' · ');
-    return '<div class="cv-ex-built-item">' +
-      '<div><div class="cv-ex-built-name">' + ex.name + '</div>' +
-      (meta ? '<div class="cv-ex-built-meta">' + meta + '</div>' : '') + '</div>' +
-      '<button onclick="cvWktExercises.splice(' + i + ',1);cvAddWktEx.call({skip:true})" ' +
-      'style="background:none;border:none;color:var(--coral);cursor:pointer;font-size:16px">&#215;</button>' +
-    '</div>';
-  }).join('');
-  document.getElementById('cvWktExName').focus();
-}
-
-async function cvSaveWkt() {
-  if (!cvWktType) { alert('Select a workout type first.'); return; }
-  var dur = document.getElementById('cvWktDur').value || '';
-  var feel = document.getElementById('cvWktFeel').value || '';
-  var notes = document.getElementById('cvWktNotes').value || '';
-
-  var today = new Date().toLocaleString('en-AU', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
-  var summary = cvWktType;
-  if (dur) summary += ' — ' + dur + ' min';
-  if (feel) summary += ' — Felt: ' + feel;
-  if (cvWktExercises.length) {
-    summary += ' | Exercises: ' + cvWktExercises.map(function(ex) {
-      return ex.name + (ex.sets ? ' ' + ex.sets + 'x' : '') + (ex.reps ? ex.reps : '') + (ex.load ? ' @' + ex.load : '');
-    }).join(', ');
-  }
-  if (notes) summary += ' | ' + notes;
-
-  // Save to cvOwnWorkouts
-  if (!cvData.ownWorkouts) cvData.ownWorkouts = [];
-  cvData.ownWorkouts.push({ date: today, type: cvWktType, duration: dur, feel: feel, exercises: cvWktExercises, notes: notes, summary: summary });
-
-  // Sync to Supabase
-  try {
-    await fetch(SUPA_URL + '/rest/v1/clients?select=data&id=eq.' + cvData.id, { headers: supaHeaders() })
-      .then(function(r) { return r.ok ? r.json() : null; })
-      .then(function(rows) {
-        var saveData = cvData;
-        if (rows && rows.length && rows[0].data) {
-          var fresh = rows[0].data;
-          fresh.ownWorkouts = cvData.ownWorkouts;
-          saveData = fresh; cvData = fresh;
-        }
-        return fetch(SUPA_URL + '/rest/v1/clients', {
-          method: 'POST', headers: supaHeaders(),
-          body: JSON.stringify({ id: saveData.id, data: saveData, updated_at: new Date().toISOString() })
-        });
-      });
-  } catch(e) {}
-
-  closeCVWkt();
-  showCVCongrats(cvData.first, true);
 }
 
 </script>
@@ -5761,94 +5665,21 @@ async function cvSaveWkt() {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('sw.js').then(function(reg) {
-      // Check for updates
       reg.addEventListener('updatefound', function() {
         var newWorker = reg.installing;
         newWorker.addEventListener('statechange', function() {
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            // Show update banner
             var banner = document.createElement('div');
-            banner.style.cssText = 'position:fixed;bottom:70px;left:50%;transform:translateX(-50%);' +
-              'background:#0D3D52;color:#fff;padding:10px 16px;border-radius:10px;z-index:9999;' +
-              'font-family:-apple-system,sans-serif;font-size:13px;font-weight:600;' +
-              'display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.3)';
-            banner.innerHTML = '&#8593; New version available &nbsp;' +
-              '<button onclick="window.location.reload()" style="background:var(--teal,#5BBFAA);' +
-              'border:none;color:#fff;padding:5px 12px;border-radius:6px;font-size:12px;' +
-              'font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif">Update</button>';
+            banner.style.cssText = 'position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#0D3D52;color:#fff;padding:10px 16px;border-radius:10px;z-index:9999;font-family:-apple-system,sans-serif;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.3)';
+            banner.innerHTML = '&#8593; New version available &nbsp;<button onclick="window.location.reload()" style="background:var(--teal,#5BBFAA);border:none;color:#fff;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif">Update</button>';
             document.body.appendChild(banner);
           }
         });
       });
-    }).catch(function(err) {
-      console.log('SW registration failed:', err);
-    });
+    }).catch(function(err) { console.log('SW registration failed:', err); });
   });
 }
 </script>
-
-
-<!-- CLIENT CUSTOM WORKOUT MODAL -->
-<div id="cvWktModal" style="display:none" class="cv-wkt-modal" onclick="if(event.target===this)closeCVWkt()">
-  <div class="cv-wkt-sheet">
-    <div class="cv-wkt-handle"></div>
-    <div class="cv-wkt-title">Log a Workout</div>
-
-    <div class="cv-wkt-types" id="cvWktTypes">
-      <div class="cv-wkt-type" onclick="cvSelectWktType('Walking')"><span class="cv-wkt-type-icon">&#127939;</span>Walking</div>
-      <div class="cv-wkt-type" onclick="cvSelectWktType('Running')"><span class="cv-wkt-type-icon">&#127946;</span>Running</div>
-      <div class="cv-wkt-type" onclick="cvSelectWktType('Cycling')"><span class="cv-wkt-type-icon">&#128690;</span>Cycling</div>
-      <div class="cv-wkt-type" onclick="cvSelectWktType('Swimming')"><span class="cv-wkt-type-icon">&#127946;</span>Swimming</div>
-      <div class="cv-wkt-type" onclick="cvSelectWktType('Yoga')"><span class="cv-wkt-type-icon">&#129496;</span>Yoga</div>
-      <div class="cv-wkt-type" onclick="cvSelectWktType('Pilates')"><span class="cv-wkt-type-icon">&#129337;</span>Pilates</div>
-      <div class="cv-wkt-type" onclick="cvSelectWktType('Weights')"><span class="cv-wkt-type-icon">&#127947;</span>Weights</div>
-      <div class="cv-wkt-type" onclick="cvSelectWktType('HIIT')"><span class="cv-wkt-type-icon">&#9889;</span>HIIT</div>
-      <div class="cv-wkt-type" onclick="cvSelectWktType('Other')"><span class="cv-wkt-type-icon">&#127919;</span>Other</div>
-    </div>
-
-    <div class="cv-wkt-field">
-      <label>Duration (minutes)</label>
-      <input id="cvWktDur" type="number" placeholder="30" min="1" max="300">
-    </div>
-
-    <div class="cv-wkt-field">
-      <label>How did it feel?</label>
-      <select id="cvWktFeel">
-        <option value="">Select…</option>
-        <option>Great</option>
-        <option>Good</option>
-        <option>Hard</option>
-        <option>Easy</option>
-        <option>Pain/Discomfort</option>
-      </select>
-    </div>
-
-    <!-- Custom exercises section (for Weights/Other) -->
-    <div id="cvWktExSection" style="display:none">
-      <div style="font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Exercises done</div>
-      <div id="cvWktExList"></div>
-      <div class="cv-ex-builder">
-        <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:8px">Add an exercise</div>
-        <div class="cv-wkt-field"><label>Exercise name</label><input id="cvWktExName" type="text" placeholder="e.g. Squats, Push-ups"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
-          <div class="cv-wkt-field"><label>Sets</label><input id="cvWktExSets" type="number" placeholder="3" min="1"></div>
-          <div class="cv-wkt-field"><label>Reps</label><input id="cvWktExReps" type="text" placeholder="10"></div>
-          <div class="cv-wkt-field"><label>Weight</label><input id="cvWktExLoad" type="text" placeholder="kg"></div>
-        </div>
-        <button onclick="cvAddWktEx()" style="width:100%;padding:9px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;font-family:-apple-system,sans-serif;cursor:pointer">+ Add Exercise</button>
-      </div>
-    </div>
-
-    <div class="cv-wkt-field" style="margin-top:8px">
-      <label>Notes (optional)</label>
-      <textarea id="cvWktNotes" placeholder="How did you go? Any wins or challenges?" rows="2"
-        style="resize:none;height:70px"></textarea>
-    </div>
-
-    <button onclick="cvSaveWkt()" style="width:100%;padding:14px;background:var(--teal);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;font-family:-apple-system,sans-serif;cursor:pointer;margin-top:4px">&#10003; Log Workout</button>
-    <button onclick="closeCVWkt()" style="width:100%;padding:10px;background:none;border:none;color:var(--text-light);font-size:13px;cursor:pointer;margin-top:6px;font-family:-apple-system,sans-serif">Cancel</button>
-  </div>
-</div>
 
 </body>
 </html>
