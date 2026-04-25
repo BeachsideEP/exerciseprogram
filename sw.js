@@ -1,23 +1,23 @@
-// Beachside EP — Service Worker
-const CACHE = "bep-v2";
+// Beachside EP — Service Worker v3
+const CACHE = "bep-v3";
 
-// Files to cache for offline use
-const OFFLINE_FILES = [
-  "./index.html",
-  "./manifest.json"
+// Only cache static assets, NOT index.html itself
+const STATIC = [
+  "./manifest.json",
+  "./icon-192.png",
+  "./icon-512.png",
+  "./apple-touch-icon.png"
 ];
 
-// Install — cache core files
 self.addEventListener("install", function(e) {
   e.waitUntil(
     caches.open(CACHE).then(function(cache) {
-      return cache.addAll(OFFLINE_FILES);
+      return cache.addAll(STATIC);
     })
   );
   self.skipWaiting();
 });
 
-// Activate — clean up old caches
 self.addEventListener("activate", function(e) {
   e.waitUntil(
     caches.keys().then(function(keys) {
@@ -30,30 +30,33 @@ self.addEventListener("activate", function(e) {
   self.clients.claim();
 });
 
-// Fetch — network first, fall back to cache
 self.addEventListener("fetch", function(e) {
-  // Skip non-GET and cross-origin requests (Supabase, Anthropic etc)
   if (e.request.method !== "GET") return;
   var url = new URL(e.request.url);
+  
+  // ALWAYS fetch index.html fresh from network - never serve from cache
+  if (url.pathname.endsWith("index.html") || url.pathname === "/" || url.pathname.endsWith("/")) {
+    e.respondWith(
+      fetch(e.request, { cache: "no-store" }).catch(function() {
+        return caches.match("./index.html");
+      })
+    );
+    return;
+  }
+  
+  // Skip cross-origin (Supabase, Anthropic, fonts etc)
   if (url.origin !== self.location.origin) return;
-
+  
+  // Cache-first for static assets
   e.respondWith(
-    fetch(e.request).then(function(response) {
-      // Cache a copy of the response
-      if (response.ok) {
-        var clone = response.clone();
-        caches.open(CACHE).then(function(cache) {
-          cache.put(e.request, clone);
-        });
-      }
-      return response;
-    }).catch(function() {
-      // Network failed — serve from cache
-      return caches.match(e.request).then(function(cached) {
-        return cached || new Response("Offline — please check your connection", {
-          status: 503,
-          headers: { "Content-Type": "text/plain" }
-        });
+    caches.match(e.request).then(function(cached) {
+      if (cached) return cached;
+      return fetch(e.request).then(function(response) {
+        if (response.ok) {
+          var clone = response.clone();
+          caches.open(CACHE).then(function(cache) { cache.put(e.request, clone); });
+        }
+        return response;
       });
     })
   );
