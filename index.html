@@ -892,9 +892,10 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <div style="position:relative;flex:1">
       <input id="clientSearch" type="text" placeholder="&#128269; Search clients…"
         style="width:100%;padding:5px 8px 5px 28px;border:1.5px solid var(--sand-d);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;background:var(--sand)"
-        oninput="filterClientDropdown(this.value)" onfocus="this.select()">
+        oninput="filterClientDropdown(this.value)" onfocus="this.select()" onkeydown="if(event.key==='Enter'){var m=clients.filter(function(c){return(c.first+' '+c.last).toLowerCase().includes(this.value.toLowerCase())},this);if(m.length===1){document.getElementById('clientSel').value=m[0].id;selectClient();}}">
       <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:12px;pointer-events:none">&#128269;</span>
     </div>
+    <select id="clientSel" onchange="selectClient()" style="display:none"><option value="">— Select —</option></select>
     <button class="btn btn-primary btn-sm" onclick="openM('newClientM')">+ New</button>
     <button class="btn btn-outline btn-sm" id="editClientBtn" onclick="openM('editClientM')" style="display:none">&#9998; Edit</button>
   </div>

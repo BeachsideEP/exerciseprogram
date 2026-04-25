@@ -1,5 +1,5 @@
 // Beachside EP — Service Worker
-const CACHE = "bep-v1";
+const CACHE = "bep-v2";
 
 // Files to cache for offline use
 const OFFLINE_FILES = [
