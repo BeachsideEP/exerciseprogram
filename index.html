@@ -400,7 +400,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 
 
 /* Client dashboard */
-.dash-panel{background:#fff;border-radius:var(--r);padding:12px 13px;margin-bottom:9px;box-shadow:0 1px 5px rgba(28,43,53,.06);display:block}
+.dash-panel{background:#fff;border-radius:var(--r);padding:12px 13px;margin-bottom:9px;box-shadow:0 1px 5px rgba(28,43,53,.06);display:none}
 .dash-title{font-size:10px;font-weight:700;color:var(--text-l);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
 .dash-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px}
 .dash-stat{background:var(--sand);border-radius:7px;padding:8px 10px;text-align:center}
@@ -6194,7 +6194,7 @@ function toggleDashboard() {
         (cl.programs || []).forEach(function(p) {
           (p.log || []).forEach(function(e) { if (e.date > lastLog) lastLog = e.date; });
         });
-        return '<div class="dash-row" onclick="document.getElementById('clientSel').value='' + cl.id + '';selectClient();toggleDashboard()">' +
+        return '<div class="dash-row" onclick="document.getElementById(\'clientSel\').value=\'' + cl.id + '\';selectClient();toggleDashboard()">' +
           '<div class="dash-row-name">' + cl.first + ' ' + cl.last + badge + '</div>' +
           '<div class="dash-row-meta">' + (cl.clinician || '') + (lastLog ? ' · Last: ' + lastLog.split(',')[0] : ' · No sessions') + '</div>' +
         '</div>';
