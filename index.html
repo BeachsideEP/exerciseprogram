@@ -731,6 +731,8 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 
 
 /* Supersets */
+.ss-active{background:var(--teal)!important;color:#fff!important}
+.ss-inactive{background:none;color:var(--teal)}
 .superset-badge{display:inline-block;background:var(--teal);color:#fff;font-size:8px;
   font-weight:700;padding:2px 6px;border-radius:10px;letter-spacing:.04em;margin-left:4px}
 .superset-connector{border-left:3px solid var(--teal);margin-left:14px;padding-left:8px;
@@ -2137,7 +2139,7 @@ function renderDropZone() {
         <div class="pe-ctrl">
           <button class="mv" onclick="moveEx(${ex.uid},-1)">↑</button>
           <button class="mv" onclick="moveEx(${ex.uid},1)">↓</button>
-          <button class="mv" onclick="toggleSuperset('${ex.uid}')" title="${ex.superset ? 'Remove superset' : 'Pair with next exercise as superset'}" style="background:${ex.superset ? 'var(--teal)' : ''};color:${ex.superset ? '#fff' : 'var(--teal)'};border-color:var(--teal);font-weight:700;font-size:9px">SS</button>
+          <button class="mv ${ex.superset ? 'ss-active' : 'ss-inactive'}" onclick="toggleSuperset('${ex.uid}')" title="Superset" style="border-color:var(--teal);font-weight:700;font-size:9px">SS</button>
           <button class="rm" onclick="removeEx(${ex.uid})">✕</button>
         </div>
       </div>
@@ -3035,13 +3037,7 @@ function renderCV() {
       }
       if (ex.progression) h += '<div style="font-size:10px;color:var(--teal);margin-bottom:10px">&#8593; Goal: ' + ex.progression + '</div>';
 
-      // Per-set table
-      // Sets +/- control (sessionSets already computed above)
-      h += '<div class="cv-set-ctrl">';
-      h += '<button class="cv-set-ctrl-btn" onclick="cvAdjSets(' + i + ',-1)" title="Remove a set">&#8722;</button>';
-      h += '<span class="cv-set-ctrl-label">' + sessionSets + ' set' + (sessionSets !== 1 ? 's' : '') + '</span>';
-      h += '<button class="cv-set-ctrl-btn" onclick="cvAdjSets(' + i + ',1)" title="Add a set">+</button>';
-      h += '</div>';
+      // Per-set table rendered inside st.open block below
       h += '<div style="font-size:10px;color:var(--text-light);margin-bottom:6px;text-align:center">Fill in what you did, then tap &#10003; to mark each set complete</div>';
       h += '<table class="cv-set-table"><thead><tr><th>Set</th><th>Reps done</th><th>Weight used</th><th>&#10003; Done</th></tr></thead><tbody>';
       for (let s = 0; s < sessionSets; s++) {
@@ -5836,6 +5832,12 @@ function renderCVCustomWorkout() {
 
       if (st.open || allDone) {
         h += '<div class="cv-ex-body">';
+        // Set +/- controls
+        h += '<div class="cv-set-ctrl">';
+        h += '<button class="cv-set-ctrl-btn" onclick="cvAdjSets(' + i + ',-1)">&#8722;</button>';
+        h += '<span class="cv-set-ctrl-label">' + sessionSets + ' set' + (sessionSets !== 1 ? 's' : '') + '</span>';
+        h += '<button class="cv-set-ctrl-btn" onclick="cvAdjSets(' + i + ',1)">+</button>';
+        h += '</div>';
         h += '<div style="font-size:10px;color:var(--text-light);margin-bottom:8px;text-align:center">Fill in what you did, then tap &#10003; to mark each set complete</div>';
         h += '<table class="cv-set-table"><thead><tr><th>Set</th><th>Reps done</th><th>Weight used</th><th>&#10003; Done</th></tr></thead><tbody>';
         for (var s = 0; s < totalSets; s++) {
