@@ -731,7 +731,8 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 
 
 /* Supersets */
-.pe-ss{width:22px;height:19px;border-radius:4px;border:1.5px solid var(--teal);background:none;color:var(--teal);cursor:pointer;font-size:9px;font-weight:700;font-family:"DM Sans",sans-serif;transition:all .12s}
+.pe-ss-paired{border-left:3px solid var(--teal);margin-left:4px}
+.pe-ss{height:19px;border-radius:4px;border:1.5px solid var(--teal);background:none;color:var(--teal);cursor:pointer;font-size:9px;font-weight:700;font-family:"DM Sans",sans-serif;transition:all .12s}
 .pe-ss.ss-active{background:var(--teal);color:#fff}
 .pe-ss:hover{background:var(--teal);color:#fff}
 .superset-badge{display:inline-block;background:var(--teal);color:#fff;font-size:8px;
@@ -2132,11 +2133,11 @@ function renderDropZone() {
     return;
   }
   dz.innerHTML = `<div class="dz-list">${exs.map((ex,i) => `
-    <div class="pe">
+    <div class="pe${exs[i-1] && exs[i-1].superset ? ' pe-ss-paired' : ''}">
       <div class="pe-hdr">
         <div class="pe-num">${i+1}</div>
         <div class="pe-thumb">${getIllus(ex.name, ex.cat)}</div>
-        <div class="pe-name">${ex.name}${ex.superset ? '<span class="superset-badge" style="margin-left:6px">SS ↓</span>' : ''}</div>
+        <div class="pe-name">${ex.name}${ex.superset ? '<span class="superset-badge" style="margin-left:6px">SS ↓</span>' : ''}${exs[i-1] && exs[i-1].superset ? '<span class="superset-badge" style="margin-left:6px;background:var(--ocean)">↑ SS</span>' : ''}</div>
         <div class="pe-ctrl">
           <button class="mv" onclick="moveEx(${ex.uid},-1)">↑</button>
           <button class="mv" onclick="moveEx(${ex.uid},1)">↓</button>
@@ -2967,7 +2968,8 @@ function renderCV() {
   progs.forEach(function(p, i) {
     h += '<option value="prog_' + i + '"' + (i === cvProgIdx && !cvCustomWorkout ? ' selected' : '') + '>' + (p.title || 'Program ' + (i+1)) + '</option>';
   });
-  h += '<option value="custom"' + (cvCustomWorkout ? ' selected' : '') + '>+ Build Your Own Workout</option>';
+  // If only one program and not in custom mode, auto-show it
+  h += '<option value="custom"' + (cvCustomWorkout ? ' selected' : '') + '>&#127947; Build Your Own Workout</option>';
   h += '</select></div>';
 
   // ── Exercise cards ──
@@ -2981,7 +2983,8 @@ function renderCV() {
     var isSSStart = ex.superset && nextEx;
     var isSSMid = prevEx && prevEx.superset;
 
-    if (isSSMid && !_ssOpen) { h += '<div class="cv-superset-group">'; _ssOpen = true; }
+    // Open superset group at exercise 1 (isSSStart), not exercise 2
+    if (isSSStart && !_ssOpen) { h += '<div class="cv-superset-group"><div class="cv-superset-label">SUPERSET</div>'; _ssOpen = true; }
     else if (!isSSMid && !isSSStart && _ssOpen) { h += '</div>'; _ssOpen = false; }
 
     const st = cvState[i] || {};
@@ -3000,8 +3003,7 @@ function renderCV() {
     if (allDone) h += '<svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" width="12" height="12"><polyline points="2,6 5,9 10,3"/></svg>';
     h += '</div>';
     h += '<div class="cv-ex-thumb">' + getExIllusStr(ex) + '</div>';
-    var ssLabel = isSSStart ? ' <span class="superset-badge">SUPERSET</span>' : (isSSMid ? ' <span class="superset-badge" style="background:var(--ocean)">SS</span>' : '');
-    h += '<div style="flex:1;min-width:0"><div class="cv-ex-name">' + ex.name + (ex.substitutedFor ? ' <span style="font-size:9px;background:var(--ocean-pale);color:var(--ocean);padding:1px 5px;border-radius:10px;font-weight:600">sub</span>' : '') + ssLabel + '</div>';
+    h += '<div style="flex:1;min-width:0"><div class="cv-ex-name">' + ex.name + (ex.substitutedFor ? ' <span style="font-size:9px;background:var(--ocean-pale);color:var(--ocean);padding:1px 5px;border-radius:10px;font-weight:600">sub</span>' : '') + '</div>';
     h += '<div class="cv-ex-params">' + sets + ' sets';
     if (ex.reps) h += ' &times; ' + ex.reps;
     if (ex.load) h += ' &middot; ' + ex.load;
