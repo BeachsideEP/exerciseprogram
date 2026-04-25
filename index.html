@@ -6614,6 +6614,9 @@ function openHealthReview() {
   var el = document.getElementById('cvHealthReview');
   if (!el) return;
 
+  // Reset and rebuild cvHealthData from all sources
+  cvHealthData = {};
+
   // Always reload from localStorage to catch latest readings
   if (cvData && cvData.id) {
     try {
@@ -6696,6 +6699,14 @@ function renderHealthChart() {
   var metric = (document.getElementById('hrMetricSel') || {}).value || 'weight';
   var health = cvHealthData || {};
   var allEntries = health[metric] || [];
+
+  // Debug: show data summary in chart area temporarily
+  var wrap = document.getElementById('hrChartWrap');
+  if (wrap) {
+    var keys = Object.keys(health);
+    var total = keys.reduce(function(sum, k) { return sum + (health[k]||[]).length; }, 0);
+    wrap.innerHTML = '<div style="color:#8B949E;font-size:11px;padding:8px">Loading: ' + metric + ' has ' + allEntries.length + ' entries | Total data: ' + total + ' readings across [' + keys.join(', ') + ']</div>';
+  }
 
   // Filter by period — parse AU date format e.g. "12 Jan 2026" or "12 Jan 2026, 09:30 am"
   function parseAUDate(str) {
