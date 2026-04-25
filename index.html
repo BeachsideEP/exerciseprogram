@@ -5408,8 +5408,11 @@ function loadAnnaKeyStatus() {
 
 
 function annaXHR(messages, callback) {
+  // Route through existing cliniko edge function with anna=true flag
+  // This avoids needing a separate edge function deployment
+  var url = SUPA_URL + '/functions/v1/cliniko-edge-function-ts?anna=true';
   var xhr = new XMLHttpRequest();
-  xhr.open('POST', SUPA_URL + '/functions/v1/anna', true);
+  xhr.open('POST', url, true);
   xhr.setRequestHeader('Content-Type', 'application/json');
   xhr.setRequestHeader('apikey', SUPA_KEY);
   xhr.setRequestHeader('Authorization', 'Bearer ' + authToken());
@@ -5427,13 +5430,13 @@ function annaXHR(messages, callback) {
         reply = 'HTTP ' + xhr.status + ': ' + xhr.responseText.slice(0, 150);
       }
     } catch(e) {
-      reply = 'HTTP ' + xhr.status + ' (parse error): ' + xhr.responseText.slice(0, 150);
+      reply = 'HTTP ' + xhr.status + ': ' + xhr.responseText.slice(0, 150);
     }
     callback(reply);
   };
 
   xhr.onerror = function() {
-    callback('Connection error — could not reach Anna. Please check your internet connection and try again.');
+    callback('Could not reach Anna (' + url + '). Error: network/CORS block.');
   };
 
   xhr.ontimeout = function() {
