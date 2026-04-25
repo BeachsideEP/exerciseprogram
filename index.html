@@ -3,7 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Beachside EP — HEP Builder v9</title>
+<title>Beachside EP — HEP Builder</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0D3D52">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Beachside EP">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="Beachside EP">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -5411,7 +5421,7 @@ function annaXHR(messages, callback) {
   // Simple GET with NO custom headers = no CORS preflight at all
   // Pass apikey in URL since JWT verification is off
   var encoded = btoa(unescape(encodeURIComponent(JSON.stringify(messages))));
-  var url = SUPA_URL + '/functions/v1/anna?m=' + encodeURIComponent(encoded) + '&apikey=' + encodeURIComponent(SUPA_KEY);
+  var url = SUPA_URL + '/functions/v1/cliniko-edge-function-ts?anna=true&m=' + encodeURIComponent(encoded) + '&apikey=' + encodeURIComponent(SUPA_KEY);
   var xhr = new XMLHttpRequest();
   xhr.open('GET', url, true);
   xhr.timeout = 30000;
@@ -5445,5 +5455,37 @@ function annaXHR(messages, callback) {
 }
 
 </script>
+
+<!-- PWA Service Worker -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('sw.js').then(function(reg) {
+      // Check for updates
+      reg.addEventListener('updatefound', function() {
+        var newWorker = reg.installing;
+        newWorker.addEventListener('statechange', function() {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            // Show update banner
+            var banner = document.createElement('div');
+            banner.style.cssText = 'position:fixed;bottom:70px;left:50%;transform:translateX(-50%);' +
+              'background:#0D3D52;color:#fff;padding:10px 16px;border-radius:10px;z-index:9999;' +
+              'font-family:-apple-system,sans-serif;font-size:13px;font-weight:600;' +
+              'display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.3)';
+            banner.innerHTML = '&#8593; New version available &nbsp;' +
+              '<button onclick="window.location.reload()" style="background:var(--teal,#5BBFAA);' +
+              'border:none;color:#fff;padding:5px 12px;border-radius:6px;font-size:12px;' +
+              'font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif">Update</button>';
+            document.body.appendChild(banner);
+          }
+        });
+      });
+    }).catch(function(err) {
+      console.log('SW registration failed:', err);
+    });
+  });
+}
+</script>
+
 </body>
 </html>
