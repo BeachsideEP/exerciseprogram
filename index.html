@@ -6921,54 +6921,51 @@ async function emailProgramToClient() {
   var cl = getClient();
   if (!cl) { toast('Select a client first', 'err'); return; }
   if (!cl.email) { toast('Client has no email address on file', 'err'); return; }
+  var prog = getProg();
+  if (!prog) { toast('No program selected', 'err'); return; }
 
-  // Show confirmation modal
-  var confirmed = confirm('Send the current program PDF to ' + cl.first + ' ' + cl.last + ' at ' + cl.email + '?');
+  var confirmed = confirm('Send "' + (prog.title||'Exercise Program') + '" to ' + cl.first + ' ' + cl.last + ' at ' + cl.email + '?');
   if (!confirmed) return;
 
-  toast('Generating PDF...', 'ok');
+  toast('Sending...', 'ok');
+
+  // Build program HTML for email
+  var exHtml = (prog.exercises || []).map(function(ex, i) {
+    var params = [];
+    if (ex.sets) params.push(ex.sets + ' sets');
+    if (ex.reps) params.push(ex.reps + ' reps');
+    if (ex.hold) params.push('Hold ' + ex.hold + 's');
+    if (ex.load) params.push(ex.load);
+    if (ex.rest) params.push('Rest ' + ex.rest + 's');
+    return '<tr style="border-bottom:1px solid #e8ddd0">' +
+      '<td style="padding:10px 8px;font-weight:600;color:#1C2B35;font-size:14px">' + (i+1) + '. ' + ex.name + '</td>' +
+      '<td style="padding:10px 8px;color:#4A6070;font-size:13px">' + params.join(' &middot; ') + '</td>' +
+      (ex.notes ? '<td style="padding:10px 8px;color:#7A95A5;font-size:12px">' + ex.notes + '</td>' : '<td></td>') +
+      '</tr>';
+  }).join('');
+
+  var payload = JSON.stringify({
+    to: cl.email,
+    name: cl.first + ' ' + cl.last,
+    progTitle: prog.title || 'Exercise Program',
+    freq: prog.freq || '',
+    clinician: cl.clinician || '',
+    exHtml: exHtml
+  });
+
+  var encoded = btoa(unescape(encodeURIComponent(payload)));
+  var url = SUPA_URL + '/functions/v1/cliniko?email=true&apikey=' + encodeURIComponent(SUPA_KEY) + '&d=' + encodeURIComponent(encoded);
 
   try {
-    // Generate PDF using existing printPDF logic
-    var pdfBlob = await generatePDFBlob();
-    if (!pdfBlob) { toast('Could not generate PDF', 'err'); return; }
-
-    // Convert to base64
-    var reader = new FileReader();
-    reader.readAsDataURL(pdfBlob);
-    reader.onload = async function() {
-      var base64 = reader.result.split(',')[1];
-      var prog = getProg();
-      var progTitle = prog ? prog.title : 'Exercise Program';
-
-      toast('Sending email...', 'ok');
-
-      try {
-        // Use GET to avoid CORS preflight — encode payload as base64
-        var payload = JSON.stringify({
-          to: cl.email,
-          name: cl.first + ' ' + cl.last,
-          subject: 'Your Exercise Program — ' + progTitle,
-          pdfBase64: base64,
-          filename: progTitle.replace(/[^a-z0-9]/gi,'_') + '.pdf'
-        });
-        var encodedPayload = btoa(unescape(encodeURIComponent(payload)));
-        var resp = await fetch(SUPA_URL + '/functions/v1/cliniko?email=true&apikey=' + encodeURIComponent(SUPA_KEY) + '&d=' + encodeURIComponent(encodedPayload));
-
-        if (resp.ok) {
-          toast('✓ Program sent to ' + cl.email, 'ok');
-        } else {
-          var err = await resp.text();
-          toast('Email error: ' + err.slice(0,80), 'err');
-        }
-      } catch(e) {
-        toast('Could not send: ' + e.message, 'err');
-      }
-    };
-    reader.onerror = function() { toast('PDF read error', 'err'); };
-
+    var resp = await fetch(url);
+    if (resp.ok) {
+      toast('✓ Program emailed to ' + cl.email, 'ok');
+    } else {
+      var err = await resp.text();
+      toast('Email error: ' + err.slice(0, 80), 'err');
+    }
   } catch(e) {
-    toast('PDF generation failed: ' + e.message, 'err');
+    toast('Could not send: ' + e.message, 'err');
   }
 }
 
