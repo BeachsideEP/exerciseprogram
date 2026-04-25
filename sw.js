@@ -1,5 +1,5 @@
 // Beachside EP — Service Worker v3
-const CACHE = "bep-v4";
+const CACHE = "bep-v5";
 
 // Only cache static assets, NOT index.html itself
 const STATIC = [
