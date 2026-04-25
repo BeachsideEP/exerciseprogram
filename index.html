@@ -2266,12 +2266,12 @@ function handleJSONImport(e) {
 function clkApiUrl(shard, path) {
   // Route through Supabase Edge Function to avoid CORS
   // path is fully encoded so & in query strings don't break the outer URL
-  return SUPA_URL + '/functions/v1/cliniko-edge-function-ts?shard=' + shard + '&path=' + encodeURIComponent(path);
+  return SUPA_URL + '/functions/v1/cliniko?shard=' + shard + '&path=' + encodeURIComponent(path);
 }
 
 function clkSearchUrl(shard, searchTerm) {
   // Build search URL with correct q[] syntax - pass term separately
-  return SUPA_URL + '/functions/v1/cliniko-edge-function-ts?shard=' + shard + '&path=' + encodeURIComponent('/v1/patients') + '&search=' + encodeURIComponent(searchTerm) + '&per_page=20';
+  return SUPA_URL + '/functions/v1/cliniko?shard=' + shard + '&path=' + encodeURIComponent('/v1/patients') + '&search=' + encodeURIComponent(searchTerm) + '&per_page=20';
 }
 
 function testCliniko() {
@@ -2312,8 +2312,8 @@ function clkSearch() {
     var parts = q.trim().split(/\s+/);
     var headers2 = { method: 'GET', headers: { 'Authorization': 'Basic ' + btoa(key + ':'), 'apikey': SUPA_KEY, 'x-cliniko-key': key } };
     // Search first_name and last_name separately using dedicated search param
-    var fnUrl = SUPA_URL + '/functions/v1/cliniko-edge-function-ts?shard=' + shard + '&field=first_name&search=' + encodeURIComponent(parts[0]) + '&per_page=20';
-    var lnUrl = SUPA_URL + '/functions/v1/cliniko-edge-function-ts?shard=' + shard + '&field=last_name&search=' + encodeURIComponent(parts[0]) + '&per_page=20';
+    var fnUrl = SUPA_URL + '/functions/v1/cliniko?shard=' + shard + '&field=first_name&search=' + encodeURIComponent(parts[0]) + '&per_page=20';
+    var lnUrl = SUPA_URL + '/functions/v1/cliniko?shard=' + shard + '&field=last_name&search=' + encodeURIComponent(parts[0]) + '&per_page=20';
     Promise.all([
       fetch(fnUrl, headers2).then(function(r){return r.json();}),
       fetch(lnUrl, headers2).then(function(r){return r.json();})
@@ -5408,12 +5408,11 @@ function loadAnnaKeyStatus() {
 
 
 function annaXHR(messages, callback) {
-  // Route through existing cliniko edge function with anna=true flag
-  // This avoids needing a separate edge function deployment
-  var url = SUPA_URL + '/functions/v1/cliniko-edge-function-ts?anna=true';
+  // Use GET to avoid CORS preflight (POST triggers preflight, GET with simple headers does not)
+  var encoded = btoa(unescape(encodeURIComponent(JSON.stringify(messages))));
+  var url = SUPA_URL + '/functions/v1/cliniko?anna=true&m=' + encodeURIComponent(encoded);
   var xhr = new XMLHttpRequest();
-  xhr.open('POST', url, true);
-  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.open('GET', url, true);
   xhr.setRequestHeader('apikey', SUPA_KEY);
   xhr.setRequestHeader('Authorization', 'Bearer ' + authToken());
   xhr.timeout = 30000;
@@ -5436,14 +5435,14 @@ function annaXHR(messages, callback) {
   };
 
   xhr.onerror = function() {
-    callback('Could not reach Anna (' + url + '). Error: network/CORS block.');
+    callback('Network error — could not reach Anna. Status: ' + xhr.status);
   };
 
   xhr.ontimeout = function() {
     callback('Anna took too long to respond. Please try again.');
   };
 
-  xhr.send(JSON.stringify({ messages: messages }));
+  xhr.send();
 }
 
 </script>
