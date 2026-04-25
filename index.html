@@ -1059,6 +1059,38 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   color: #E6EDF3 !important;
 }
 
+
+/* Health review overlay */
+#cvHealthReview{position:fixed;inset:0;background:#0B0F12;z-index:400;display:none;flex-direction:column}
+#cvHealthReview.open{display:flex}
+.hr-header{background:#0B0F12;border-bottom:1px solid #1F2A33;padding:14px 16px;
+  display:flex;align-items:center;gap:12px;flex-shrink:0}
+.hr-back{background:none;border:none;color:#2FD4F5;font-size:22px;cursor:pointer;padding:0 4px}
+.hr-title{font-size:17px;font-weight:700;color:#FFFFFF}
+.hr-body{flex:1;overflow-y:auto;padding:16px}
+.hr-select{width:100%;padding:12px 14px;background:#12181D;border:1.5px solid #1F2A33;
+  border-radius:10px;color:#FFFFFF;font-size:15px;font-family:-apple-system,sans-serif;
+  outline:none;margin-bottom:14px;
+  -webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23FFFFFF' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+.hr-period-row{display:flex;gap:8px;margin-bottom:20px}
+.hr-period{flex:1;padding:10px;background:#12181D;border:1.5px solid #1F2A33;border-radius:8px;
+  color:#8B949E;font-size:13px;font-weight:700;text-align:center;cursor:pointer;
+  font-family:-apple-system,sans-serif;transition:all .12s}
+.hr-period.active{background:rgba(47,212,245,.15);border-color:#2FD4F5;color:#2FD4F5}
+.hr-chart-wrap{background:#12181D;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #1F2A33}
+.hr-chart-title{font-size:12px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px}
+.hr-chart-svg{width:100%;display:block}
+.hr-latest{font-size:28px;font-weight:800;color:#2FD4F5;margin-bottom:4px}
+.hr-latest-label{font-size:11px;color:#8B949E}
+.hr-entries{margin-top:16px}
+.hr-entry{display:flex;justify-content:space-between;align-items:center;
+  padding:10px 0;border-bottom:1px solid #1F2A33}
+.hr-entry-val{font-size:15px;font-weight:700;color:#FFFFFF}
+.hr-entry-date{font-size:11px;color:#8B949E}
+.hr-empty{text-align:center;padding:40px 20px;color:#8B949E;font-size:13px}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -1116,6 +1148,31 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <button id="cvSignOutBtn" onclick="signOut()" style="background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);padding:5px 11px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">Sign Out</button>
   </div>
   <!-- TAB CONTENT AREAS -->
+
+<!-- HEALTH REVIEW OVERLAY -->
+<div id="cvHealthReview">
+  <div class="hr-header">
+    <button class="hr-back" onclick="closeHealthReview()">&#8592;</button>
+    <div class="hr-title">&#128200; Health Data</div>
+  </div>
+  <div class="hr-body">
+    <select class="hr-select" id="hrMetricSel" onchange="renderHealthChart()">
+      <option value="weight">Weight (kg)</option>
+      <option value="bp">Blood Pressure</option>
+      <option value="bg">Blood Glucose (mmol/L)</option>
+      <option value="hr">Heart Rate (bpm)</option>
+      <option value="sleep">Sleep (hrs)</option>
+    </select>
+    <div class="hr-period-row">
+      <button class="hr-period active" data-months="1" onclick="hrSetPeriod(1,this)">1 Month</button>
+      <button class="hr-period" data-months="3" onclick="hrSetPeriod(3,this)">3 Months</button>
+      <button class="hr-period" data-months="6" onclick="hrSetPeriod(6,this)">6 Months</button>
+    </div>
+    <div id="hrChartWrap"></div>
+    <div class="hr-entries" id="hrEntries"></div>
+  </div>
+</div>
+
   <div id="cvTabHome" style="display:block">
     <div class="cv-home" id="cvHomeContent" style="width:100%;overflow-x:hidden">
       <div class="cv-empty"><div class="cv-empty-icon">&#9201;</div><p>Loading...</p></div>
@@ -5318,8 +5375,10 @@ function renderCVHome() {
     h += metricCard('&#128164;', 'Blood Glucose', lg, 'mmol', 'bg', '5.0', 'number');
     h += metricCard('&#9829;', 'Heart Rate', lh, 'bpm', 'hr', '72', 'number');
     h += metricCard('&#128308;', 'Sleep', ls, 'hrs', 'sleep', '8', 'number');
-    h += '<div style="background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(28,43,53,.07);border:1.5px dashed var(--sand-dark);display:flex;align-items:center">' +
-      '<div style="font-size:11px;color:var(--text-light);line-height:1.5">&#128241; Log metrics above. Apple Health &amp; Samsung Health sync coming soon.</div>' +
+    h += '<div onclick="openHealthReview()" style="background:#12181D;border-radius:12px;padding:16px 14px;border:1.5px solid #1F2A33;display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:10px">' +
+      '<div><div style="font-size:13px;font-weight:700;color:#2FD4F5;margin-bottom:2px">&#128200; Review Health Data</div>' +
+      '<div style="font-size:10px;color:#8B949E">View trends over 1, 3 or 6 months</div></div>' +
+      '<div style="color:#2FD4F5;font-size:20px">&#8250;</div>' +
       '</div>';
     h += '</div>';
 
@@ -6498,6 +6557,120 @@ function toggleDashboard() {
         '</div>';
       }).join('') || '<div style="color:var(--text-light);font-size:12px;padding:8px">No clients yet</div>';
     }
+  }
+}
+
+
+// ════════════════════════════════════════════════════
+// HEALTH REVIEW
+// ════════════════════════════════════════════════════
+var hrMonths = 1;
+
+function openHealthReview() {
+  var el = document.getElementById('cvHealthReview');
+  if (el) { el.classList.add('open'); renderHealthChart(); }
+}
+
+function closeHealthReview() {
+  var el = document.getElementById('cvHealthReview');
+  if (el) el.classList.remove('open');
+}
+
+function hrSetPeriod(months, btn) {
+  hrMonths = months;
+  document.querySelectorAll('.hr-period').forEach(function(b) { b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  renderHealthChart();
+}
+
+function renderHealthChart() {
+  var metric = (document.getElementById('hrMetricSel') || {}).value || 'weight';
+  var health = cvHealthData || {};
+  var allEntries = health[metric] || [];
+
+  // Filter by period
+  var cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - hrMonths);
+  var entries = allEntries.filter(function(e) {
+    var d = new Date(e.date);
+    return !isNaN(d) && d >= cutoff;
+  });
+
+  var wrap = document.getElementById('hrChartWrap');
+  var list = document.getElementById('hrEntries');
+  if (!wrap) return;
+
+  var labels = { weight:'Weight', bp:'Blood Pressure', bg:'Blood Glucose', hr:'Heart Rate', sleep:'Sleep' };
+  var units  = { weight:'kg', bp:'', bg:'mmol/L', hr:'bpm', sleep:'hrs' };
+
+  if (!entries.length) {
+    wrap.innerHTML = '<div class="hr-empty">No ' + labels[metric] + ' data in this period.<br><br>Log readings on the home screen to see trends here.</div>';
+    if (list) list.innerHTML = '';
+    return;
+  }
+
+  // Latest value
+  var latest = entries[entries.length - 1];
+  var latestVal = latest.val || latest.value || '—';
+
+  // Build SVG chart
+  var vals = entries.map(function(e) { return parseFloat(e.val || e.value); }).filter(function(v) { return !isNaN(v); });
+  var chartHTML = '';
+
+  if (vals.length >= 2) {
+    var W = 320, H = 120, padL = 32, padR = 10, padT = 14, padB = 24;
+    var minV = Math.min.apply(null, vals), maxV = Math.max.apply(null, vals);
+    var range = maxV - minV || 1;
+    minV -= range * 0.1; maxV += range * 0.1; range = maxV - minV;
+    var toX = function(i) { return padL + (i / (vals.length - 1)) * (W - padL - padR); };
+    var toY = function(v) { return padT + (1 - (v - minV) / range) * (H - padT - padB); };
+    var pts = vals.map(function(v, i) { return toX(i) + ',' + toY(v); }).join(' ');
+    var area = 'M' + toX(0) + ',' + H + ' ' + vals.map(function(v,i) { return 'L'+toX(i)+','+toY(v); }).join(' ') + ' L'+toX(vals.length-1)+','+H+' Z';
+
+    // Date labels
+    var firstDate = entries[0].date ? entries[0].date.split(' ').slice(0,2).join(' ') : '';
+    var lastDate  = latest.date  ? latest.date.split(' ').slice(0,2).join(' ')  : '';
+
+    var svg = '<svg class="hr-chart-svg" viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" style="height:' + H + 'px">';
+    // Grid lines
+    [0.25, 0.5, 0.75].forEach(function(p) {
+      var y = padT + p * (H - padT - padB);
+      svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W-padR) + '" y2="' + y + '" stroke="#1F2A33" stroke-width="1"/>';
+      var lbl = (maxV - p * range).toFixed(vals[0] % 1 === 0 ? 0 : 1);
+      svg += '<text x="' + (padL-3) + '" y="' + (y+3) + '" font-size="8" fill="#8B949E" text-anchor="end">' + lbl + '</text>';
+    });
+    // Area
+    svg += '<path d="' + area + '" fill="#2FD4F5" opacity="0.08"/>';
+    // Line
+    svg += '<polyline points="' + pts + '" fill="none" stroke="#2FD4F5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+    // Dots
+    vals.forEach(function(v, i) {
+      var isLast = i === vals.length - 1;
+      svg += '<circle cx="' + toX(i) + '" cy="' + toY(v) + '" r="' + (isLast ? 4 : 2.5) + '" fill="#2FD4F5"/>';
+      if (isLast) svg += '<text x="' + toX(i) + '" y="' + (toY(v) - 8) + '" font-size="9" font-weight="bold" fill="#2FD4F5" text-anchor="middle">' + v + '</text>';
+    });
+    // Date axis
+    svg += '<text x="' + toX(0) + '" y="' + (H-4) + '" font-size="8" fill="#8B949E" text-anchor="start">' + firstDate + '</text>';
+    svg += '<text x="' + toX(vals.length-1) + '" y="' + (H-4) + '" font-size="8" fill="#8B949E" text-anchor="end">' + lastDate + '</text>';
+    svg += '</svg>';
+    chartHTML = svg;
+  }
+
+  wrap.innerHTML = '<div class="hr-chart-wrap">' +
+    '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px">' +
+      '<div><div class="hr-latest">' + latestVal + ' <span style="font-size:14px;font-weight:400;color:#8B949E">' + units[metric] + '</span></div>' +
+      '<div class="hr-latest-label">Latest · ' + (latest.date || '') + '</div></div>' +
+      '<div class="hr-chart-title">' + labels[metric] + '</div>' +
+    '</div>' +
+    chartHTML +
+  '</div>';
+
+  // Entry list (newest first)
+  if (list) {
+    list.innerHTML = '<div style="font-size:10px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">All readings</div>' +
+      entries.slice().reverse().map(function(e) {
+        return '<div class="hr-entry"><div class="hr-entry-date">' + (e.date||'') + '</div><div class="hr-entry-val">' + (e.val||e.value||'') + ' <span style="font-size:11px;color:#8B949E">' + units[metric] + '</span></div></div>';
+      }).join('');
   }
 }
 
