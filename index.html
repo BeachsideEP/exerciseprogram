@@ -1272,6 +1272,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <button class="btn btn-teal btn-sm" onclick="openPrintModal()">📄 PDF</button>
     <span id="syncBadge" class="sync-badge sync-idle">Offline</span>
     <button class="btn btn-ghost btn-sm" onclick="openClientDemo()" title="Preview how clients see their program">&#128247; Client View</button>
+    <button class="btn btn-ghost btn-sm" onclick="openComplianceModal()">📊 Compliance</button>
     <button class="btn btn-ghost btn-sm" id="signOutBtn" onclick="signOut()" style="display:none">Sign Out</button>
   </div>
 </header>
@@ -1357,7 +1358,8 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 
     <!-- OUTCOME MEASURES -->
     <div class="om-panel" id="omPanel" style="display:none">
-      <div class="om-hdr"><span class="om-title" style="cursor:pointer" onclick="toggleOMPanel()">&#128202; Outcome Measures <span id="omCollapseIcon" style="font-size:10px;color:var(--text-l)">▲</span></span><div style="display:flex;gap:4px"><button class="btn btn-outline btn-xs" onclick="syncClients().then(renderOMPanel)" title="Pull latest from client app">&#8635; Sync</button><button class="btn btn-outline btn-xs" onclick="openM('omHistM')">&#128202; History</button></div></div>
+      <div style="margin-bottom:8px"><button class="btn btn-ghost btn-sm" onclick="exportClientCSV()" style="width:100%">📥 Export Client CSV</button></div>
+  <div class="om-hdr"><span class="om-title" style="cursor:pointer" onclick="toggleOMPanel()">&#128202; Outcome Measures <span id="omCollapseIcon" style="font-size:10px;color:var(--text-l)">▲</span></span><div style="display:flex;gap:4px"><button class="btn btn-outline btn-xs" onclick="syncClients().then(renderOMPanel)" title="Pull latest from client app">&#8635; Sync</button><button class="btn btn-outline btn-xs" onclick="openM('omHistM')">&#128202; History</button></div></div>
       <div id="omRows"></div>
       <div class="om-add-row">
         <input id="omNewName" type="text" placeholder="Add measure (e.g. Pain VAS, PSFS, 6MWT)">
@@ -1392,6 +1394,9 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   <div class="prev-actions">
     <button class="btn btn-teal" onclick="openPrintModal()">📄 Generate PDF</button>
     <button class="btn btn-ghost btn-sm" onclick="saveProg()">💾 Save Program</button>
+    <button class="btn btn-ghost btn-sm" onclick="saveAsTemplate()">📋 Save as Template</button>
+    <button class="btn btn-ghost btn-sm" onclick="openLoadTemplate()">📂 Load Template</button>
+    <button class="btn btn-ghost btn-sm" onclick="openDuplicateProg()">⧉ Duplicate to Client</button>
   </div>
   <div class="clk-info-box">
     <strong>📧 Send Program to Client</strong>
@@ -1399,6 +1404,18 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <button onclick="emailProgramToClient()" style="width:100%;padding:8px;background:#5BBFAA;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">📧 Send Program to Client</button>
   </div>
 </div>
+</div>
+
+
+<!-- COMPLIANCE MODAL -->
+<div class="overlay" id="complianceM" onclick="closeBg(event,'complianceM')">
+  <div class="modal" style="max-width:700px;width:95%">
+    <div class="modal-title">📊 Session Compliance</div>
+    <div id="complianceContent" style="max-height:70vh;overflow-y:auto"></div>
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="btn btn-ghost btn-sm" onclick="closeM('complianceM')">Close</button>
+    </div>
+  </div>
 </div>
 
 <!-- ══ MODALS ══ -->
@@ -4643,23 +4660,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // ════════════════════════════════════════════════════
 // DUPLICATE PROGRAM BETWEEN CLIENTS
 // ════════════════════════════════════════════════════
-function openDuplicateProg() {
-  const p = getProg(); if (!p) { toast('No program to duplicate','err'); return; }
-  // Show a client picker
-  const others = clients.filter(c => c.id !== currentClientId);
-  if (!others.length) { toast('No other clients to copy to','err'); return; }
-  let html = '<div style="margin-bottom:10px;font-size:11px;color:var(--text-mid)">Choose a client to copy <strong>' + (p.title||'this program') + '</strong> to:</div>';
-  html += others.map(cl =>
-    `<div class="saved-card" onclick="doCopyProg('${cl.id}')">
-      <div class="saved-info"><div class="saved-nm">${cl.first} ${cl.last}</div>
-      <div class="saved-meta">${cl.programs.length} program(s) - ${cl.clinician||''}</div></div>
-      <button class="btn btn-primary btn-xs">Copy →</button>
-    </div>`
-  ).join('');
-  document.getElementById('dupProgList').innerHTML = html;
-  openM('dupProgM');
-}
-
 function doCopyProg(targetClientId) {
   const p = getProg(); if (!p) return;
   const target = clients.find(c => c.id === targetClientId); if (!target) return;
@@ -5368,10 +5368,12 @@ function renderCVHome() {
     var totalSessions = allLog.length + ownW.length;
 
     var weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
-    var thisWeek = allLog.filter(function(e) {
-      try { return new Date(e.date) >= weekAgo; } catch(x) { return false; }
-    }).length + ownW.filter(function(w) {
-      try { return new Date(w.date) >= weekAgo; } catch(x) { return false; }
+    var thisWeek = allLog.concat(ownW).filter(function(e) {
+      var k = normDateStreak(e.date);
+      if (!k) return false;
+      var pts = k.split('-');
+      var d2 = new Date(parseInt(pts[0]), parseInt(pts[1])-1, parseInt(pts[2]));
+      return d2 >= weekAgo && d2 <= now;
     }).length;
 
     // ── Streak ──
@@ -7081,6 +7083,318 @@ function toggleOMPanel() {
   panel.setAttribute('data-collapsed', isCollapsed ? '0' : '1');
   var icon = document.getElementById('omCollapseIcon');
   if (icon) icon.textContent = isCollapsed ? '▲' : '▼';
+}
+
+
+// ════════════════════════════════════════════════════
+// SAVE AS TEMPLATE
+// ════════════════════════════════════════════════════
+function saveAsTemplate() {
+  var cl = getClient();
+  var prog = getProg();
+  if (!prog || !prog.exercises || !prog.exercises.length) {
+    toast('No exercises in program to save', 'err'); return;
+  }
+  var name = prompt('Template name:', prog.title || 'My Template');
+  if (!name) return;
+  var tpls = getTemplates();
+  tpls.unshift({
+    name: name,
+    title: prog.title || name,
+    freq: prog.freq || '',
+    exercises: JSON.parse(JSON.stringify(prog.exercises)),
+    savedAt: new Date().toLocaleDateString('en-AU', {day:'numeric',month:'short',year:'numeric'})
+  });
+  saveTemplates(tpls);
+  toast('Template "' + name + '" saved', 'ok');
+}
+
+// ════════════════════════════════════════════════════
+// LOAD TEMPLATE INTO CURRENT PROGRAM
+// ════════════════════════════════════════════════════
+function openLoadTemplate() {
+  var tpls = getTemplates();
+  if (!tpls.length) { toast('No templates saved yet', 'err'); return; }
+  var cl = getClient();
+  if (!cl) { toast('Select a client first', 'err'); return; }
+
+  var modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  var inner = document.createElement('div');
+  inner.style.cssText = 'background:#1A2530;border-radius:12px;padding:20px;max-width:480px;width:100%;max-height:80vh;overflow-y:auto';
+  inner.innerHTML = '<div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:14px">📂 Load Template</div>' +
+    tpls.map(function(t, i) {
+      return '<div style="background:#12181D;border-radius:8px;padding:12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">' +
+        '<div><div style="font-size:13px;font-weight:600;color:#fff">' + t.name + '</div>' +
+        '<div style="font-size:11px;color:#8B949E">' + (t.exercises||[]).length + ' exercises · ' + (t.freq||'—') + ' · Saved ' + t.savedAt + '</div></div>' +
+        '<div style="display:flex;gap:6px">' +
+        '<button onclick="loadTemplateModal(' + i + ')" style="padding:6px 12px;background:#2FD4F5;color:#0B0F12;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Load</button>' +
+        '<button onclick="deleteTemplateModal(' + i + ',this)" style="padding:6px 10px;background:#26323A;color:#8B949E;border:none;border-radius:6px;font-size:12px;cursor:pointer">🗑</button>' +
+        '</div></div>';
+    }).join('') +
+    '<button onclick="this.closest(\'[style*=fixed]\').remove()" style="width:100%;padding:10px;margin-top:8px;background:#26323A;color:#8B949E;border:none;border-radius:8px;font-size:13px;cursor:pointer">Close</button>';
+  modal.appendChild(inner);
+  document.body.appendChild(modal);
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+  window._tplModal = modal;
+}
+
+function loadTemplateModal(i) {
+  var tpls = getTemplates();
+  var tpl = tpls[i];
+  if (!tpl) return;
+  var cl = getClient();
+  var prog = getProg();
+  if (!prog) return;
+  if (!confirm('Load "' + tpl.name + '" into current program? This will replace existing exercises.')) return;
+  prog.exercises = JSON.parse(JSON.stringify(tpl.exercises));
+  if (tpl.freq) prog.freq = tpl.freq;
+  saveDB();
+  if (window._tplModal) window._tplModal.remove();
+  renderProgTabs(); loadProg(); updatePreview();
+  toast('Template loaded', 'ok');
+}
+
+function deleteTemplateModal(i, btn) {
+  var tpls = getTemplates();
+  tpls.splice(i, 1);
+  saveTemplates(tpls);
+  if (btn) btn.closest('[style*="background:#12181D"]').remove();
+  toast('Template deleted', 'ok');
+}
+
+// ════════════════════════════════════════════════════
+// DUPLICATE PROGRAM TO ANOTHER CLIENT
+// ════════════════════════════════════════════════════
+function openDuplicateProg() {
+  var cl = getClient();
+  var prog = getProg();
+  if (!cl || !prog) { toast('Select a client and program first', 'err'); return; }
+  if (!prog.exercises || !prog.exercises.length) { toast('No exercises to duplicate', 'err'); return; }
+
+  var otherClients = clients.filter(function(c) { return c.id !== cl.id; });
+  if (!otherClients.length) { toast('No other clients to copy to', 'err'); return; }
+
+  var modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  var inner = document.createElement('div');
+  inner.style.cssText = 'background:#1A2530;border-radius:12px;padding:20px;max-width:420px;width:100%;max-height:80vh;overflow-y:auto';
+  inner.innerHTML = '<div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:4px">⧉ Duplicate Program</div>' +
+    '<div style="font-size:11px;color:#8B949E;margin-bottom:14px">Copy "' + (prog.title||'Program') + '" to:</div>' +
+    '<input id="dupSearch" placeholder="Search clients..." oninput="filterDupClients(this.value)" style="width:100%;padding:8px 10px;background:#0B0F12;border:1px solid #1F2A33;border-radius:8px;color:#fff;font-size:13px;margin-bottom:10px;box-sizing:border-box;outline:none">' +
+    '<div id="dupClientList">' +
+    otherClients.map(function(c) {
+      return '<div style="background:#12181D;border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">' +
+        '<div style="font-size:13px;color:#fff">' + c.first + ' ' + c.last + '</div>' +
+        '<button onclick="doDuplicate(\'' + c.id + '\')" style="padding:6px 12px;background:#2FD4F5;color:#0B0F12;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Copy</button>' +
+        '</div>';
+    }).join('') +
+    '</div>' +
+    '<button onclick="this.closest(\'[style*=fixed]\').remove()" style="width:100%;padding:10px;margin-top:8px;background:#26323A;color:#8B949E;border:none;border-radius:8px;font-size:13px;cursor:pointer">Cancel</button>';
+  modal.appendChild(inner);
+  document.body.appendChild(modal);
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+  window._dupModal = modal;
+  window._dupProg = prog;
+  window._dupClients = otherClients;
+}
+
+function filterDupClients(q) {
+  var list = document.getElementById('dupClientList');
+  if (!list || !window._dupClients) return;
+  var filtered = window._dupClients.filter(function(c) {
+    return (c.first + ' ' + c.last).toLowerCase().includes(q.toLowerCase());
+  });
+  list.innerHTML = filtered.map(function(c) {
+    return '<div style="background:#12181D;border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">' +
+      '<div style="font-size:13px;color:#fff">' + c.first + ' ' + c.last + '</div>' +
+      '<button onclick="doDuplicate(\'' + c.id + '\')" style="padding:6px 12px;background:#2FD4F5;color:#0B0F12;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Copy</button>' +
+      '</div>';
+  }).join('');
+}
+
+function doDuplicate(targetId) {
+  var prog = window._dupProg;
+  if (!prog) return;
+  var target = clients.find(function(c) { return c.id === targetId; });
+  if (!target) return;
+  if (!target.programs) target.programs = [];
+  var newProg = JSON.parse(JSON.stringify(prog));
+  newProg.id = 'p_' + Date.now() + Math.random();
+  newProg.log = []; // clear session log for new client
+  target.programs.push(newProg);
+  saveDB();
+  pushClientToCloud(target);
+  if (window._dupModal) window._dupModal.remove();
+  toast('Program copied to ' + target.first + ' ' + target.last, 'ok');
+}
+
+// ════════════════════════════════════════════════════
+// COMPLIANCE REPORT
+// ════════════════════════════════════════════════════
+function openComplianceModal() {
+  openM('complianceM');
+  renderComplianceTab();
+}
+
+function renderComplianceTab() {
+  var el = document.getElementById('complianceContent');
+  if (!el) return;
+
+  function normDateC(str) {
+    if (!str) return null;
+    var s = String(str).split(',')[0].trim();
+    var MONTHS = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+    var parts = s.replace(/\./g,'').split(/[\s\/\-]+/).filter(Boolean);
+    var d, m, y;
+    if (parts.length >= 3 && isNaN(parts[1])) {
+      d = parseInt(parts[0]); m = MONTHS[parts[1].toLowerCase().slice(0,3)]; y = parseInt(parts[2]);
+    } else if (parts.length >= 3 && parts[0].length <= 2) {
+      d = parseInt(parts[0]); m = parseInt(parts[1]) - 1; y = parseInt(parts[2]);
+    } else if (parts.length >= 3 && parts[0].length === 4) {
+      y = parseInt(parts[0]); m = parseInt(parts[1]) - 1; d = parseInt(parts[2]);
+    }
+    if (isNaN(d) || isNaN(m) || isNaN(y) || m === undefined) return null;
+    return new Date(y, m, d);
+  }
+
+  var now = new Date(); now.setHours(0,0,0,0);
+  var rows = clients.map(function(cl) {
+    var allLog = [];
+    (cl.programs || []).forEach(function(p) {
+      (p.log || []).forEach(function(e) { if (e.clientSubmitted) allLog.push(e); });
+    });
+    var lastDate = null;
+    allLog.forEach(function(e) {
+      var d = normDateC(e.date);
+      if (d && (!lastDate || d > lastDate)) lastDate = d;
+    });
+    var daysSince = lastDate ? Math.floor((now - lastDate) / 86400000) : null;
+    var totalSessions = allLog.length;
+    // Sessions last 30 days
+    var cutoff30 = new Date(now); cutoff30.setDate(cutoff30.getDate() - 30);
+    var last30 = allLog.filter(function(e) { var d = normDateC(e.date); return d && d >= cutoff30; }).length;
+    var status = daysSince === null ? 'never' : daysSince <= 7 ? 'active' : daysSince <= 21 ? 'at-risk' : 'inactive';
+    return { cl, lastDate, daysSince, totalSessions, last30, status };
+  }).sort(function(a, b) {
+    if (a.daysSince === null) return 1;
+    if (b.daysSince === null) return -1;
+    return b.daysSince - a.daysSince;
+  });
+
+  var statusColors = { active: '#2FD4F5', 'at-risk': '#f59e0b', inactive: '#ef4444', never: '#8B949E' };
+  var statusLabels = { active: 'Active', 'at-risk': 'At Risk', inactive: 'Inactive', never: 'Never logged' };
+
+  var counts = { active: 0, 'at-risk': 0, inactive: 0, never: 0 };
+  rows.forEach(function(r) { counts[r.status]++; });
+
+  var html = '<div style="padding:16px">' +
+    '<div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">📊 Session Compliance</div>' +
+    '<div style="font-size:12px;color:var(--text-light);margin-bottom:16px">Client activity over the past 30 days</div>' +
+
+    // Summary cards
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:20px">' +
+    Object.keys(counts).map(function(s) {
+      return '<div style="background:var(--cv-card,#12181D);border-radius:10px;padding:10px;text-align:center">' +
+        '<div style="font-size:22px;font-weight:800;color:' + statusColors[s] + '">' + counts[s] + '</div>' +
+        '<div style="font-size:10px;color:var(--text-light);margin-top:2px">' + statusLabels[s] + '</div>' +
+        '</div>';
+    }).join('') +
+    '</div>' +
+
+    // Client table
+    '<div style="background:var(--card);border-radius:12px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.08)">' +
+    '<div style="display:grid;grid-template-columns:1fr 80px 80px 80px 90px;gap:0;background:var(--ocean-deep);padding:10px 14px">' +
+    '<div style="font-size:11px;font-weight:700;color:#fff">Client</div>' +
+    '<div style="font-size:11px;font-weight:700;color:#fff;text-align:center">Last Session</div>' +
+    '<div style="font-size:11px;font-weight:700;color:#fff;text-align:center">Total</div>' +
+    '<div style="font-size:11px;font-weight:700;color:#fff;text-align:center">Last 30d</div>' +
+    '<div style="font-size:11px;font-weight:700;color:#fff;text-align:center">Status</div>' +
+    '</div>' +
+    rows.map(function(r) {
+      var daysText = r.daysSince === null ? '—' : r.daysSince === 0 ? 'Today' : r.daysSince === 1 ? 'Yesterday' : r.daysSince + 'd ago';
+      return '<div style="display:grid;grid-template-columns:1fr 80px 80px 80px 90px;gap:0;padding:10px 14px;border-bottom:1px solid var(--sand-dark);cursor:pointer" onclick="selectClientById(\'' + r.cl.id + '\')">' +
+        '<div style="font-size:13px;font-weight:600;color:var(--text)">' + r.cl.first + ' ' + r.cl.last + '</div>' +
+        '<div style="font-size:12px;color:var(--text-light);text-align:center">' + daysText + '</div>' +
+        '<div style="font-size:12px;color:var(--text-light);text-align:center">' + r.totalSessions + '</div>' +
+        '<div style="font-size:12px;color:var(--text-light);text-align:center">' + r.last30 + '</div>' +
+        '<div style="text-align:center"><span style="font-size:10px;font-weight:700;color:' + statusColors[r.status] + ';background:' + statusColors[r.status] + '22;padding:3px 8px;border-radius:20px">' + statusLabels[r.status] + '</span></div>' +
+        '</div>';
+    }).join('') +
+    '</div></div>';
+
+  el.innerHTML = html;
+}
+
+function selectClientById(id) {
+  currentClientId = id;
+  renderClientDropdown();
+  var sel = document.getElementById('clientSel');
+  if (sel) sel.value = id;
+  selectClient();
+  switchTab('clients');
+}
+
+// ════════════════════════════════════════════════════
+// EXPORT CLIENT DATA TO CSV
+// ════════════════════════════════════════════════════
+function exportClientCSV() {
+  var cl = getClient();
+  if (!cl) { toast('Select a client first', 'err'); return; }
+
+  var rows = [['Date','Program','Exercise','Sets','Reps','Load','Notes','Feeling']];
+
+  (cl.programs || []).forEach(function(prog) {
+    (prog.log || []).forEach(function(entry) {
+      if (!entry.clientSubmitted) return;
+      var date = (entry.date || '').split(',')[0];
+      var feeling = '';
+      var lines = (entry.text || '').split('|');
+      lines.forEach(function(line) {
+        line = line.trim();
+        if (line.startsWith('Feeling:')) { feeling = line.replace('Feeling:','').trim(); return; }
+        // Parse exercise lines: "Exercise Name [X sets: Y reps @ Zkg]"
+        var exMatch = line.match(/^(.+?)\s*\[(.+?)\]$/);
+        if (exMatch) {
+          var exName = exMatch[1].trim();
+          var params = exMatch[2];
+          var sets = (params.match(/(\d+)\s*sets?/i)||[])[1]||'';
+          var reps = (params.match(/(\d+(?:-\d+)?)\s*reps?/i)||[])[1]||'';
+          var load = (params.match(/[\d.]+\s*kg/i)||[])[0]||'';
+          rows.push([date, prog.title||'', exName, sets, reps, load, '', feeling]);
+        }
+      });
+    });
+  });
+
+  // Health data
+  var healthKeys = { weight:'Weight (kg)', bp:'Blood Pressure', bg:'Blood Glucose (mmol/L)', hr:'Heart Rate (bpm)', sleep:'Sleep (hrs)' };
+  var healthRows = [['','','','','','','',''],['Date','Metric','Value','','','','','']];
+  try {
+    var health = JSON.parse(localStorage.getItem('cv_health_' + cl.id) || '{}');
+    Object.keys(healthKeys).forEach(function(key) {
+      (health[key] || []).forEach(function(e) {
+        healthRows.push([(e.date||'').split(',')[0], healthKeys[key], e.val, '', '', '', '', '']);
+      });
+    });
+  } catch(e) {}
+
+  var allRows = rows.concat(healthRows);
+  var csv = allRows.map(function(r) {
+    return r.map(function(cell) {
+      var s = String(cell || '').replace(/"/g, '""');
+      return s.includes(',') || s.includes('"') ? '"' + s + '"' : s;
+    }).join(',');
+  }).join('\n');
+
+  var blob = new Blob([csv], { type: 'text/csv' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = (cl.first + '_' + cl.last + '_data.csv').replace(/\s+/g,'_');
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('CSV exported', 'ok');
 }
 
 </script>
