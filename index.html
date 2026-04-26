@@ -1273,6 +1273,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <button class="btn btn-teal btn-sm" onclick="openPrintModal()">📄 PDF</button>
     <span id="syncBadge" class="sync-badge sync-idle">Offline</span>
     <button class="btn btn-ghost btn-sm" onclick="openClientDemo()" title="Preview how clients see their program">&#128247; Client View</button>
+    <button class="btn btn-ghost btn-sm" onclick="openArchiveModal()">📦 Archive</button>
     <button class="btn btn-ghost btn-sm" onclick="openComplianceModal()">📊 Compliance</button>
     <button class="btn btn-ghost btn-sm" id="signOutBtn" onclick="signOut()" style="display:none">Sign Out</button>
   </div>
@@ -1422,6 +1423,21 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   </div>
 </div>
 
+
+<!-- ARCHIVE MODAL -->
+<div class="overlay" id="archiveM" onclick="closeBg(event,'archiveM')">
+  <div class="modal" style="max-width:560px;width:95%;background:#0D1A24;border:1px solid #1F2A33;border-radius:16px;padding:0;overflow:hidden">
+    <div style="background:#0B1820;padding:16px 20px;border-bottom:1px solid #1F2A33;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:#FFFFFF">📦 Archived Clients</div>
+        <div style="font-size:11px;color:#8B949E;margin-top:2px">Reactivate to restore access</div>
+      </div>
+      <button onclick="closeM('archiveM')" style="background:none;border:none;color:#8B949E;font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <div id="archiveContent" style="max-height:60vh;overflow-y:auto;padding:16px"></div>
+  </div>
+</div>
+
 <!-- ══ MODALS ══ -->
 
 <!-- NEW CLIENT -->
@@ -1458,7 +1474,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <div style="grid-column:1/-1"><button class="btn btn-outline btn-sm" onclick="sendClientLink()">&#9993; Send Login Link</button></div>
   </div>
   <div class="modal-footer">
-    <button class="btn btn-danger btn-sm" onclick="deleteClient()">Delete Client</button>
+    <button class="btn btn-ghost btn-sm" onclick="archiveClient()" style="color:#f59e0b;border-color:#f59e0b44">📦 Archive</button><button class="btn btn-danger btn-sm" onclick="deleteClient()">Delete</button>
     <button class="btn btn-outline" onclick="closeM('editClientM')">Cancel</button>
     <button class="btn btn-primary" onclick="saveClientEdit()">Save Changes</button>
   </div>
@@ -2406,7 +2422,7 @@ function renderClientDropdown() {
   var sel = document.getElementById('clientSel');
   if (!sel) return; // guard against null
   sel.innerHTML = '<option value="">— Select or create client —</option>';
-  clients.forEach(function(c) {
+  clients.filter(function(c) { return !c.archived; }).forEach(function(c) {
     var o = document.createElement('option');
     o.value = c.id;
     o.textContent = c.first + ' ' + c.last;
@@ -2462,10 +2478,39 @@ function saveClientEdit() {
 
 function deleteClient() {
   const cl = getClient(); if (!cl) return;
-  if (!confirm(`Delete ${cl.first} ${cl.last} and ALL their programs?`)) return;
+  if (!confirm('Delete ' + cl.first + ' ' + cl.last + ' permanently? This cannot be undone. Consider archiving instead.')) return;
+  // Delete from Supabase
+  fetch(SUPA_URL + '/rest/v1/clients?id=eq.' + cl.id, {
+    method: 'DELETE',
+    headers: supaHeaders()
+  }).catch(function(){});
   clients = clients.filter(c => c.id !== currentClientId);
   currentClientId = null; currentProgId = null; saveDB();
   renderClientDropdown(); selectClient(); closeM('editClientM');
+  toast('Client deleted', 'ok');
+}
+
+function archiveClient() {
+  const cl = getClient(); if (!cl) return;
+  if (!confirm('Archive ' + cl.first + ' ' + cl.last + '? They will be moved to the archive and cannot sign in until reactivated.')) return;
+  cl.archived = true;
+  cl.archivedAt = new Date().toLocaleDateString('en-AU', {day:'numeric',month:'short',year:'numeric'});
+  saveDB();
+  pushClientToCloud(cl);
+  currentClientId = null; currentProgId = null;
+  renderClientDropdown(); selectClient(); closeM('editClientM');
+  toast(cl.first + ' archived', 'ok');
+}
+
+function reactivateClient(id) {
+  const cl = clients.find(c => c.id === id);
+  if (!cl) return;
+  cl.archived = false;
+  cl.archivedAt = null;
+  saveDB();
+  pushClientToCloud(cl);
+  toast(cl.first + ' reactivated', 'ok');
+  openArchiveModal();
 }
 
 // ══════════════════════════════════════
@@ -3440,6 +3485,11 @@ async function loadClientView(user) {
     const email = (user.email || '').toLowerCase();
     const allClients = rows.map(function(row) { return row.data; }).filter(Boolean);
     const match = allClients.find(function(c) { return (c.email || '').toLowerCase() === email; });
+    if (match && match.archived) {
+      toast('Your account is currently inactive. Please contact Beachside Exercise Physiology to reactivate your access.', 'err');
+      setTimeout(function() { supabase.auth.signOut(); showView('auth'); }, 2500);
+      return;
+    }
     if (!match) {
       const found = allClients.map(function(c) { return c.first + ' ' + c.last + ' (' + (c.email||'no email') + ')'; }).join(', ');
       var noMatchEl = document.getElementById('cvHomeContent') || document.getElementById('cvBody');
@@ -7623,6 +7673,44 @@ function cvAdjSets(i, delta) {
   var newSets = Math.max(1, Math.min(10, currentSets + delta));
   cvState[i].sessionSets = newSets;
   renderCV();
+}
+
+
+// ════════════════════════════════════════════════════
+// ARCHIVE
+// ════════════════════════════════════════════════════
+function openArchiveModal() {
+  openM('archiveM');
+  var el = document.getElementById('archiveContent');
+  if (!el) return;
+  var archived = clients.filter(function(c) { return c.archived; });
+  if (!archived.length) {
+    el.innerHTML = '<div style="text-align:center;padding:40px;color:#8B949E;font-size:13px">No archived clients</div>';
+    return;
+  }
+  el.innerHTML = archived.map(function(c) {
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #1F2A33">' +
+      '<div>' +
+        '<div style="font-size:14px;font-weight:600;color:#FFFFFF">' + c.first + ' ' + c.last + '</div>' +
+        '<div style="font-size:11px;color:#8B949E">' + (c.email||'') + (c.archivedAt ? ' · Archived ' + c.archivedAt : '') + '</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px">' +
+        '<button onclick="reactivateClient(\'' + c.id + '\')" style="padding:6px 14px;background:#2FD4F5;color:#0B0F12;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">Reactivate</button>' +
+        '<button onclick="permanentDeleteClient(\'' + c.id + '\')" style="padding:6px 10px;background:#26323A;color:#ef4444;border:1px solid #ef444433;border-radius:7px;font-size:12px;cursor:pointer">Delete</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function permanentDeleteClient(id) {
+  var cl = clients.find(function(c) { return c.id === id; });
+  if (!cl) return;
+  if (!confirm('Permanently delete ' + cl.first + ' ' + cl.last + '? This cannot be undone.')) return;
+  fetch(SUPA_URL + '/rest/v1/clients?id=eq.' + id, { method: 'DELETE', headers: supaHeaders() }).catch(function(){});
+  clients = clients.filter(function(c) { return c.id !== id; });
+  saveDB();
+  toast('Client permanently deleted', 'ok');
+  openArchiveModal();
 }
 
 </script>
