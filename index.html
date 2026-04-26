@@ -6931,7 +6931,8 @@ async function emailProgramToClient() {
   toast('Sending...', 'ok');
 
   try {
-    // Step 1: Store email job in Supabase library table (uses existing practitioner auth)
+    // Step 1: Store email job in Supabase library table
+    toast('Step 1: Storing...', 'ok');
     var exRows = (prog.exercises || []).map(function(ex, i) {
       var params = [];
       if (ex.sets) params.push(ex.sets + ' sets');
@@ -6967,7 +6968,8 @@ async function emailProgramToClient() {
       return;
     }
 
-    // Step 2: Trigger edge function with just the job ID (tiny URL, no CORS issue)
+    // Step 2: Trigger edge function
+    toast('Step 2: Triggering...', 'ok');
     var triggerUrl = SUPA_URL + '/functions/v1/send-email?job=' + jobId + '&apikey=' + encodeURIComponent(SUPA_KEY);
     var triggerResp = await fetch(triggerUrl);
     var result = await triggerResp.text();
