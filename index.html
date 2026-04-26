@@ -2432,10 +2432,30 @@ function setFreq(btn, f) {
 // LIBRARY
 // ══════════════════════════════════════
 function renderCatChips() {
-  const cats = ['All', ...new Set(getAllExercises().map(e => e.cat))];
-  document.getElementById('catChips').innerHTML = cats.map(c =>
-    `<div class="chip ${c===activeCat?'on':''}" onclick="setCat('${c.replace(/'/g,"\\'")}')">${c}</div>`
+  const CATS = ['All','Upper Limb','Lower Limb','Core','Cardio',
+    'Hydrotherapy','Falls and Balance','Home Exercise','Mobility',
+    'Pilates','Bone Health','Chronic Pain','Other'];
+  document.getElementById('catChips').innerHTML = CATS.map(c =>
+    `<div class="chip ${c===activeCat?'on':''}" onclick="setCat('${c.replace(/'/g,"\\'")}')"> ${c}</div>`
   ).join('');
+}
+
+function mapCat(cat) {
+  if (!cat) return 'Other';
+  var c = cat.toLowerCase();
+  if (c.includes('upper limb')||c.includes('shoulder')||c.includes('elbow')||c.includes('wrist')||c.includes('hand')||c.includes('cervical')) return 'Upper Limb';
+  if (c.includes('lower limb')) return 'Lower Limb';
+  if (c.includes('knee')||c.includes('ankle')||c.includes('hip r')||c.includes('foot')) return 'Lower Limb';
+  if (c.includes('core')||c.includes('lumbar')) return 'Core';
+  if (c.includes('cardio')||c.includes('cardiac')||c.includes('elliptical')||c.includes('plyom')||c.includes('metabolic')) return 'Cardio';
+  if (c.includes('hydro')) return 'Hydrotherapy';
+  if (c.includes('fall')||c.includes('balance')||c.includes('vestibular')) return 'Falls and Balance';
+  if (c.includes('home')) return 'Home Exercise';
+  if (c.includes('mobil')||c.includes('flexib')||c.includes('stretch')||c.includes('posture')) return 'Mobility';
+  if (c.includes('pilates')||c.includes('pelvic')||c.includes('lymph')) return 'Pilates';
+  if (c.includes('bone')||c.includes('osteo')) return 'Bone Health';
+  if (c.includes('chronic pain')||c.includes('neurodynam')||c.includes('pain')) return 'Chronic Pain';
+  return 'Other';
 }
 
 function setCat(c) { activeCat = c; renderCatChips(); filterLib(); }
@@ -3430,7 +3450,7 @@ function renderCV() {
     h += '<div class="cv-ex-thumb">' + getExIllusStr(ex) + '</div>';
     h += '<div style="flex:1;min-width:0"><div class="cv-ex-name">' + ex.name + (ex.substitutedFor ? ' <span style="font-size:9px;background:var(--ocean-pale);color:var(--ocean);padding:1px 5px;border-radius:10px;font-weight:600">sub</span>' : '') + '</div>';
     h += '<div class="cv-ex-params">' + sets + ' sets';
-    if (ex.reps) h += ' &times; ' + ex.reps;
+    if (ex.reps) h += ' &times; ' + String(ex.reps).replace(/ ?each ?/gi,'').replace(/ ?each side ?/gi,'');
     if (ex.load) h += ' &middot; ' + ex.load;
     if (ex.hold) h += ' &middot; ' + ex.hold + ' hold';
     h += (tickedSets > 0 ? ' <strong style="color:var(--teal)">' + tickedSets + '/' + sets + ' done</strong>' : '') + '</div>';
@@ -3480,7 +3500,7 @@ function renderCV() {
         const setDone = (st.sets && st.sets[s]) || false;
         const setReps = (st.setReps && st.setReps[s] != null) ? st.setReps[s] : (ex.lastReps || '');
         const setLoad = (st.setLoads && st.setLoads[s] != null) ? st.setLoads[s] : (ex.lastLoad || '');
-        const repsPlaceholder = ex.reps || '—';
+        const repsPlaceholder = (ex.reps || '—').toString().replace(/ ?each ?/gi,'').replace(/ ?each side ?/gi,'');
         const loadPlaceholder = ex.load || 'kg';
         // Previous session values
         var prevLoad = ex.lastLoad || '—';
@@ -4616,7 +4636,7 @@ function setMuscle(m) {
 function filterLib() {
   const q = document.getElementById('srch').value.toLowerCase();
   const list = getAllExercises().filter(ex => {
-    const catOk = activeCat === 'All' || ex.cat === activeCat;
+    const catOk = activeCat === 'All' || mapCat(ex.cat) === activeCat;
     const muscleOk = activeMuscle === 'All' || (ex.muscles||'').toLowerCase().includes(activeMuscle.toLowerCase());
     const searchOk = ex.name.toLowerCase().includes(q) || (ex.cat||'').toLowerCase().includes(q) || (ex.muscles||'').toLowerCase().includes(q);
     return catOk && muscleOk && searchOk;
@@ -4636,7 +4656,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add first visible exercise
         const list = getAllExercises().filter(ex => {
           const q = srch.value.toLowerCase();
-          const catOk = activeCat === 'All' || ex.cat === activeCat;
+          const catOk = activeCat === 'All' || mapCat(ex.cat) === activeCat;
           const muscleOk = activeMuscle === 'All' || (ex.muscles||'').toLowerCase().includes(activeMuscle.toLowerCase());
           const searchOk = ex.name.toLowerCase().includes(q) || (ex.cat||'').toLowerCase().includes(q);
           return catOk && muscleOk && searchOk;
