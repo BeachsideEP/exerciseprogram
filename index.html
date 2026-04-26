@@ -6958,12 +6958,17 @@ async function emailProgramToClient() {
   var url = SUPA_URL + '/functions/v1/cliniko-edge-function-ts?email=true&apikey=' + encodeURIComponent(SUPA_KEY) + '&auth=' + encodeURIComponent(authToken()) + '&d=' + encodeURIComponent(encoded);
 
   try {
-    var resp = await fetch(url);
-    if (resp.ok) {
+    var resp = await fetch(url, {
+      method: 'GET',
+      headers: { 'apikey': SUPA_KEY }
+    });
+    var txt = await resp.text();
+    if (resp.ok && txt.indexOf('"ok":true') > -1) {
       toast('✓ Program emailed to ' + cl.email, 'ok');
     } else {
-      var err = await resp.text();
-      toast('Email error: ' + err.slice(0, 80), 'err');
+      // Show full error for debugging
+      alert('Response ' + resp.status + ': ' + txt.slice(0, 200));
+      toast('Email failed — see popup for details', 'err');
     }
   } catch(e) {
     toast('Could not send: ' + e.message, 'err');
