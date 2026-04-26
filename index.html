@@ -6437,10 +6437,11 @@ function filterClientDropdown(q) {
   clientDDIndex = -1;
   q = (q || '').toLowerCase().trim();
 
-  var pool = q ? clients.filter(function(cl) {
+  var activeClients = clients.filter(function(cl) { return !cl.archived; });
+  var pool = q ? activeClients.filter(function(cl) {
     return (cl.first + ' ' + cl.last).toLowerCase().includes(q) ||
            (cl.email || '').toLowerCase().includes(q);
-  }) : clients.slice(0, 20);
+  }) : activeClients.slice(0, 20);
 
   if (!pool.length) {
     dd.innerHTML = '<div class="client-dd-empty">' + (q ? 'No clients found' : 'No clients yet') + '</div>';
