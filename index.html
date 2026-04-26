@@ -6955,7 +6955,7 @@ async function emailProgramToClient() {
   });
 
   var encoded = btoa(unescape(encodeURIComponent(payload)));
-  var url = SUPA_URL + '/functions/v1/cliniko-edge-function-ts?email=true&apikey=' + encodeURIComponent(SUPA_KEY) + '&auth=' + encodeURIComponent(authToken()) + '&d=' + encodeURIComponent(encoded);
+  var url = SUPA_URL + '/functions/v1/send-email?d=' + encodeURIComponent(encoded) + '&apikey=' + encodeURIComponent(SUPA_KEY);
 
   try {
     var resp = await fetch(url, {
