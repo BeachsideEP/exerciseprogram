@@ -6958,10 +6958,7 @@ async function emailProgramToClient() {
   var url = SUPA_URL + '/functions/v1/send-email?d=' + encodeURIComponent(encoded) + '&apikey=' + encodeURIComponent(SUPA_KEY);
 
   try {
-    var resp = await fetch(url, {
-      method: 'GET',
-      headers: { 'apikey': SUPA_KEY }
-    });
+    var resp = await fetch(url);
     var txt = await resp.text();
     if (resp.ok && txt.indexOf('"ok":true') > -1) {
       toast('✓ Program emailed to ' + cl.email, 'ok');
