@@ -3336,11 +3336,8 @@ function renderCV() {
 
   // ── Safety check panel (client-submitted) ──
   const lastSafety = (cvData.safetyLog || []).slice(-1)[0];
-  h += '<div class="cv-freq-badge" style="margin-bottom:10px">&#128197; ' + (prog.freq || '&mdash;') + '</div>';
-  h += '</div>';
 
-  // ── Streak / adherence ──
-    // Custom workout mode
+  // Custom workout mode
   if (cvCustomWorkout) {
     h += renderCVCustomWorkout();
     document.getElementById('cvBody').innerHTML = h;
@@ -3682,6 +3679,11 @@ function cvSavePreSession() {
     if (!cvHealthData.hr) cvHealthData.hr = [];
     cvHealthData.hr.push({ val: hr, date: today3 });
   }
+
+  // Save to localStorage so home screen health tiles update immediately
+  try {
+    localStorage.setItem('cv_health_' + cvData.id, JSON.stringify(cvHealthData));
+  } catch(e) {}
 
   cvSafetyDone = true;
   renderCV();
