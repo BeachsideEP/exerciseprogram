@@ -6933,6 +6933,7 @@ async function emailProgramToClient() {
   try {
     // Step 1: Store email job in Supabase library table
     toast('Step 1: Storing...', 'ok');
+    // Build plain exercise list - avoid complex HTML with quotes in JSON
     var exRows = (prog.exercises || []).map(function(ex, i) {
       var params = [];
       if (ex.sets) params.push(ex.sets + ' sets');
@@ -6940,10 +6941,9 @@ async function emailProgramToClient() {
       if (ex.hold) params.push('Hold ' + ex.hold + 's');
       if (ex.load) params.push(ex.load);
       if (ex.rest) params.push('Rest ' + ex.rest + 's');
-      return '<tr style="border-bottom:1px solid #eee"><td style="padding:8px;font-size:13px;font-weight:600">' + (i+1) + '. ' + ex.name + '</td>' +
-        '<td style="padding:8px;font-size:12px;color:#555">' + params.join(' · ') + '</td>' +
-        '<td style="padding:8px;font-size:11px;color:#888">' + (ex.notes||'') + '</td></tr>';
-    }).join('');
+      // Use | as delimiter - edge function will parse this
+      return [(i+1) + '. ' + ex.name, params.join(', '), ex.notes || ''].join('||');
+    }).join('\n');
 
     var jobId = 'email_' + Date.now();
     var jobData = {
