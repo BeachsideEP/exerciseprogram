@@ -1359,7 +1359,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 
     <!-- OUTCOME MEASURES -->
     <div class="om-panel" id="omPanel" style="display:none">
-      <div style="margin-bottom:8px"><button class="btn btn-ghost btn-sm" onclick="exportClientCSV()" style="width:100%">📥 Export Client CSV</button></div>
+      <div style="margin-bottom:8px"><button onclick="exportClientCSV()" style="width:100%;padding:8px;background:#E8DDD0;color:#1C2B35;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">📥 Export Client CSV</button></div>
   <div class="om-hdr"><span class="om-title" style="cursor:pointer" onclick="toggleOMPanel()">&#128202; Outcome Measures <span id="omCollapseIcon" style="font-size:10px;color:var(--text-l)">▲</span></span><div style="display:flex;gap:4px"><button class="btn btn-outline btn-xs" onclick="syncClients().then(renderOMPanel)" title="Pull latest from client app">&#8635; Sync</button><button class="btn btn-outline btn-xs" onclick="openM('omHistM')">&#128202; History</button></div></div>
       <div id="omRows"></div>
       <div class="om-add-row">
