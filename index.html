@@ -6928,128 +6928,67 @@ async function emailProgramToClient() {
 
   var confirmed = confirm('Send "' + (prog.title||'Exercise Program') + '" to ' + cl.first + ' ' + cl.last + ' at ' + cl.email + '?');
   if (!confirmed) return;
-
   toast('Sending...', 'ok');
 
-  // Build exercise list as plain text for email
-  var exList = (prog.exercises || []).map(function(ex, i) {
-    var params = [];
-    if (ex.sets) params.push(ex.sets + ' sets');
-    if (ex.reps) params.push(ex.reps + ' reps');
-    if (ex.hold) params.push('Hold ' + ex.hold + 's');
-    if (ex.load) params.push(ex.load);
-    if (ex.rest) params.push('Rest ' + ex.rest + 's');
-    var line = (i+1) + '. ' + ex.name;
-    if (params.length) line += ' — ' + params.join(', ');
-    if (ex.notes) line += ' (Notes: ' + ex.notes + ')';
-    return line;
-  }).join('\n');
-
-  // Send via Supabase anna edge function which already works
-  // Actually - use a mailto link as reliable fallback
-  var subject = encodeURIComponent('Your Exercise Program — ' + (prog.title || 'Beachside EP'));
-  var body = encodeURIComponent(
-    'Hi ' + cl.first + ',\n\n' +
-    'Here is your exercise program from Beachside Exercise Physiology.\n\n' +
-    '=== ' + (prog.title || 'Exercise Program') + ' ===\n' +
-    (prog.freq ? 'Frequency: ' + prog.freq + '\n' : '') +
-    (cl.clinician ? 'Clinician: ' + cl.clinician + '\n' : '') +
-    '\n' + exList + '\n\n' +
-    'View and log your program online:\nhttps://beachsideep.github.io/exerciseprogram\n\n' +
-    'Questions? Call us on 0409 051 260 or email admin@beachsideep.com.au\n\n' +
-    'Beachside Exercise Physiology\n4/270 Lower Dandenong Rd, Mordialloc VIC'
-  );
-
-  // Use location.href to trigger OS email client
-  var mailto = 'mailto:' + cl.email + '?subject=' + subject + '&body=' + body;
-  location.href = mailto;
-  toast('✓ Email draft opened — press Send in your email client', 'ok');
-}
-
-
-async function generatePDFBlob() {
-  // Use jsPDF to generate a simple program PDF
   try {
-    var cl = getClient();
-    var prog = getProg();
-    if (!cl || !prog) return null;
-
-    var doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
-    var y = 20;
-    var pageW = 210;
-    var margin = 15;
-    var col = margin;
-
-    // Header
-    doc.setFontSize(18);
-    doc.setTextColor(13, 61, 82);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Beachside Exercise Physiology', col, y);
-    y += 8;
-    doc.setFontSize(10);
-    doc.setTextColor(74, 96, 112);
-    doc.setFont('helvetica', 'normal');
-    doc.text('4/270 Lower Dandenong Rd, Mordialloc VIC  |  0409 051 260  |  beachsideep.com.au', col, y);
-    y += 10;
-
-    // Divider
-    doc.setDrawColor(200, 220, 230);
-    doc.setLineWidth(0.5);
-    doc.line(margin, y, pageW - margin, y);
-    y += 8;
-
-    // Client + Program info
-    doc.setFontSize(14);
-    doc.setTextColor(28, 43, 53);
-    doc.setFont('helvetica', 'bold');
-    doc.text(cl.first + ' ' + cl.last, col, y);
-    y += 6;
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'normal');
-    doc.text(prog.title || 'Exercise Program', col, y);
-    if (prog.freq) { y += 5; doc.text('Frequency: ' + prog.freq, col, y); }
-    y += 12;
-
-    // Exercises
-    (prog.exercises || []).forEach(function(ex, i) {
-      if (y > 265) { doc.addPage(); y = 20; }
-
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(13, 61, 82);
-      doc.text((i+1) + '. ' + ex.name, col, y);
-      y += 5;
-
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(74, 96, 112);
+    // Step 1: Store email job in Supabase library table (uses existing practitioner auth)
+    var exRows = (prog.exercises || []).map(function(ex, i) {
       var params = [];
       if (ex.sets) params.push(ex.sets + ' sets');
       if (ex.reps) params.push(ex.reps + ' reps');
       if (ex.hold) params.push('Hold ' + ex.hold + 's');
       if (ex.load) params.push(ex.load);
       if (ex.rest) params.push('Rest ' + ex.rest + 's');
-      if (params.length) { doc.text(params.join('  ·  '), col, y); y += 5; }
-      if (ex.notes) {
-        var noteLines = doc.splitTextToSize('Notes: ' + ex.notes, pageW - margin*2);
-        noteLines.forEach(function(line) { doc.text(line, col, y); y += 4; });
-      }
-      y += 4;
+      return '<tr style="border-bottom:1px solid #eee"><td style="padding:8px;font-size:13px;font-weight:600">' + (i+1) + '. ' + ex.name + '</td>' +
+        '<td style="padding:8px;font-size:12px;color:#555">' + params.join(' · ') + '</td>' +
+        '<td style="padding:8px;font-size:11px;color:#888">' + (ex.notes||'') + '</td></tr>';
+    }).join('');
+
+    var jobId = 'email_' + Date.now();
+    var jobData = {
+      to: cl.email,
+      clientName: cl.first + ' ' + cl.last,
+      progTitle: prog.title || 'Exercise Program',
+      freq: prog.freq || '',
+      clinician: cl.clinician || '',
+      exHtml: exRows
+    };
+
+    // Store job in library table
+    var storeResp = await fetch(SUPA_URL + '/rest/v1/library', {
+      method: 'POST',
+      headers: supaHeaders(),
+      body: JSON.stringify({ id: jobId, data: jobData, updated_at: new Date().toISOString() })
     });
 
-    // Footer
-    if (y > 260) { doc.addPage(); y = 20; }
-    y = Math.max(y + 10, 275);
-    doc.setFontSize(8);
-    doc.setTextColor(122, 149, 165);
-    doc.text('Generated ' + new Date().toLocaleDateString('en-AU') + '  |  Beachside Exercise Physiology', margin, y);
+    if (!storeResp.ok) {
+      var err = await storeResp.text();
+      toast('Store failed: ' + err.slice(0,60), 'err');
+      return;
+    }
 
-    return doc.output('blob');
+    // Step 2: Trigger edge function with just the job ID (tiny URL, no CORS issue)
+    var triggerUrl = SUPA_URL + '/functions/v1/send-email?job=' + jobId + '&apikey=' + encodeURIComponent(SUPA_KEY);
+    var triggerResp = await fetch(triggerUrl);
+    var result = await triggerResp.text();
+
+    // Step 3: Clean up job from library table
+    fetch(SUPA_URL + '/rest/v1/library?id=eq.' + jobId, {
+      method: 'DELETE',
+      headers: supaHeaders()
+    }).catch(function(){});
+
+    if (triggerResp.ok && result.indexOf('"ok":true') > -1) {
+      toast('Program emailed to ' + cl.email, 'ok');
+    } else {
+      alert('Email error: ' + result.slice(0, 200));
+    }
   } catch(e) {
-    console.error('PDF gen error:', e);
-    return null;
+    toast('Error: ' + e.message, 'err');
   }
 }
+
+
 
 function filterClients() { showClientDropdown(); }
 </script>
