@@ -1105,6 +1105,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 #viewClient .cv-body { position:relative; }
 #viewClient .cv-home-content { position:relative;z-index:1; }
 
+.comp-row:hover { background: #12181D !important; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -1409,12 +1410,15 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 
 <!-- COMPLIANCE MODAL -->
 <div class="overlay" id="complianceM" onclick="closeBg(event,'complianceM')">
-  <div class="modal" style="max-width:700px;width:95%">
-    <div class="modal-title">📊 Session Compliance</div>
-    <div id="complianceContent" style="max-height:70vh;overflow-y:auto"></div>
-    <div class="modal-actions" style="margin-top:12px">
-      <button class="btn btn-ghost btn-sm" onclick="closeM('complianceM')">Close</button>
+  <div class="modal" style="max-width:760px;width:96%;background:#0D1A24;border:1px solid #1F2A33;border-radius:16px;padding:0;overflow:hidden">
+    <div style="background:#0B1820;padding:18px 22px;border-bottom:1px solid #1F2A33;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:17px;font-weight:700;color:#FFFFFF">📊 Session Compliance</div>
+        <div style="font-size:11px;color:#8B949E;margin-top:2px">Client activity — last 30 days</div>
+      </div>
+      <button onclick="closeM('complianceM')" style="background:none;border:none;color:#8B949E;font-size:20px;cursor:pointer;padding:4px 8px;border-radius:6px">✕</button>
     </div>
+    <div id="complianceContent" style="max-height:75vh;overflow-y:auto;padding:16px"></div>
   </div>
 </div>
 
@@ -7235,6 +7239,14 @@ function doDuplicate(targetId) {
 function openComplianceModal() {
   openM('complianceM');
   renderComplianceTab();
+  // Event delegation for row clicks
+  var content = document.getElementById('complianceContent');
+  if (content) {
+    content.onclick = function(e) {
+      var row = e.target.closest('.comp-row');
+      if (row && row.dataset.cid) selectClientById(row.dataset.cid);
+    };
+  }
 }
 
 function renderComplianceTab() {
@@ -7288,40 +7300,42 @@ function renderComplianceTab() {
   var counts = { active: 0, 'at-risk': 0, inactive: 0, never: 0 };
   rows.forEach(function(r) { counts[r.status]++; });
 
-  var html = '<div style="padding:16px">' +
-    '<div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">📊 Session Compliance</div>' +
-    '<div style="font-size:12px;color:var(--text-light);margin-bottom:16px">Client activity over the past 30 days</div>' +
-
     // Summary cards
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:20px">' +
-    Object.keys(counts).map(function(s) {
-      return '<div style="background:var(--cv-card,#12181D);border-radius:10px;padding:10px;text-align:center">' +
-        '<div style="font-size:22px;font-weight:800;color:' + statusColors[s] + '">' + counts[s] + '</div>' +
-        '<div style="font-size:10px;color:var(--text-light);margin-top:2px">' + statusLabels[s] + '</div>' +
-        '</div>';
-    }).join('') +
-    '</div>' +
+  var summaryCards = Object.keys(counts).map(function(s) {
+    return '<div style="background:#12181D;border-radius:10px;padding:14px 10px;text-align:center;border:1px solid #1F2A33">' +
+      '<div style="font-size:28px;font-weight:800;color:' + statusColors[s] + ';line-height:1">' + counts[s] + '</div>' +
+      '<div style="font-size:10px;font-weight:600;color:#8B949E;margin-top:4px;text-transform:uppercase;letter-spacing:.05em">' + statusLabels[s] + '</div>' +
+      '</div>';
+  }).join('');
 
-    // Client table
-    '<div style="background:var(--card);border-radius:12px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.08)">' +
-    '<div style="display:grid;grid-template-columns:1fr 80px 80px 80px 90px;gap:0;background:var(--ocean-deep);padding:10px 14px">' +
-    '<div style="font-size:11px;font-weight:700;color:#fff">Client</div>' +
-    '<div style="font-size:11px;font-weight:700;color:#fff;text-align:center">Last Session</div>' +
-    '<div style="font-size:11px;font-weight:700;color:#fff;text-align:center">Total</div>' +
-    '<div style="font-size:11px;font-weight:700;color:#fff;text-align:center">Last 30d</div>' +
-    '<div style="font-size:11px;font-weight:700;color:#fff;text-align:center">Status</div>' +
-    '</div>' +
-    rows.map(function(r) {
-      var daysText = r.daysSince === null ? '—' : r.daysSince === 0 ? 'Today' : r.daysSince === 1 ? 'Yesterday' : r.daysSince + 'd ago';
-      return '<div style="display:grid;grid-template-columns:1fr 80px 80px 80px 90px;gap:0;padding:10px 14px;border-bottom:1px solid var(--sand-dark);cursor:pointer" onclick="selectClientById(\'' + r.cl.id + '\')">' +
-        '<div style="font-size:13px;font-weight:600;color:var(--text)">' + r.cl.first + ' ' + r.cl.last + '</div>' +
-        '<div style="font-size:12px;color:var(--text-light);text-align:center">' + daysText + '</div>' +
-        '<div style="font-size:12px;color:var(--text-light);text-align:center">' + r.totalSessions + '</div>' +
-        '<div style="font-size:12px;color:var(--text-light);text-align:center">' + r.last30 + '</div>' +
-        '<div style="text-align:center"><span style="font-size:10px;font-weight:700;color:' + statusColors[r.status] + ';background:' + statusColors[r.status] + '22;padding:3px 8px;border-radius:20px">' + statusLabels[r.status] + '</span></div>' +
-        '</div>';
-    }).join('') +
-    '</div></div>';
+  var clientRows = rows.map(function(r) {
+    var daysText = r.daysSince === null ? '—' : r.daysSince === 0 ? 'Today' : r.daysSince === 1 ? 'Yesterday' : r.daysSince + 'd ago';
+    var daysColor = r.daysSince === null ? '#8B949E' : r.daysSince <= 1 ? '#2FD4F5' : r.daysSince <= 7 ? '#5BBFAA' : r.daysSince <= 21 ? '#f59e0b' : '#ef4444';
+    var pct = Math.min(100, Math.round(r.last30 / 12 * 100));
+    var rowStyle = 'display:grid;grid-template-columns:1.6fr 100px 60px 140px 100px;align-items:center;padding:13px 16px;border-bottom:1px solid #1F2A33;cursor:pointer';
+    return '<div data-cid="' + r.cl.id + '" class="comp-row" style="' + rowStyle + '">' +
+      '<div><div style="font-size:14px;font-weight:600;color:#FFFFFF">' + r.cl.first + ' ' + r.cl.last + '</div>' +
+      (r.cl.clinician ? '<div style="font-size:11px;color:#8B949E">' + r.cl.clinician + '</div>' : '') + '</div>' +
+      '<div style="font-size:13px;font-weight:600;color:' + daysColor + ';text-align:center">' + daysText + '</div>' +
+      '<div style="font-size:13px;color:#C9D1D9;text-align:center">' + r.totalSessions + '</div>' +
+      '<div style="padding:0 8px;display:flex;align-items:center;gap:6px">' +
+        '<div style="flex:1;height:6px;background:#1F2A33;border-radius:3px;overflow:hidden"><div style="width:' + pct + '%;height:100%;background:' + statusColors[r.status] + ';border-radius:3px"></div></div>' +
+        '<div style="font-size:12px;color:#C9D1D9;min-width:18px;text-align:right">' + r.last30 + '</div>' +
+      '</div>' +
+      '<div style="text-align:center"><span style="font-size:11px;font-weight:700;color:' + statusColors[r.status] + ';background:' + statusColors[r.status] + '20;padding:4px 10px;border-radius:20px;border:1px solid ' + statusColors[r.status] + '44">' + statusLabels[r.status] + '</span></div>' +
+    '</div>';
+  }).join('');
+
+  var html =
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:18px">' + summaryCards + '</div>' +
+    '<div style="background:#0B1820;border-radius:10px;overflow:hidden;border:1px solid #1F2A33">' +
+    '<div style="display:grid;grid-template-columns:1.6fr 100px 60px 140px 100px;padding:10px 16px;border-bottom:1px solid #1F2A33;background:#0D1A24">' +
+    '<div style="font-size:10px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.07em">Client</div>' +
+    '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center;text-transform:uppercase;letter-spacing:.07em">Last Session</div>' +
+    '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center;text-transform:uppercase;letter-spacing:.07em">Total</div>' +
+    '<div style="font-size:10px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.07em;padding:0 8px">Last 30 Days</div>' +
+    '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center;text-transform:uppercase;letter-spacing:.07em">Status</div>' +
+    '</div>' + clientRows + '</div>';
 
   el.innerHTML = html;
 }
@@ -7342,50 +7356,102 @@ function exportClientCSV() {
   var cl = getClient();
   if (!cl) { toast('Select a client first', 'err'); return; }
 
-  var rows = [['Date','Program','Exercise','Sets','Reps','Load','Notes','Feeling']];
+  function escCSV(v) {
+    var s = String(v || '');
+    s = s.replace(/"/g, '""');
+    return (s.includes(',') || s.includes('"') || s.includes('\n')) ? '"' + s + '"' : s;
+  }
+  function csvRow(arr) { return arr.map(escCSV).join(','); }
+
+  var lines = [];
+
+  // ── Client Info ──
+  lines.push('BEACHSIDE EXERCISE PHYSIOLOGY — CLIENT EXPORT');
+  lines.push('Generated,' + new Date().toLocaleDateString('en-AU'));
+  lines.push('');
+  lines.push('CLIENT DETAILS');
+  lines.push(csvRow(['Name', cl.first + ' ' + cl.last]));
+  lines.push(csvRow(['Email', cl.email || '']));
+  lines.push(csvRow(['DOB', cl.dob || '']));
+  lines.push(csvRow(['Clinician', cl.clinician || '']));
+  lines.push(csvRow(['Goal', cl.goal || '']));
+  lines.push('');
+
+  // ── Session Log ──
+  lines.push('SESSION LOG');
+  lines.push(csvRow(['Date','Time','Program','Feeling','Exercise','Sets','Reps','Load (kg)','Hold (s)','Rest (s)','Notes']));
 
   (cl.programs || []).forEach(function(prog) {
     (prog.log || []).forEach(function(entry) {
       if (!entry.clientSubmitted) return;
-      var date = (entry.date || '').split(',')[0];
+      var dateFull = entry.date || '';
+      var datePart = dateFull.split(',')[0].trim();
+      var timePart = dateFull.includes(',') ? dateFull.split(',')[1].trim() : '';
       var feeling = '';
-      var lines = (entry.text || '').split('|');
-      lines.forEach(function(line) {
+      var exercises = [];
+      var rawLines = (entry.text || '').split('|');
+      rawLines.forEach(function(line) {
         line = line.trim();
+        if (!line) return;
         if (line.startsWith('Feeling:')) { feeling = line.replace('Feeling:','').trim(); return; }
-        // Parse exercise lines: "Exercise Name [X sets: Y reps @ Zkg]"
+        if (line.startsWith('Own workout:')) return;
         var exMatch = line.match(/^(.+?)\s*\[(.+?)\]$/);
         if (exMatch) {
           var exName = exMatch[1].trim();
           var params = exMatch[2];
           var sets = (params.match(/(\d+)\s*sets?/i)||[])[1]||'';
-          var reps = (params.match(/(\d+(?:-\d+)?)\s*reps?/i)||[])[1]||'';
-          var load = (params.match(/[\d.]+\s*kg/i)||[])[0]||'';
-          rows.push([date, prog.title||'', exName, sets, reps, load, '', feeling]);
+          var reps = (params.match(/(\d+(?:[-–]\d+)?)\s*reps?/i)||[])[1]||'';
+          var load = (params.match(/([\d.]+)\s*kg/i)||[])[1]||'';
+          var hold = (params.match(/hold\s*(\d+)/i)||[])[1]||'';
+          var rest = (params.match(/rest\s*(\d+)/i)||[])[1]||'';
+          exercises.push([datePart, timePart, prog.title||'', feeling, exName, sets, reps, load, hold, rest, '']);
         }
       });
+      if (exercises.length) {
+        exercises.forEach(function(ex) { lines.push(csvRow(ex)); });
+      } else {
+        lines.push(csvRow([datePart, timePart, prog.title||'', feeling, '(session logged)', '', '', '', '', '', entry.text||'']));
+      }
     });
   });
+  lines.push('');
 
-  // Health data
-  var healthKeys = { weight:'Weight (kg)', bp:'Blood Pressure', bg:'Blood Glucose (mmol/L)', hr:'Heart Rate (bpm)', sleep:'Sleep (hrs)' };
-  var healthRows = [['','','','','','','',''],['Date','Metric','Value','','','','','']];
+  // ── Health Tracking ──
+  lines.push('HEALTH TRACKING');
+  lines.push(csvRow(['Date','Time','Metric','Value','Unit']));
+  var healthKeys = {
+    weight: { label:'Weight', unit:'kg' },
+    bp:     { label:'Blood Pressure', unit:'mmHg' },
+    bg:     { label:'Blood Glucose', unit:'mmol/L' },
+    hr:     { label:'Heart Rate', unit:'bpm' },
+    sleep:  { label:'Sleep', unit:'hrs' }
+  };
   try {
     var health = JSON.parse(localStorage.getItem('cv_health_' + cl.id) || '{}');
+    var healthRows2 = [];
     Object.keys(healthKeys).forEach(function(key) {
       (health[key] || []).forEach(function(e) {
-        healthRows.push([(e.date||'').split(',')[0], healthKeys[key], e.val, '', '', '', '', '']);
+        var df = (e.date || '').split(',');
+        healthRows2.push({ date: df[0].trim(), time: df[1]?df[1].trim():'', label: healthKeys[key].label, val: e.val, unit: healthKeys[key].unit, _d: e.date });
       });
+    });
+    // Sort by date
+    healthRows2.sort(function(a,b) { return (a._d||'') < (b._d||'') ? -1 : 1; });
+    healthRows2.forEach(function(r) {
+      lines.push(csvRow([r.date, r.time, r.label, r.val, r.unit]));
     });
   } catch(e) {}
 
-  var allRows = rows.concat(healthRows);
-  var csv = allRows.map(function(r) {
-    return r.map(function(cell) {
-      var s = String(cell || '').replace(/"/g, '""');
-      return s.includes(',') || s.includes('"') ? '"' + s + '"' : s;
-    }).join(',');
-  }).join('\n');
+  // ── Safety Checks ──
+  lines.push('');
+  lines.push('PRE-SESSION SAFETY CHECKS');
+  lines.push(csvRow(['Date','Time','Blood Pressure','Blood Glucose','Pain (VAS)','Heart Rate','Cleared']));
+  (cl.safetyLog || []).forEach(function(s) {
+    var df = (s.date || '').split(',');
+    lines.push(csvRow([df[0]?df[0].trim():'', df[1]?df[1].trim():'', s.bp||'', s.bgl||'', s.vas||'', s.hr||'', s.cleared?'Yes':'No']));
+  });
+
+  var csv = lines.join('\n');
 
   var blob = new Blob([csv], { type: 'text/csv' });
   var url = URL.createObjectURL(blob);
