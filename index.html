@@ -3452,7 +3452,7 @@ function renderCV() {
     h += '<div class="cv-ex-params">' + sets + ' sets';
     if (ex.reps) h += ' &times; ' + String(ex.reps).replace(/ ?each ?/gi,'').replace(/ ?each side ?/gi,'');
     if (ex.load) h += ' &middot; ' + ex.load;
-    if (ex.hold) h += ' &middot; ' + ex.hold + ' hold';
+    if (ex.hold) h += ' &middot; ' + String(ex.hold).replace(/ ?each ?side ?/gi,'').replace(/ ?each ?/gi,'') + ' hold';
     h += (tickedSets > 0 ? ' <strong style="color:var(--teal)">' + tickedSets + '/' + sets + ' done</strong>' : '') + '</div>';
     h += '</div>';
     h += '<div class="cv-chevron">' + (isOpen ? '&#9650;' : '&#9660;') + '</div>';
@@ -3504,7 +3504,7 @@ function renderCV() {
         const loadPlaceholder = ex.load || 'kg';
         // Previous session values
         var prevLoad = ex.lastLoad || '—';
-        var prevReps = ex.lastReps || ex.reps || '—';
+        var prevReps = String(ex.lastReps || ex.reps || '—').replace(/ ?each ?side ?/gi,'').replace(/ ?each ?/gi,'');
         var prevText = prevLoad !== '—' ? prevLoad + ' kg × ' + prevReps : (prevReps !== '—' ? prevReps + ' reps' : '—');
         h += '<div style="display:grid;grid-template-columns:36px 1fr 90px 80px 44px;gap:4px;align-items:center;padding:3px 4px;border-radius:8px;background:' + (setDone ? 'rgba(47,212,245,.08)' : 'transparent') + '">';
         // Set number badge
@@ -3525,9 +3525,20 @@ function renderCV() {
 
       // Rest Timer + Add/Remove Set buttons
       var defaultRest = parseInt(ex.rest) || 60;
+      var rtId = 'rt_' + i;
+      var rtState = window._rtStates && window._rtStates[rtId];
       h += '<div style="display:flex;gap:8px;margin-top:10px;align-items:center">';
-      // Rest timer button
-      h += '<button onclick="cvShowRestTimer(' + i + ',' + defaultRest + ')" style="flex:1;padding:10px;background:#1F2A33;border:1.5px solid #2FD4F5;border-radius:10px;color:#2FD4F5;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><span style="font-size:16px">⏱</span> Rest Timer (' + defaultRest + 's)</button>';
+      if (rtState && rtState.running) {
+        // Show countdown inside the button area
+        var rtColor = rtState.remaining <= 5 ? '#f59e0b' : '#2FD4F5';
+        var rtLabel = rtState.remaining <= 0 ? '✓ Done!' : '⏱ ' + rtState.remaining + 's';
+        h += '<div id="' + rtId + '_btn" style="flex:1;padding:10px;background:#1F2A33;border:1.5px solid ' + rtColor + ';border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:8px">';
+        h += '<span style="font-size:15px;font-weight:800;color:' + rtColor + '">' + rtLabel + '</span>';
+        h += '<button onclick="cvRestStop(\'' + rtId + '\')" style="padding:6px 12px;background:' + rtColor + ';color:#0B0F12;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">Skip</button>';
+        h += '</div>';
+      } else {
+        h += '<button onclick="cvRestStart(\'' + rtId + '\',' + i + ',' + defaultRest + ')" id="' + rtId + '_btn" style="flex:1;padding:10px;background:#1F2A33;border:1.5px solid #2FD4F5;border-radius:10px;color:#2FD4F5;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><span style="font-size:16px">⏱</span> Rest Timer (' + defaultRest + 's)</button>';
+      }
       // Add/remove set
       h += '<button onclick="cvAdjSets(' + i + ',-1)" style="width:36px;height:36px;background:#1F2A33;border:1.5px solid #26323A;border-radius:8px;color:#8B949E;font-size:18px;font-weight:700;cursor:pointer;line-height:1">-</button>';
       h += '<button onclick="cvAdjSets(' + i + ',1)" style="width:36px;height:36px;background:#1F2A33;border:1.5px solid #26323A;border-radius:8px;color:#8B949E;font-size:18px;font-weight:700;cursor:pointer;line-height:1">+</button>';
@@ -5065,39 +5076,6 @@ function cvDoSub(idx, newExId) {
 // REST TIMER
 // ══════════════════════════════════════
 var cvRestState = {}; // timerId -> {running, remaining, interval}
-
-function cvRestStart(timerId) {
-  var inp = document.getElementById(timerId + '_inp');
-  var secs = inp ? (parseInt(inp.value) || 60) : 60;
-  if (cvRestState[timerId] && cvRestState[timerId].interval) {
-    clearInterval(cvRestState[timerId].interval);
-  }
-  cvRestState[timerId] = { running: true, remaining: secs };
-  renderCV();
-  // Tick every second using the display span directly (no full re-render)
-  cvRestState[timerId].interval = setInterval(function() {
-    cvRestState[timerId].remaining--;
-    var disp = document.getElementById(timerId + '_disp');
-    if (disp) {
-      if (cvRestState[timerId].remaining <= 0) {
-        clearInterval(cvRestState[timerId].interval);
-        cvRestState[timerId].remaining = 0;
-        disp.textContent = '✓ Done!';
-        disp.classList.add('done');
-        cvRestBeep();
-      } else {
-        disp.textContent = cvRestState[timerId].remaining + 's';
-        // Flash red at 3 seconds
-        if (cvRestState[timerId].remaining <= 3) {
-          disp.style.color = '#ef4444';
-        }
-      }
-    } else {
-      // Element gone (re-render happened), stop
-      clearInterval(cvRestState[timerId].interval);
-    }
-  }, 1000);
-}
 
 function cvRestSkip(timerId) {
   if (cvRestState[timerId] && cvRestState[timerId].interval) {
@@ -7475,61 +7453,54 @@ function exportClientCSV() {
 
 
 // ════════════════════════════════════════════════════
-// REST TIMER OVERLAY
+// REST TIMER - inline in exercise card
 // ════════════════════════════════════════════════════
-var _restTimerInterval = null;
-var _restTimerEl = null;
+window._rtStates = {};
+var _rtIntervals = {};
 
-function cvShowRestTimer(exIdx, seconds) {
-  // Remove existing timer if any
-  if (_restTimerEl) _restTimerEl.remove();
-  clearInterval(_restTimerInterval);
+function cvRestStart(rtId, exIdx, seconds) {
+  // Stop any existing timer for this exercise
+  cvRestStop(rtId);
 
-  var remaining = seconds;
-  var overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#12181D;border:2px solid #2FD4F5;border-radius:16px;padding:16px 24px;z-index:500;display:flex;align-items:center;gap:16px;box-shadow:0 8px 32px rgba(0,0,0,.5);min-width:260px';
-  overlay.innerHTML =
-    '<div style="text-align:center">' +
-      '<div style="font-size:11px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">⏱ Rest Timer</div>' +
-      '<div id="restTimerCount" style="font-size:44px;font-weight:800;color:#2FD4F5;line-height:1;font-family:monospace">' + seconds + '</div>' +
-    '</div>' +
-    '<div style="display:flex;flex-direction:column;gap:8px">' +
-      '<button onclick="cvRestTimerSkip()" style="padding:8px 16px;background:#2FD4F5;color:#0B0F12;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Skip</button>' +
-      '<button onclick="cvRestTimerClose()" style="padding:8px 16px;background:#26323A;color:#8B949E;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Close</button>' +
-    '</div>';
-  document.body.appendChild(overlay);
-  _restTimerEl = overlay;
+  if (!window._rtStates) window._rtStates = {};
+  window._rtStates[rtId] = { running: true, remaining: seconds };
 
-  // Haptic feedback if available
-  if (navigator.vibrate) navigator.vibrate(50);
+  if (navigator.vibrate) navigator.vibrate(40);
 
-  _restTimerInterval = setInterval(function() {
-    remaining--;
-    var countEl = document.getElementById('restTimerCount');
-    if (countEl) {
-      countEl.textContent = remaining;
-      if (remaining <= 5) countEl.style.color = '#f59e0b';
-      if (remaining <= 0) {
-        countEl.textContent = '✓';
-        countEl.style.color = '#5BBFAA';
-        clearInterval(_restTimerInterval);
-        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-        setTimeout(cvRestTimerClose, 1500);
-      }
-    } else {
-      clearInterval(_restTimerInterval);
+  _rtIntervals[rtId] = setInterval(function() {
+    if (!window._rtStates[rtId]) { clearInterval(_rtIntervals[rtId]); return; }
+    window._rtStates[rtId].remaining--;
+    var remaining = window._rtStates[rtId].remaining;
+
+    // Update the display inline (avoid full re-render for performance)
+    var btn = document.getElementById(rtId + '_btn');
+    if (btn) {
+      var rtColor = remaining <= 5 ? '#f59e0b' : '#2FD4F5';
+      var rtLabel = remaining <= 0 ? '✓ Done!' : '⏱ ' + remaining + 's';
+      btn.style.borderColor = rtColor;
+      var span = btn.querySelector('span');
+      if (span) { span.textContent = rtLabel; span.style.color = rtColor; }
+      var skipBtn = btn.querySelector('button');
+      if (skipBtn) skipBtn.style.background = rtColor;
+    }
+
+    if (remaining <= 0) {
+      clearInterval(_rtIntervals[rtId]);
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+      // Auto-clear after 2s
+      setTimeout(function() {
+        cvRestStop(rtId);
+        renderCV();
+      }, 2000);
     }
   }, 1000);
+
+  renderCV(); // re-render to show countdown state
 }
 
-function cvRestTimerSkip() {
-  clearInterval(_restTimerInterval);
-  cvRestTimerClose();
-}
-
-function cvRestTimerClose() {
-  clearInterval(_restTimerInterval);
-  if (_restTimerEl) { _restTimerEl.remove(); _restTimerEl = null; }
+function cvRestStop(rtId) {
+  clearInterval(_rtIntervals[rtId]);
+  if (window._rtStates) delete window._rtStates[rtId];
 }
 
 // Adjust sets for an exercise (+1 or -1)
