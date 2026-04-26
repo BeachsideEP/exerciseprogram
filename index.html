@@ -6960,9 +6960,9 @@ async function emailProgramToClient() {
     'Beachside Exercise Physiology\n4/270 Lower Dandenong Rd, Mordialloc VIC'
   );
 
-  // Open mailto link - opens practitioner email client with pre-filled email
+  // Use location.href to trigger OS email client
   var mailto = 'mailto:' + cl.email + '?subject=' + subject + '&body=' + body;
-  window.open(mailto);
+  location.href = mailto;
   toast('✓ Email draft opened — press Send in your email client', 'ok');
 }
 
