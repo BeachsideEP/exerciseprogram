@@ -3419,10 +3419,10 @@ function renderCV() {
     const setStates = st.sets || [];
     const tickedSets = setStates.filter(Boolean).length;
     const allDone = tickedSets >= sets;
-    const isOpen = !!st.open || allDone;
+    const isOpen = true; // always open
 
     h += '<div class="cv-ex-card' + (allDone ? ' done' : '') + '">';
-    h += '<div class="cv-ex-hdr" onclick="cvToggle(' + i + ')">';
+    h += '<div class="cv-ex-hdr">';
     // Overall done indicator (auto-set when all sets ticked)
     h += '<div class="cv-check' + (allDone ? ' on' : '') + '">';
     if (allDone) h += '<svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" width="12" height="12"><polyline points="2,6 5,9 10,3"/></svg>';
@@ -3467,48 +3467,51 @@ function renderCV() {
       if (ex.progression) h += '<div style="font-size:10px;color:var(--teal);margin-bottom:10px">&#8593; Goal: ' + ex.progression + '</div>';
 
       // Per-set table rendered inside st.open block below
-      h += '<div style="font-size:10px;color:var(--text-light);margin-bottom:6px;text-align:center">Fill in what you did, then tap &#10003; to mark each set complete</div>';
-      h += '<table class="cv-set-table"><thead><tr><th>Set</th><th>Reps done</th><th>Weight used</th><th>&#10003; Done</th></tr></thead><tbody>';
+      // Set table header
+      h += '<div style="margin:0 -4px">';
+      h += '<div style="display:grid;grid-template-columns:36px 1fr 90px 80px 44px;gap:4px;padding:4px 4px 2px;margin-bottom:2px">';
+      h += '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">Set</div>';
+      h += '<div style="font-size:10px;font-weight:700;color:#8B949E">Previous</div>';
+      h += '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">Weight</div>';
+      h += '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">Reps</div>';
+      h += '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">✓</div>';
+      h += '</div>';
       for (let s = 0; s < sessionSets; s++) {
         const setDone = (st.sets && st.sets[s]) || false;
         const setReps = (st.setReps && st.setReps[s] != null) ? st.setReps[s] : (ex.lastReps || '');
         const setLoad = (st.setLoads && st.setLoads[s] != null) ? st.setLoads[s] : (ex.lastLoad || '');
         const repsPlaceholder = ex.reps || '—';
         const loadPlaceholder = ex.load || 'kg';
-        h += '<tr style="' + (setDone ? 'background:#f7fffc' : '') + '">';
-        h += '<td class="cv-set-num">' + (s+1) + '</td>';
-        h += '<td><input class="cv-set-inp" type="text" inputmode="numeric" pattern="[0-9]*" inputmode="numeric" pattern="[0-9]*" placeholder="' + repsPlaceholder + '" value="' + setReps + '" oninput="cvSetRow(' + i + ',' + s + ',\'reps\',this.value)"></td>';
-        h += '<td><input class="cv-set-inp" type="text" inputmode="decimal" placeholder="' + loadPlaceholder + '" value="' + setLoad + '" oninput="cvSetRow(' + i + ',' + s + ',\'load\',this.value)"></td>';
-        h += '<td class="cv-set-tick"><div class="cv-set-tickbox' + (setDone ? ' on' : '') + '" onclick="cvTickSet(' + i + ',' + s + ')">';
-        if (setDone) h += '<svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" width="12" height="12"><polyline points="2,6 5,9 10,3"/></svg>';
-        h += '</div></td>';
-        h += '</tr>';
-        if (setDone) {
-          var defaultRest = parseInt(ex.rest) || 60;
-          var timerId = 'cvRest_' + i + '_' + s;
-          var timerState = cvRestState[timerId] || {};
-          h += '<tr><td colspan="4" style="padding:2px 0">';
-          if (timerState.running) {
-            var doneClass = timerState.remaining === 0 ? ' done' : '';
-            var dispTxt = timerState.remaining === 0 ? '&#10003; Done!' : timerState.remaining + 's';
-            var btnTxt = timerState.remaining === 0 ? 'Clear' : 'Skip';
-            h += '<div class="cv-rest-row">';
-            h += '<span class="cv-rest-label">&#9201; Rest</span>';
-            h += '<span class="cv-rest-countdown' + doneClass + '" id="' + timerId + '_disp">' + dispTxt + '</span>';
-            h += '<button class="cv-rest-btn" onclick="cvRestSkip(&quot;' + timerId + '&quot;)">' + btnTxt + '</button>';
-            h += '</div>';
-          } else {
-            h += '<div class="cv-rest-row">';
-            h += '<span class="cv-rest-label">Rest</span>';
-            h += '<input class="cv-set-inp" type="number" min="10" max="300" value="' + defaultRest + '" style="width:54px;text-align:center;padding:4px 6px" id="' + timerId + '_inp">';
-            h += '<span style="font-size:11px;color:var(--text-light)">sec</span>';
-            h += '<button class="cv-rest-btn" onclick="cvRestStart(&quot;' + timerId + '&quot;)">&#9201; Start Rest</button>';
-            h += '</div>';
-          }
-          h += '</td></tr>';
-        }
+        // Previous session values
+        var prevLoad = ex.lastLoad || '—';
+        var prevReps = ex.lastReps || ex.reps || '—';
+        var prevText = prevLoad !== '—' ? prevLoad + ' kg × ' + prevReps : (prevReps !== '—' ? prevReps + ' reps' : '—');
+        h += '<div style="display:grid;grid-template-columns:36px 1fr 90px 80px 44px;gap:4px;align-items:center;padding:3px 4px;border-radius:8px;background:' + (setDone ? 'rgba(47,212,245,.08)' : 'transparent') + '">';
+        // Set number badge
+        h += '<div style="width:28px;height:28px;border-radius:8px;background:#1F2A33;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#C9D1D9;margin:0 auto">' + (s+1) + '</div>';
+        // Previous
+        h += '<div style="font-size:12px;color:#8B949E">' + prevText + '</div>';
+        // Weight input
+        h += '<input style="background:#1F2A33;border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="decimal" placeholder="' + loadPlaceholder + '" value="' + setLoad + '" oninput="cvSetRow(' + i + ',' + s + ',\'load\',this.value)">';
+        // Reps input
+        h += '<input style="background:#1F2A33;border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="' + repsPlaceholder + '" value="' + setReps + '" oninput="cvSetRow(' + i + ',' + s + ',\'reps\',this.value)">';
+        // Tick button
+        h += '<div onclick="cvTickSet(' + i + ',' + s + ')" style="width:36px;height:36px;border-radius:8px;background:' + (setDone ? '#2FD4F5' : '#1F2A33') + ';border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';display:flex;align-items:center;justify-content:center;cursor:pointer;margin:0 auto">';
+        if (setDone) h += '<svg viewBox="0 0 12 12" fill="none" stroke="#0B0F12" stroke-width="2.5" width="14" height="14"><polyline points="2,6 5,9 10,3"/></svg>';
+        h += '</div>';
+        h += '</div>';
       }
-      h += '</tbody></table>';
+      h += '</div>'; // close set grid
+
+      // Rest Timer + Add/Remove Set buttons
+      var defaultRest = parseInt(ex.rest) || 60;
+      h += '<div style="display:flex;gap:8px;margin-top:10px;align-items:center">';
+      // Rest timer button
+      h += '<button onclick="cvShowRestTimer(' + i + ',' + defaultRest + ')" style="flex:1;padding:10px;background:#1F2A33;border:1.5px solid #2FD4F5;border-radius:10px;color:#2FD4F5;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><span style="font-size:16px">⏱</span> Rest Timer (' + defaultRest + 's)</button>';
+      // Add/remove set
+      h += '<button onclick="cvAdjSets(' + i + ',-1)" style="width:36px;height:36px;background:#1F2A33;border:1.5px solid #26323A;border-radius:8px;color:#8B949E;font-size:18px;font-weight:700;cursor:pointer;line-height:1">-</button>';
+      h += '<button onclick="cvAdjSets(' + i + ',1)" style="width:36px;height:36px;background:#1F2A33;border:1.5px solid #26323A;border-radius:8px;color:#8B949E;font-size:18px;font-weight:700;cursor:pointer;line-height:1">+</button>';
+      h += '</div>';
 
       h += '<div class="cv-note"><label>Notes for this exercise</label><textarea oninput="cvSet(' + i + ',\'note\',this.value)" placeholder="How did this feel? Any pain or difficulty?">' + (st.note || '') + '</textarea></div>';
       // Substitute button
@@ -3551,19 +3554,6 @@ function renderCV() {
 }
 
 function cvToggle(i) { if (!cvState[i]) cvState[i] = {}; cvState[i].open = !cvState[i].open; renderCV(); }
-function cvAdjSets(exIdx, delta) {
-  if (!cvState[exIdx]) cvState[exIdx] = {};
-  // Get exercise from custom list or program
-  var ex = cvCustomWorkout
-    ? (cvCustomExercises[exIdx] || {})
-    : ((cvData.programs[cvProgIdx] || {exercises:[]}).exercises[exIdx] || {});
-  var current = (cvState[exIdx].sessionSets != null) ? cvState[exIdx].sessionSets : (parseInt(ex.sets) || 3);
-  current = Math.max(1, Math.min(20, current + delta));
-  cvState[exIdx].sessionSets = current;
-  cvState[exIdx].open = true;
-  renderCV();
-}
-
 function cvTick(i) { if (!cvState[i]) cvState[i] = {}; cvState[i].done = !cvState[i].done; renderCV(); }
 function cvSet(i, f, val) { if (!cvState[i]) cvState[i] = {}; cvState[i][f] = val; }
 
@@ -7461,6 +7451,76 @@ function exportClientCSV() {
   a.click();
   URL.revokeObjectURL(url);
   toast('CSV exported', 'ok');
+}
+
+
+// ════════════════════════════════════════════════════
+// REST TIMER OVERLAY
+// ════════════════════════════════════════════════════
+var _restTimerInterval = null;
+var _restTimerEl = null;
+
+function cvShowRestTimer(exIdx, seconds) {
+  // Remove existing timer if any
+  if (_restTimerEl) _restTimerEl.remove();
+  clearInterval(_restTimerInterval);
+
+  var remaining = seconds;
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#12181D;border:2px solid #2FD4F5;border-radius:16px;padding:16px 24px;z-index:500;display:flex;align-items:center;gap:16px;box-shadow:0 8px 32px rgba(0,0,0,.5);min-width:260px';
+  overlay.innerHTML =
+    '<div style="text-align:center">' +
+      '<div style="font-size:11px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">⏱ Rest Timer</div>' +
+      '<div id="restTimerCount" style="font-size:44px;font-weight:800;color:#2FD4F5;line-height:1;font-family:monospace">' + seconds + '</div>' +
+    '</div>' +
+    '<div style="display:flex;flex-direction:column;gap:8px">' +
+      '<button onclick="cvRestTimerSkip()" style="padding:8px 16px;background:#2FD4F5;color:#0B0F12;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Skip</button>' +
+      '<button onclick="cvRestTimerClose()" style="padding:8px 16px;background:#26323A;color:#8B949E;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Close</button>' +
+    '</div>';
+  document.body.appendChild(overlay);
+  _restTimerEl = overlay;
+
+  // Haptic feedback if available
+  if (navigator.vibrate) navigator.vibrate(50);
+
+  _restTimerInterval = setInterval(function() {
+    remaining--;
+    var countEl = document.getElementById('restTimerCount');
+    if (countEl) {
+      countEl.textContent = remaining;
+      if (remaining <= 5) countEl.style.color = '#f59e0b';
+      if (remaining <= 0) {
+        countEl.textContent = '✓';
+        countEl.style.color = '#5BBFAA';
+        clearInterval(_restTimerInterval);
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+        setTimeout(cvRestTimerClose, 1500);
+      }
+    } else {
+      clearInterval(_restTimerInterval);
+    }
+  }, 1000);
+}
+
+function cvRestTimerSkip() {
+  clearInterval(_restTimerInterval);
+  cvRestTimerClose();
+}
+
+function cvRestTimerClose() {
+  clearInterval(_restTimerInterval);
+  if (_restTimerEl) { _restTimerEl.remove(); _restTimerEl = null; }
+}
+
+// Adjust sets for an exercise (+1 or -1)
+function cvAdjSets(i, delta) {
+  if (!cvState[i]) cvState[i] = {};
+  var prog = cvData.programs[cvProgIdx];
+  var ex = prog.exercises[i];
+  var currentSets = (cvState[i].sessionSets != null) ? cvState[i].sessionSets : (parseInt(ex.sets) || 3);
+  var newSets = Math.max(1, Math.min(10, currentSets + delta));
+  cvState[i].sessionSets = newSets;
+  renderCV();
 }
 
 </script>
