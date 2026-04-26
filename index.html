@@ -384,6 +384,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 
 /* Outcome measures */
 .om-panel{background:var(--sand);border-radius:var(--r);padding:11px 13px;margin-bottom:9px;box-shadow:0 1px 5px rgba(28,43,53,.06)}
+.om-collapsed .om-sparkline, .om-collapsed .om-list, .om-collapsed .om-add-form { display:none!important; }
 .om-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .om-title{font-size:10px;font-weight:700;color:var(--text-l);text-transform:uppercase;letter-spacing:.08em}
 .om-row{display:flex;align-items:center;gap:7px;margin-bottom:6px;padding:6px 8px;background:#fff;border-radius:6px;border:1.5px solid var(--sand-d)}
@@ -1093,6 +1094,17 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .hr-entry-date{font-size:11px;color:#8B949E}
 .hr-empty{text-align:center;padding:40px 20px;color:#8B949E;font-size:13px}
 
+
+/* Client home wave background */
+#viewClient .cv-home-wave {
+  position:absolute;top:0;left:0;right:0;height:220px;
+  background:linear-gradient(180deg,#0D1D2E 0%,#0B0F12 100%);
+  overflow:hidden;pointer-events:none;z-index:0;
+}
+#viewClient .cv-home-wave svg { position:absolute;bottom:0;width:100%;opacity:0.15; }
+#viewClient .cv-body { position:relative; }
+#viewClient .cv-home-content { position:relative;z-index:1; }
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -1271,7 +1283,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 <!-- LEFT: LIBRARY -->
 <div class="col col-left">
   <div class="col-left-inner">
-    <div class="sec-lbl">Library · <span id="libCnt"></span></div>
+    <div class="sec-lbl">Library</div>
     <div class="search-wrap"><span class="si">🔍</span><input id="srch" type="text" placeholder="Search…" oninput="filterLib()"></div>
     <div class="cat-chips" id="catChips"></div>
     <div class="muscle-chips" id="muscleChips"></div>
@@ -1347,7 +1359,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 
     <!-- OUTCOME MEASURES -->
     <div class="om-panel" id="omPanel" style="display:none">
-      <div class="om-hdr"><span class="om-title">&#128202; Outcome Measures</span><div style="display:flex;gap:4px"><button class="btn btn-outline btn-xs" onclick="syncClients().then(renderOMPanel)" title="Pull latest from client app">&#8635; Sync</button><button class="btn btn-outline btn-xs" onclick="openM('omHistM')">&#128202; History</button></div></div>
+      <div class="om-hdr" style="cursor:pointer" onclick="toggleOMPanel()"><span class="om-title">&#128202; Outcome Measures</span><span id="omCollapseIcon" style="margin-left:auto;font-size:10px;color:var(--text-l)">▲</span><div style="display:flex;gap:4px"><button class="btn btn-outline btn-xs" onclick="syncClients().then(renderOMPanel)" title="Pull latest from client app">&#8635; Sync</button><button class="btn btn-outline btn-xs" onclick="openM('omHistM')">&#128202; History</button></div></div>
       <div id="omRows"></div>
       <div class="om-add-row">
         <input id="omNewName" type="text" placeholder="Add measure (e.g. Pain VAS, PSFS, 6MWT)">
@@ -3324,12 +3336,7 @@ function renderCV() {
 
   // ── Safety check panel (client-submitted) ──
   const lastSafety = (cvData.safetyLog || []).slice(-1)[0];
-  h += '<div class="cv-prog-hdr" style="margin-bottom:10px">';
-  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
-  h += '<div class="cv-prog-title">' + (prog.title || 'Home Exercise Program') + '</div>';
-  h += '</div>';
-  h += '<div class="cv-prog-meta">Hi ' + cvData.first + (cvData.clinician ? ' &middot; Clinician: ' + cvData.clinician : '') + '</div>';
-  h += '<div class="cv-freq-badge">&#128197; ' + (prog.freq || '&mdash;') + '</div>';
+  h += '<div class="cv-freq-badge" style="margin-bottom:10px">&#128197; ' + (prog.freq || '&mdash;') + '</div>';
   h += '</div>';
 
   // ── Streak / adherence ──
@@ -3518,7 +3525,7 @@ function renderCV() {
   h += '<textarea id="cvSessionComment" placeholder="How are you going overall? Any pain, concerns or questions for your clinician?" style="width:100%;padding:9px 11px;border:1.5px solid var(--sand-dark);border-radius:7px;font-size:13px;font-family:-apple-system,sans-serif;color:var(--text);background:var(--sand);outline:none;resize:none;height:80px;line-height:1.5" oninput="cvComment=this.value">' + (cvComment||'') + '</textarea>';
   h += '</div>';
   h += '<button class="cv-submit" onclick="cvSubmit()">&#10003; Submit Session Log</button>';
-  h += '<div style="text-align:center;margin-top:10px;padding-bottom:4px"><button onclick="cvGoHome()" style="background:none;border:none;color:var(--text-light);font-size:12px;font-weight:600;cursor:pointer;padding:6px 16px;border-radius:20px;border:1.5px solid var(--sand-dark)">&#8592; Back to Home</button></div>';
+
   h += '</div>';
 
   document.getElementById('cvBody').innerHTML = h;
@@ -3659,6 +3666,22 @@ function cvSavePreSession() {
         }
       });
     }).catch(function(e) { toast('Sync error: ' + e.message, 'err'); });
+
+  // Also update cvHealthData so health review chart shows pre-session readings
+  if (!cvHealthData) cvHealthData = {};
+  var today3 = new Date().toLocaleString('en-AU', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  if (bpS && bpD) {
+    if (!cvHealthData.bp) cvHealthData.bp = [];
+    cvHealthData.bp.push({ val: bpS + '/' + bpD, date: today3 });
+  }
+  if (bgl) {
+    if (!cvHealthData.bg) cvHealthData.bg = [];
+    cvHealthData.bg.push({ val: bgl, date: today3 });
+  }
+  if (hr) {
+    if (!cvHealthData.hr) cvHealthData.hr = [];
+    cvHealthData.hr.push({ val: hr, date: today3 });
+  }
 
   cvSafetyDone = true;
   renderCV();
@@ -5371,6 +5394,9 @@ function renderCVHome() {
     h += '<div style="padding:16px 16px 80px">';
 
     // Greeting
+    // Wave background
+    h += '<div class="cv-home-wave"><svg viewBox="0 0 375 80" xmlns="http://www.w3.org/2000/svg"><path d="M0,40 C60,80 120,0 187,40 C254,80 314,0 375,40 L375,80 L0,80 Z" fill="#2FD4F5"/></svg></div>';
+    h += '<div class="cv-home-content">';
     h += '<div style="font-size:22px;font-weight:800;color:var(--ocean-deep);margin-bottom:2px;font-family:Georgia,serif;padding:0 2px">' + greeting + ', ' + cvData.first + '!</div>';
     h += '<div style="font-size:12px;color:var(--text-light);margin-bottom:16px">Your health at a glance</div>';
 
@@ -5417,21 +5443,8 @@ function renderCVHome() {
       '</div>';
     h += '</div>';
 
-    // Recent own workouts
-    var recent = ownW.slice(-3).reverse();
-    if (recent.length) {
-      h += '<div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Recent Workouts</div>';
-      recent.forEach(function(w) {
-        h += '<div style="background:#fff;border-radius:10px;padding:10px 14px;margin-bottom:8px;box-shadow:0 1px 6px rgba(28,43,53,.07);display:flex;align-items:center;gap:10px">' +
-          '<div style="width:32px;height:32px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>' +
-          '<div><div style="font-size:13px;font-weight:600;color:var(--text)">' + (w.type||'Workout') + '</div>' +
-          '<div style="font-size:11px;color:var(--text-light)">' + (w.duration?w.duration+' min':'') + (w.note?' · '+w.note:'') + ' · ' + (w.date||'').split(',')[0] + '</div></div>' +
-          '</div>';
-      });
-    }
-
     // Log workout button
-    h += '<button onclick="cvShowWorkoutModal()" style="width:100%;box-sizing:border-box;padding:14px;border-radius:12px;border:2px dashed var(--teal);background:transparent;color:var(--teal);font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;font-family:-apple-system,sans-serif">+ Log a Workout</button>';
+    h += '<button onclick="cvShowWorkoutModal()" style="width:100%;box-sizing:border-box;padding:14px;border-radius:12px;border:none;background:#2FD4F5;color:#0B0F12;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;font-family:-apple-system,sans-serif">+ Log a Workout</button>';
 
     // ── Clinic contact ──
     h += '<div style="margin-top:24px;background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 1px 6px rgba(28,43,53,.07)">';
@@ -6993,6 +7006,22 @@ async function emailProgramToClient() {
 
 
 function filterClients() { showClientDropdown(); }
+
+function toggleOMPanel() {
+  var body = document.getElementById('omPanelBody');
+  var panel = document.getElementById('omPanel');
+  if (!body) {
+    // Wrap existing om content in omPanelBody div if not already done
+    // Just toggle the panel height
+    panel.classList.toggle('om-collapsed');
+    return;
+  }
+  var collapsed = body.style.display === 'none';
+  body.style.display = collapsed ? '' : 'none';
+  var icon = document.getElementById('omCollapseIcon');
+  if (icon) icon.textContent = collapsed ? '▲' : '▼';
+}
+
 </script>
 
 
