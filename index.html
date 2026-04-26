@@ -5375,37 +5375,36 @@ function renderCVHome() {
     }).length;
 
     // ── Streak ──
-    // Parse AU dates correctly and count consecutive day streak
-    // Use local date to avoid timezone offset
-    var _nowLocal = new Date();
-    var _nowOffset = _nowLocal.getTimezoneOffset() * 60000;
-    var _nowAdj = new Date(_nowLocal.getTime() - _nowOffset);
-    var MONTHS_S = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
-    function parseAUDateToMs(str) {
-      var parts = (str||'').replace(',','').split(' ').filter(Boolean);
-      if (parts.length < 3) return null;
-      var d = new Date(parseInt(parts[2]), MONTHS_S[parts[1]], parseInt(parts[0]));
-      return isNaN(d) ? null : d.setHours(0,0,0,0) || d.getTime();
+    // Count consecutive day streak using universal date parser
+    function normDateStreak(str) {
+      if (!str) return null;
+      var s = String(str).split(',')[0].trim();
+      var MONTHS_SK = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+      var parts = s.replace(/\./g,'').split(/[\s\/\-]+/).filter(Boolean);
+      var d, m, y;
+      if (parts.length >= 3 && isNaN(parts[1])) {
+        d = parseInt(parts[0]); m = MONTHS_SK[parts[1].toLowerCase().slice(0,3)]; y = parseInt(parts[2]);
+      } else if (parts.length >= 3 && parts[0].length <= 2) {
+        d = parseInt(parts[0]); m = parseInt(parts[1]) - 1; y = parseInt(parts[2]);
+      } else if (parts.length >= 3 && parts[0].length === 4) {
+        y = parseInt(parts[0]); m = parseInt(parts[1]) - 1; d = parseInt(parts[2]);
+      }
+      if (isNaN(d) || isNaN(m) || isNaN(y) || m === undefined) return null;
+      return y + '-' + String(m+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
     }
-    function toDateKey2(ms) {
-      var d = new Date(ms);
-      return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    function toYMD(date) {
+      return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
     }
     var sessionDates2 = new Set();
-    allLog.forEach(function(e) {
-      var ms = parseAUDateToMs((e.date||'').split(',')[0].trim());
-      if (ms) sessionDates2.add(toDateKey2(ms));
-    });
-    ownW.forEach(function(w) {
-      var ms = parseAUDateToMs((w.date||'').split(',')[0].trim());
-      if (ms) sessionDates2.add(toDateKey2(ms));
-    });
+    allLog.forEach(function(e) { var k = normDateStreak(e.date); if (k) sessionDates2.add(k); });
+    ownW.forEach(function(w) { var k = normDateStreak(w.date); if (k) sessionDates2.add(k); });
+    var todayLocal = new Date();
     var streak = 0;
-    var checkD = new Date(_nowAdj.getFullYear(), _nowAdj.getMonth(), _nowAdj.getDate());
-    if (!sessionDates2.has(toDateKey2(checkD.getTime()))) {
+    var checkD = new Date(todayLocal.getFullYear(), todayLocal.getMonth(), todayLocal.getDate());
+    if (!sessionDates2.has(toYMD(checkD))) {
       checkD.setDate(checkD.getDate()-1); // start from yesterday if no session today
     }
-    while (sessionDates2.has(toDateKey2(checkD.getTime()))) {
+    while (sessionDates2.has(toYMD(checkD))) {
       streak++;
       checkD.setDate(checkD.getDate()-1);
     }
@@ -5645,6 +5644,31 @@ function renderCVCalendar() {
 
   var sessionsByDate = {};
 
+  // Universal date parser - handles AU locale, ISO, and various formats
+  // Returns YYYY-MM-DD string or null
+  function normDate(str) {
+    if (!str) return null;
+    var s = String(str).split(',')[0].trim(); // take date part only
+    // Try AU format: "25 Apr 2026" or "25 Apr. 2026"
+    var MONTHS = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+    var parts = s.replace(/\./g,'').split(/[\s\/\-]+/).filter(Boolean);
+    var d, m, y;
+    // D MMM YYYY
+    if (parts.length >= 3 && isNaN(parts[1])) {
+      d = parseInt(parts[0]); m = MONTHS[parts[1].toLowerCase().slice(0,3)]; y = parseInt(parts[2]);
+    }
+    // DD/MM/YYYY or DD-MM-YYYY
+    else if (parts.length >= 3 && parts[0].length <= 2) {
+      d = parseInt(parts[0]); m = parseInt(parts[1]) - 1; y = parseInt(parts[2]);
+    }
+    // YYYY-MM-DD
+    else if (parts.length >= 3 && parts[0].length === 4) {
+      y = parseInt(parts[0]); m = parseInt(parts[1]) - 1; d = parseInt(parts[2]);
+    }
+    if (isNaN(d) || isNaN(m) || isNaN(y) || m === undefined) return null;
+    return y + '-' + String(m+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+  }
+
   // Merge cvOwnWorkouts with cvData.ownWorkouts to catch all workouts
   var allOwnWorkouts = [];
   var seen = {};
@@ -5653,15 +5677,12 @@ function renderCVCalendar() {
     if (!seen[key]) { seen[key] = true; allOwnWorkouts.push(w); }
   });
 
+  // Build sessionsByDate keyed by YYYY-MM-DD
   (cvData.programs || []).forEach(function(p) {
     (p.log || []).forEach(function(e) {
       if (!e.clientSubmitted) return;
-      // Robust date parsing - handle "26 Apr 2026, 9:30 am" or "26 Apr. 2026"
-      var rawDate = (e.date||'').split(',')[0].trim().replace(/\./g,'');
-      // Normalize: "26 Apr 2026" 
-      var dateParts = rawDate.split(' ').filter(Boolean);
-      var d = dateParts.slice(0,3).join(' ');
-      if (!d || dateParts.length < 3) return;
+      var d = normDate(e.date);
+      if (!d) return;
       if (!sessionsByDate[d]) sessionsByDate[d] = [];
       var raw = e.text || '';
       var feeling = '';
@@ -5671,33 +5692,29 @@ function renderCVCalendar() {
         part = part.trim();
         if (!part) return;
         if (part.startsWith('Feeling:')) { feeling = part.replace('Feeling:','').trim(); return; }
-        if (part.startsWith('Own workout:')) return; // skip summary line
+        if (part.startsWith('Own workout:')) return;
         details.push(part);
       });
-      var exCount = details.filter(function(d) { return d.match(/\[.+sets\]/); }).length;
-      if (isCustom) {
-        // Custom "Build Your Own" workout — show as own workout type
-        sessionsByDate[d].push({ type: 'own', title: 'Own Workout', feeling: feeling, exCount: exCount, details: details });
-      } else {
-        sessionsByDate[d].push({ type: 'prescribed', title: p.title || 'Home Exercise Program', feeling: feeling, exCount: exCount, details: details });
-      }
+      var exCount = details.filter(function(d2) { return d2.match(/\[.+sets\]/); }).length;
+      sessionsByDate[d].push({ type: isCustom ? 'own' : 'prescribed',
+        title: isCustom ? 'Own Workout' : (p.title || 'Home Exercise Program'),
+        feeling: feeling, exCount: exCount, details: details });
     });
   });
 
   allOwnWorkouts.forEach(function(w) {
-    var d = (w.date||'').split(',')[0].trim().replace('.','').split(' ').filter(Boolean).slice(0,3).join(' ');
+    var d = normDate(w.date);
     if (!d) return;
     if (!sessionsByDate[d]) sessionsByDate[d] = [];
     var details = [];
     if (w.exercises && Array.isArray(w.exercises) && w.exercises.length) {
       w.exercises.forEach(function(ex) { details.push(typeof ex === 'string' ? ex : (ex.name || '')); });
-    } else if (w.summary) {
-      w.summary.split('|').forEach(function(p) { var t = p.trim(); if (t && !t.startsWith(w.type) && !t.startsWith('Felt:')) details.push(t); });
     }
-    sessionsByDate[d].push({ type: 'own', title: w.type || 'Workout', feeling: w.feel || '', duration: w.duration || '', details: details });
+    sessionsByDate[d].push({ type: 'own', title: w.type || 'Workout',
+      feeling: w.feel || '', duration: w.duration || '', details: details });
   });
 
-  // Build today using local date components to avoid timezone offset issues
+    // Build today using local date components to avoid timezone offset issues
   var _now = new Date();
   var _tzOffset = _now.getTimezoneOffset() * 60000;
   var _localNow = new Date(_now.getTime() - _tzOffset);
@@ -5708,15 +5725,11 @@ function renderCVCalendar() {
     days.push(d);
   }
 
-  // Debug: count total sessions found
-  var _totalSess = Object.values(sessionsByDate).reduce(function(sum, arr) { return sum + arr.length; }, 0);
-  var _keys = Object.keys(sessionsByDate);
-  console.log('Calendar: found ' + _totalSess + ' sessions across dates:', _keys);
   var h = '<div style="padding:0 0 80px">';
 
   days.forEach(function(d) {
     var dd = d.getDate(), mm = d.getMonth(), yyyy = d.getFullYear();
-    var dateKey = dd + ' ' + MONTH_SHORT[mm] + ' ' + yyyy;
+    var dateKey = yyyy + '-' + String(mm+1).padStart(2,'0') + '-' + String(dd).padStart(2,'0');
     var isToday = d.getTime() === today.getTime();
     var isFuture = d > today;
     var sessions = sessionsByDate[dateKey] || [];
