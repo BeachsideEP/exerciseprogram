@@ -2188,7 +2188,7 @@ function init() {
   loadDB();
   renderClientDropdown();
   renderLib();
-  document.getElementById('libCnt').textContent = getAllExercises().length;
+  var _lc = document.getElementById('libCnt'); if (_lc) _lc.textContent = getAllExercises().length;
   // URL params (Cliniko deeplink)
   const p = new URLSearchParams(location.search);
   if (p.get('first') || p.get('name')) {
@@ -2626,7 +2626,7 @@ function addCustomExercise() {
   if (photo) { customPhotos[name] = photo; saveCustomPhotos(); }
   saveCustomEx();
   renderLib(); renderCatChips();
-  document.getElementById('libCnt').textContent = getAllExercises().length;
+  var _lc = document.getElementById('libCnt'); if (_lc) _lc.textContent = getAllExercises().length;
   // Reset form
   ['em_name','em_desc','em_muscles','em_reps','em_hold','em_rest','em_video'].forEach(id => sv(id,''));
   sv('em_cat',''); sv('em_sets','3');
@@ -2706,7 +2706,7 @@ function deleteCustomEx() {
   customExercises = customExercises.filter(e => String(e.id) !== String(id));
   saveCustomEx(); saveCustomPhotos();
   renderLib(); renderCatChips();
-  document.getElementById('libCnt').textContent = getAllExercises().length;
+  var _lc = document.getElementById('libCnt'); if (_lc) _lc.textContent = getAllExercises().length;
   closeM('editExM');
   toast(`${ex.name} deleted from library`);
 }
@@ -3162,7 +3162,7 @@ function onAuthSuccess(user) {
     pullLibraryFromCloud().then(function() {
       renderLib();
       renderCatChips();
-      document.getElementById('libCnt').textContent = getAllExercises().length;
+      var _lc = document.getElementById('libCnt'); if (_lc) _lc.textContent = getAllExercises().length;
     });
     syncClients();
     syncTemplates();
