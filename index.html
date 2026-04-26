@@ -1490,16 +1490,18 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
       <div class="fg"><label>Category *</label>
         <select id="em_cat">
           <option value="">Select category…</option>
-          <option>Lower Limb</option><option>Upper Limb</option><option>Core</option>
-          <option>Flexibility</option><option>Balance</option><option>Cardio</option>
-          <option>Neuromotor</option><option>Respiratory</option><option>Metabolic</option>
-          <option>Hydrotherapy</option><option>Neurodynamic</option><option>Pilates</option>
-          <option>Bone Health</option><option>Posture</option><option>Plyometric</option>
-          <option>Shoulder Rehab</option><option>Knee Rehab</option><option>Hip Rehab</option>
-          <option>Ankle Rehab</option><option>Falls Prevention</option><option>Cardiac Rehab</option>
-          <option>Chronic Pain</option><option>Vestibular</option><option>Cancer Rehab</option>
-          <option>Lymphoedema</option><option>Pelvic Floor</option><option>Hand Rehab</option>
-          <option>Cervical</option><option>Custom</option>
+          <option>Upper Limb</option>
+          <option>Lower Limb</option>
+          <option>Core</option>
+          <option>Cardio</option>
+          <option>Hydrotherapy</option>
+          <option>Falls and Balance</option>
+          <option>Home Exercise</option>
+          <option>Mobility</option>
+          <option>Pilates</option>
+          <option>Bone Health</option>
+          <option>Chronic Pain</option>
+          <option>Other</option>
         </select>
       </div>
       <div class="fg" id="em_custom_cat_wrap" style="display:none;grid-column:1/-1">
@@ -1507,11 +1509,59 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
       </div>
       <div class="fg" style="grid-column:1/-1"><label>Clinical Description</label><textarea id="em_desc" placeholder="Starting position, movement cues, safety tips…" rows="3"></textarea></div>
       <div class="fg" style="grid-column:1/-1"><label>YouTube Video URL <span style="font-weight:400;color:var(--text-l)">(optional — paste full URL e.g. https://youtube.com/watch?v=…)</span></label><input id="em_video" type="text" class="yt-input" placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ"></div>
-      <div class="fg"><label>Primary Muscles</label><input id="em_muscles" type="text" placeholder="e.g. Glutes, Hamstrings, Core"></div>
+      <div class="fg" style="grid-column:1/-1">
+        <label>Primary Muscles <span style="font-weight:400;color:var(--text-l)">(hold Ctrl/Cmd to select multiple)</span></label>
+        <select id="em_muscles" multiple style="height:120px;padding:4px">
+                    <option value="Quadriceps">Quadriceps</option>
+          <option value="Hamstrings">Hamstrings</option>
+          <option value="Glutes">Glutes</option>
+          <option value="Glute Med">Glute Med</option>
+          <option value="Hip Flexors">Hip Flexors</option>
+          <option value="Hip Adductors">Hip Adductors</option>
+          <option value="Hip Abductors">Hip Abductors</option>
+          <option value="Calves">Calves</option>
+          <option value="Tibialis Anterior">Tibialis Anterior</option>
+          <option value="Peroneals">Peroneals</option>
+          <option value="Gastrocnemius">Gastrocnemius</option>
+          <option value="Soleus">Soleus</option>
+          <option value="Chest">Chest</option>
+          <option value="Pectorals">Pectorals</option>
+          <option value="Deltoids">Deltoids</option>
+          <option value="Rotator Cuff">Rotator Cuff</option>
+          <option value="Biceps">Biceps</option>
+          <option value="Triceps">Triceps</option>
+          <option value="Forearms">Forearms</option>
+          <option value="Upper Trapezius">Upper Trapezius</option>
+          <option value="Mid/Lower Trapezius">Mid/Lower Trapezius</option>
+          <option value="Rhomboids">Rhomboids</option>
+          <option value="Latissimus Dorsi">Latissimus Dorsi</option>
+          <option value="Serratus Anterior">Serratus Anterior</option>
+          <option value="Cervical Flexors">Cervical Flexors</option>
+          <option value="Cervical Extensors">Cervical Extensors</option>
+          <option value="Erector Spinae">Erector Spinae</option>
+          <option value="Multifidus">Multifidus</option>
+          <option value="Transversus Abdominis">Transversus Abdominis</option>
+          <option value="Rectus Abdominis">Rectus Abdominis</option>
+          <option value="Obliques">Obliques</option>
+          <option value="Core">Core</option>
+          <option value="Hip Rotators">Hip Rotators</option>
+          <option value="Piriformis">Piriformis</option>
+          <option value="IT Band">IT Band</option>
+          <option value="VMO">VMO</option>
+          <option value="Ankle Stabilisers">Ankle Stabilisers</option>
+          <option value="Foot Intrinsics">Foot Intrinsics</option>
+          <option value="Cardiovascular">Cardiovascular</option>
+          <option value="Vestibular System">Vestibular System</option>
+          <option value="Proprioception">Proprioception</option>
+          <option value="Balance">Balance</option>
+          <option value="Breathing Muscles">Breathing Muscles</option>
+        </select>
+        <div style="font-size:10px;color:var(--text-l);margin-top:3px" id="em_muscles_preview"></div>
+      </div>
       <div class="fg"><label>Default Sets</label><input id="em_sets" type="number" value="3" min="1" max="20"></div>
       <div class="fg"><label>Default Reps</label><input id="em_reps" type="text" placeholder="e.g. 10-12"></div>
       <div class="fg"><label>Default Hold</label><input id="em_hold" type="text" placeholder="e.g. 30s"></div>
-      <div class="fg"><label>Default Rest</label><input id="em_rest" type="text" placeholder="e.g. 60s"></div>
+      <div class="fg"><label>Default Rest</label><input id="em_rest" type="text" placeholder="60s" value="60s"></div>
     </div>
     <div class="fg" style="margin-bottom:4px"><label>Exercise Photo (optional — JPG/PNG, max 2MB)</label></div>
     <div class="photo-upload-area" id="emPhotoArea" onclick="document.getElementById('emPhotoFile').click()">
@@ -1546,22 +1596,71 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <div class="fg"><label>Exercise Name</label><input id="ee_name" type="text"></div>
     <div class="fg"><label>Category</label>
       <select id="ee_cat">
-        <option value="">Select…</option>
-        <option>Lower Limb</option><option>Upper Limb</option><option>Core</option>
-        <option>Flexibility</option><option>Balance</option><option>Cardio</option>
-        <option>Neuromotor</option><option>Respiratory</option><option>Metabolic</option>
-        <option>Hydrotherapy</option><option>Neurodynamic</option><option>Pilates</option>
-        <option>Bone Health</option><option>Posture</option><option>Plyometric</option>
-        <option>Shoulder Rehab</option><option>Knee Rehab</option><option>Hip Rehab</option>
-        <option>Ankle Rehab</option><option>Falls Prevention</option><option>Cardiac Rehab</option>
-        <option>Chronic Pain</option><option>Vestibular</option><option>Cancer Rehab</option>
-        <option>Lymphoedema</option><option>Pelvic Floor</option><option>Hand Rehab</option>
-        <option>Cervical</option>
-      </select>
+          <option value="">Select category…</option>
+          <option>Upper Limb</option>
+          <option>Lower Limb</option>
+          <option>Core</option>
+          <option>Cardio</option>
+          <option>Hydrotherapy</option>
+          <option>Falls and Balance</option>
+          <option>Home Exercise</option>
+          <option>Mobility</option>
+          <option>Pilates</option>
+          <option>Bone Health</option>
+          <option>Chronic Pain</option>
+          <option>Other</option>
+        </select>
     </div>
     <div class="fg" style="grid-column:1/-1"><label>Clinical Description</label><textarea id="ee_desc" rows="3"></textarea></div>
       <div class="fg" style="grid-column:1/-1"><label>YouTube Video URL <span style="font-weight:400;color:var(--text-l)">(optional)</span></label><input id="ee_video" type="text" class="yt-input" placeholder="https://www.youtube.com/watch?v=…"></div>
-    <div class="fg"><label>Primary Muscles</label><input id="ee_muscles" type="text"></div>
+    <div class="fg" style="grid-column:1/-1">
+      <label>Primary Muscles <span style="font-weight:400;color:var(--text-l)">(hold Ctrl/Cmd to select multiple)</span></label>
+      <select id="ee_muscles" multiple style="height:120px;padding:4px">
+                  <option value="Quadriceps">Quadriceps</option>
+          <option value="Hamstrings">Hamstrings</option>
+          <option value="Glutes">Glutes</option>
+          <option value="Glute Med">Glute Med</option>
+          <option value="Hip Flexors">Hip Flexors</option>
+          <option value="Hip Adductors">Hip Adductors</option>
+          <option value="Hip Abductors">Hip Abductors</option>
+          <option value="Calves">Calves</option>
+          <option value="Tibialis Anterior">Tibialis Anterior</option>
+          <option value="Peroneals">Peroneals</option>
+          <option value="Gastrocnemius">Gastrocnemius</option>
+          <option value="Soleus">Soleus</option>
+          <option value="Chest">Chest</option>
+          <option value="Pectorals">Pectorals</option>
+          <option value="Deltoids">Deltoids</option>
+          <option value="Rotator Cuff">Rotator Cuff</option>
+          <option value="Biceps">Biceps</option>
+          <option value="Triceps">Triceps</option>
+          <option value="Forearms">Forearms</option>
+          <option value="Upper Trapezius">Upper Trapezius</option>
+          <option value="Mid/Lower Trapezius">Mid/Lower Trapezius</option>
+          <option value="Rhomboids">Rhomboids</option>
+          <option value="Latissimus Dorsi">Latissimus Dorsi</option>
+          <option value="Serratus Anterior">Serratus Anterior</option>
+          <option value="Cervical Flexors">Cervical Flexors</option>
+          <option value="Cervical Extensors">Cervical Extensors</option>
+          <option value="Erector Spinae">Erector Spinae</option>
+          <option value="Multifidus">Multifidus</option>
+          <option value="Transversus Abdominis">Transversus Abdominis</option>
+          <option value="Rectus Abdominis">Rectus Abdominis</option>
+          <option value="Obliques">Obliques</option>
+          <option value="Core">Core</option>
+          <option value="Hip Rotators">Hip Rotators</option>
+          <option value="Piriformis">Piriformis</option>
+          <option value="IT Band">IT Band</option>
+          <option value="VMO">VMO</option>
+          <option value="Ankle Stabilisers">Ankle Stabilisers</option>
+          <option value="Foot Intrinsics">Foot Intrinsics</option>
+          <option value="Cardiovascular">Cardiovascular</option>
+          <option value="Vestibular System">Vestibular System</option>
+          <option value="Proprioception">Proprioception</option>
+          <option value="Balance">Balance</option>
+          <option value="Breathing Muscles">Breathing Muscles</option>
+      </select>
+    </div>
     <div class="fg"><label>Default Sets</label><input id="ee_sets" type="number" min="1" max="20"></div>
     <div class="fg"><label>Default Reps</label><input id="ee_reps" type="text"></div>
     <div class="fg"><label>Default Hold</label><input id="ee_hold" type="text"></div>
@@ -2660,14 +2759,17 @@ function addCustomExercise() {
   if (!cat) { toast('Select a category','err'); return; }
   const photo = v('emPhotoData');
   const id = 'custom_' + Date.now();
-  const ex = { id, name, cat, desc:v('em_desc'), muscles:v('em_muscles'), sets:parseInt(v('em_sets'))||3, reps:v('em_reps'), hold:v('em_hold'), rest:v('em_rest'), load:'', videoUrl:v('em_video')||'' };
+  const ex = { id, name, cat, desc:v('em_desc'), muscles:Array.from(document.getElementById('em_muscles').selectedOptions||[]).map(function(o){return o.value;}).join(',') || v('em_muscles'), sets:parseInt(v('em_sets'))||3, reps:v('em_reps'), hold:v('em_hold'), rest:v('em_rest'), load:'', videoUrl:v('em_video')||'' };
   customExercises.push(ex);
   if (photo) { customPhotos[name] = photo; saveCustomPhotos(); }
   saveCustomEx();
   renderLib(); renderCatChips();
   var _lc = document.getElementById('libCnt'); if (_lc) _lc.textContent = getAllExercises().length;
   // Reset form
-  ['em_name','em_desc','em_muscles','em_reps','em_hold','em_rest','em_video'].forEach(id => sv(id,''));
+  ['em_name','em_desc','em_reps','em_hold','em_video'].forEach(id => sv(id,''));
+  sv('em_rest', '60s');
+  var emMuscSel = document.getElementById('em_muscles');
+  if (emMuscSel) Array.from(emMuscSel.options).forEach(function(o){ o.selected = false; });
   sv('em_cat',''); sv('em_sets','3');
   document.getElementById('emPhotoData').value = '';
   document.getElementById('emPhotoPreview').innerHTML = `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="60" fill="#EEF0F5" rx="6"/><text x="22" y="34" font-size="18" fill="#aaa">📷</text></svg>`;
@@ -2678,8 +2780,17 @@ function addCustomExercise() {
 function openEditEx(id) {
   const ex = getAllExercises().find(e => e.id === id); if (!ex) return;
   sv('ee_name', ex.name); sv('ee_cat', ex.cat); sv('ee_desc', ex.desc||''); sv('ee_video', ex.videoUrl||'');
-  sv('ee_muscles', ex.muscles||''); sv('ee_sets', ex.sets||3);
-  sv('ee_reps', ex.reps||''); sv('ee_hold', ex.hold||''); sv('ee_rest', ex.rest||'');
+  // Pre-select muscles in multi-select
+  setTimeout(function() {
+    var sel = document.getElementById('ee_muscles');
+    if (sel && ex.muscles) {
+      var selected = ex.muscles.split(',').map(function(s){return s.trim().toLowerCase();});
+      Array.from(sel.options).forEach(function(o){
+        o.selected = selected.includes(o.value.toLowerCase());
+      });
+    }
+  }, 50); sv('ee_sets', ex.sets||3);
+  sv('ee_reps', ex.reps||''); sv('ee_hold', ex.hold||''); sv('ee_rest', ex.rest||'60s');
   document.getElementById('eeEditId').value = id;
   document.getElementById('editExSubTitle').textContent = `Editing: ${ex.name}`;
   document.getElementById('eePhotoData').value = '';
@@ -2700,7 +2811,7 @@ function saveExEdit() {
   const newName = v('ee_name').trim() || ex.name;
   // Update fields
   ex.name = newName; ex.cat = v('ee_cat') || ex.cat;
-  ex.desc = v('ee_desc'); ex.muscles = v('ee_muscles');
+  ex.desc = v('ee_desc'); ex.muscles = Array.from(document.getElementById('ee_muscles').selectedOptions||[]).map(function(o){return o.value;}).join(',') || v('ee_muscles');
   ex.sets = parseInt(v('ee_sets')) || ex.sets;
   ex.reps = v('ee_reps'); ex.hold = v('ee_hold'); ex.rest = v('ee_rest'); ex.videoUrl = v('ee_video') || ex.videoUrl || '';
   // Handle photo
