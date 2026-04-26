@@ -3373,7 +3373,7 @@ function renderCV() {
 
   // ── Program selector ──
   // Program selector - always show (includes Build Your Own)
-  h += '<div class="cv-prog-sel"><span style="font-size:11px;font-weight:700;color:var(--text-light)">Program:</span><select onchange="cvSelectProg(this.value)" id="cvProgSel">';
+  h += '<div class="cv-prog-sel"><select onchange="cvSelectProg(this.value)" id="cvProgSel">';
   progs.forEach(function(p, i) {
     h += '<option value="prog_' + i + '"' + (i === cvProgIdx && !cvCustomWorkout ? ' selected' : '') + '>' + (p.title || 'Program ' + (i+1)) + '</option>';
   });
@@ -4844,15 +4844,7 @@ function deleteOM(i) {
 // ════════════════════════════════════════════════════
 function calcStreak(prog) {
   const log = (prog.log || []).filter(function(e) { return e.clientSubmitted; });
-  if (!log.length) return { streak: 0, totalSessions: 0, weeksDone: new Set(), lastSession: null, thisWeek: isoWeekFromDate(new Date()) };
-
-  function isoWeekFromDate(d) {
-    const tmp = new Date(d); tmp.setHours(0,0,0,0);
-    tmp.setDate(tmp.getDate() + 3 - (tmp.getDay() + 6) % 7);
-    const week1 = new Date(tmp.getFullYear(), 0, 4);
-    const wk = 1 + Math.round(((tmp - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
-    return tmp.getFullYear() + '-W' + String(wk).padStart(2, '0');
-  }
+  if (!log.length) return { streak: 0, totalSessions: 0, thisWeek: 0, lastSession: null };
 
   function parseAUDate(dateStr) {
     const parts = (dateStr || '').replace(',', '').split(' ');
@@ -4862,35 +4854,44 @@ function calcStreak(prog) {
     return isNaN(d) ? null : d;
   }
 
-  const weeksDone = new Set();
+  function toDateKey(d) {
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+
+  // Get unique session dates
+  const sessionDates = new Set();
   log.forEach(function(e) {
     const d = parseAUDate(e.date);
-    if (d) weeksDone.add(isoWeekFromDate(d));
+    if (d) sessionDates.add(toDateKey(d));
   });
 
-  function weekMinus(isoW, n) {
-    const yr = parseInt(isoW.split('-W')[0]);
-    const wk = parseInt(isoW.split('-W')[1]);
-    const d = new Date(yr, 0, 1 + (wk - 1) * 7);
-    d.setDate(d.getDate() - n * 7);
-    return isoWeekFromDate(d);
+  // Count consecutive day streak ending today or yesterday
+  const today = new Date(); today.setHours(0,0,0,0);
+  let streak = 0;
+  let check = new Date(today);
+  // Start from today if session today, otherwise yesterday
+  if (!sessionDates.has(toDateKey(today))) {
+    check.setDate(check.getDate() - 1);
+  }
+  while (sessionDates.has(toDateKey(check))) {
+    streak++;
+    check.setDate(check.getDate() - 1);
   }
 
-  const thisWeek = isoWeekFromDate(new Date());
-  let streak = 0;
-  let check = weeksDone.has(thisWeek) ? thisWeek : weekMinus(thisWeek, 1);
-  while (weeksDone.has(check)) {
-    streak++;
-    check = weekMinus(check, 1);
-  }
+  // Count sessions this week (Mon-Sun)
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
+  let thisWeek = 0;
+  log.forEach(function(e) {
+    const d = parseAUDate(e.date);
+    if (d && d >= startOfWeek && d <= today) thisWeek++;
+  });
 
   return {
-    streak,
+    streak: streak,
     totalSessions: log.length,
-    weeksDone,
-    lastSession: log[log.length - 1] ? log[log.length - 1].date : null,
-    thisWeek,
-    weekMinus
+    thisWeek: thisWeek,
+    lastSession: log[log.length - 1] ? log[log.length - 1].date : null
   };
 }
 
@@ -5367,23 +5368,50 @@ function renderCVHome() {
     }).length;
 
     // ── Streak ──
+    // Parse AU dates correctly and count consecutive day streak
+    var MONTHS_S = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+    function parseAUDateToMs(str) {
+      var parts = (str||'').replace(',','').split(' ').filter(Boolean);
+      if (parts.length < 3) return null;
+      var d = new Date(parseInt(parts[2]), MONTHS_S[parts[1]], parseInt(parts[0]));
+      return isNaN(d) ? null : d.setHours(0,0,0,0) || d.getTime();
+    }
+    function toDateKey2(ms) {
+      var d = new Date(ms);
+      return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    }
+    var sessionDates2 = new Set();
+    allLog.forEach(function(e) {
+      var ms = parseAUDateToMs((e.date||'').split(',')[0].trim());
+      if (ms) sessionDates2.add(toDateKey2(ms));
+    });
+    ownW.forEach(function(w) {
+      var ms = parseAUDateToMs((w.date||'').split(',')[0].trim());
+      if (ms) sessionDates2.add(toDateKey2(ms));
+    });
     var streak = 0;
-    var allDates = allLog.map(function(e) { return (e.date||'').split(',')[0].trim(); })
-      .concat(ownW.map(function(w) { return (w.date||'').split(',')[0].trim(); }))
-      .filter(function(d,i,a) { return d && a.indexOf(d)===i; })
-      .sort().reverse();
-    var check = new Date(now); check.setHours(0,0,0,0);
-    for (var si = 0; si < allDates.length; si++) {
-      try {
-        var dd = new Date(allDates[si]);
-        var diff = Math.floor((check - dd) / 86400000);
-        if (diff <= 1) { streak++; check = dd; } else break;
-      } catch(x) { break; }
+    var checkD = new Date(now); checkD.setHours(0,0,0,0);
+    if (!sessionDates2.has(toDateKey2(checkD.getTime()))) {
+      checkD.setDate(checkD.getDate()-1); // start from yesterday if no session today
+    }
+    while (sessionDates2.has(toDateKey2(checkD.getTime()))) {
+      streak++;
+      checkD.setDate(checkD.getDate()-1);
     }
 
     // ── Health ──
     var health = {};
     try { health = JSON.parse(localStorage.getItem('cv_health_' + cvData.id) || '{}'); } catch(x) {}
+    // Merge in-memory cvHealthData (includes pre-session safety readings)
+    if (cvHealthData) {
+      Object.keys(cvHealthData).forEach(function(k) {
+        if (!health[k]) health[k] = [];
+        (cvHealthData[k] || []).forEach(function(e) {
+          var exists = health[k].some(function(h) { return h.date === e.date && h.val === e.val; });
+          if (!exists) health[k].push(e);
+        });
+      });
+    }
     var lw = (health.weight||[]).slice(-1)[0];
     var lb = (health.bp||[]).slice(-1)[0];
     var lg = (health.bg||[]).slice(-1)[0];
@@ -5459,7 +5487,7 @@ function renderCVHome() {
       '</a>';
     h += '<button onclick="cvShowBooking()" style="display:flex;align-items:center;gap:10px;padding:10px 0;width:100%;background:none;border:none;cursor:pointer;text-align:left">' +
       '<div style="width:36px;height:36px;border-radius:50%;background:var(--teal-light,#e6f7f4);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">&#128197;</div>' +
-      '<div><div style="font-size:13px;font-weight:600;color:var(--teal)">Book an Appointment</div><div style="font-size:11px;color:var(--text-light)">Online booking</div></div>' +
+      '<div><div style="font-size:13px;font-weight:600;color:#2FD4F5">Book an Appointment</div><div style="font-size:11px;color:var(--text-light)">Online booking</div></div>' +
       '</button>';
     h += '</div>';
 
