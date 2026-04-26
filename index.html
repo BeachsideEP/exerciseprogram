@@ -7053,27 +7053,7 @@ async function generatePDFBlob() {
   }
 }
 
-</script>
-
-<!-- PWA Service Worker -->
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js').then(function(reg) {
-      reg.addEventListener('updatefound', function() {
-        var newWorker = reg.installing;
-        newWorker.addEventListener('statechange', function() {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            var banner = document.createElement('div');
-            banner.style.cssText = 'position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#0D3D52;color:#fff;padding:10px 16px;border-radius:10px;z-index:9999;font-family:-apple-system,sans-serif;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.3)';
-            banner.innerHTML = '&#8593; New version available &nbsp;<button onclick="window.location.reload()" style="background:var(--teal,#5BBFAA);border:none;color:#fff;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif">Update</button>';
-            document.body.appendChild(banner);
-          }
-        });
-      });
-    }).catch(function(err) { console.log('SW registration failed:', err); });
-  });
-}
+function filterClients() { showClientDropdown(); }
 </script>
 
 
@@ -7104,5 +7084,6 @@ if ('serviceWorker' in navigator) {
 </div>
 </div>
 
+<script>if("serviceWorker"in navigator){navigator.serviceWorker.register("./sw.js").catch(function(){});}</script>
 </body>
 </html>
