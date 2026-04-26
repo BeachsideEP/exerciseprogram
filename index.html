@@ -5725,7 +5725,14 @@ function renderCVCalendar() {
     days.push(d);
   }
 
-  var h = '<div style="padding:0 0 80px">';
+  // Show session count at top for debugging
+  var _sessCount = Object.values(sessionsByDate).reduce(function(s,a){return s+a.length;},0);
+  var _sessKeys = Object.keys(sessionsByDate);
+  var h = '<div style="background:#162026;border-radius:8px;padding:8px 12px;margin:8px;font-size:10px;color:#8B949E">' +
+    _sessCount + ' sessions found across ' + _sessKeys.length + ' dates' +
+    (_sessKeys.length > 0 ? ' · Latest: ' + _sessKeys.sort().slice(-1)[0] : '') +
+    '</div>';
+  h += '<div style="padding:0 0 80px">';
 
   days.forEach(function(d) {
     var dd = d.getDate(), mm = d.getMonth(), yyyy = d.getFullYear();
