@@ -1193,9 +1193,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     </div>
   </div>
   <div id="cvTabWorkouts" style="display:none">
-    <div id="cvWorkoutTopBar" style="background:var(--ocean-pale);border-bottom:1px solid var(--sand-dark);padding:8px 16px;display:flex;align-items:center;justify-content:space-between">
-      <span style="font-size:12px;font-weight:600;color:var(--ocean-deep)">&#128170; Your Program</span>
-      <button onclick="cvSwitchTab('home')" style="background:none;border:none;color:var(--ocean);font-size:12px;font-weight:700;cursor:pointer">&#8592; Home</button>
+    <div id="cvWorkoutTopBar" style="display:none">
     </div>
     <div class="cv-body" id="cvBody">
       <div class="cv-empty"><div class="cv-empty-icon">&#9201;</div><p>Loading your program...</p></div>
@@ -4949,6 +4947,13 @@ function closeClientDemo() {
 function streakBarHTML(prog) {
   var log = (prog.log || []).filter(function(e) { return e.clientSubmitted; });
   if (!log.length) return '';
+  var MONTHS_SB = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+  function parseAUSB(str) {
+    var parts = (str||'').replace(',','').split(' ').filter(Boolean);
+    if (parts.length < 3) return null;
+    var d = new Date(parseInt(parts[2]), MONTHS_SB[parts[1]], parseInt(parts[0]));
+    return isNaN(d) ? null : d;
+  }
   var weeks = 4;
   var now = new Date();
   var bars = '';
@@ -4956,7 +4961,7 @@ function streakBarHTML(prog) {
     var wStart = new Date(now); wStart.setDate(now.getDate() - (w + 1) * 7);
     var wEnd   = new Date(now); wEnd.setDate(now.getDate() - w * 7);
     var count  = log.filter(function(e) {
-      var d = new Date(e.date); return d >= wStart && d < wEnd;
+      var d = parseAUSB(e.date); return d && d >= wStart && d < wEnd;
     }).length;
     var pct = Math.min(100, Math.round(count / 3 * 100));
     var col = pct >= 80 ? 'var(--teal)' : pct >= 40 ? '#f59e0b' : 'var(--sand-dark)';
@@ -5371,6 +5376,10 @@ function renderCVHome() {
 
     // ── Streak ──
     // Parse AU dates correctly and count consecutive day streak
+    // Use local date to avoid timezone offset
+    var _nowLocal = new Date();
+    var _nowOffset = _nowLocal.getTimezoneOffset() * 60000;
+    var _nowAdj = new Date(_nowLocal.getTime() - _nowOffset);
     var MONTHS_S = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
     function parseAUDateToMs(str) {
       var parts = (str||'').replace(',','').split(' ').filter(Boolean);
@@ -5392,7 +5401,7 @@ function renderCVHome() {
       if (ms) sessionDates2.add(toDateKey2(ms));
     });
     var streak = 0;
-    var checkD = new Date(now); checkD.setHours(0,0,0,0);
+    var checkD = new Date(_nowAdj.getFullYear(), _nowAdj.getMonth(), _nowAdj.getDate());
     if (!sessionDates2.has(toDateKey2(checkD.getTime()))) {
       checkD.setDate(checkD.getDate()-1); // start from yesterday if no session today
     }
@@ -5648,11 +5657,11 @@ function renderCVCalendar() {
     (p.log || []).forEach(function(e) {
       if (!e.clientSubmitted) return;
       // Robust date parsing - handle "26 Apr 2026, 9:30 am" or "26 Apr. 2026"
-      var rawDate = (e.date||'').split(',')[0].trim().replace('.','');
-      // Normalize: "26 Apr 2026"
+      var rawDate = (e.date||'').split(',')[0].trim().replace(/\./g,'');
+      // Normalize: "26 Apr 2026" 
       var dateParts = rawDate.split(' ').filter(Boolean);
       var d = dateParts.slice(0,3).join(' ');
-      if (!d) return;
+      if (!d || dateParts.length < 3) return;
       if (!sessionsByDate[d]) sessionsByDate[d] = [];
       var raw = e.text || '';
       var feeling = '';
@@ -5688,13 +5697,21 @@ function renderCVCalendar() {
     sessionsByDate[d].push({ type: 'own', title: w.type || 'Workout', feeling: w.feel || '', duration: w.duration || '', details: details });
   });
 
-  var today = new Date(); today.setHours(0,0,0,0);
+  // Build today using local date components to avoid timezone offset issues
+  var _now = new Date();
+  var _tzOffset = _now.getTimezoneOffset() * 60000;
+  var _localNow = new Date(_now.getTime() - _tzOffset);
+  var today = new Date(_localNow.getFullYear(), _localNow.getMonth(), _localNow.getDate());
   var days = [];
   for (var offset = -30; offset <= 29; offset++) {
-    var d = new Date(today); d.setDate(today.getDate() + offset);
+    var d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + offset);
     days.push(d);
   }
 
+  // Debug: count total sessions found
+  var _totalSess = Object.values(sessionsByDate).reduce(function(sum, arr) { return sum + arr.length; }, 0);
+  var _keys = Object.keys(sessionsByDate);
+  console.log('Calendar: found ' + _totalSess + ' sessions across dates:', _keys);
   var h = '<div style="padding:0 0 80px">';
 
   days.forEach(function(d) {
