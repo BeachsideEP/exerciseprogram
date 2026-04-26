@@ -6947,7 +6947,7 @@ async function emailProgramToClient() {
 
   var payload = JSON.stringify({
     to: cl.email,
-    name: cl.first + ' ' + cl.last,
+    clientName: cl.first + ' ' + cl.last,
     progTitle: prog.title || 'Exercise Program',
     freq: prog.freq || '',
     clinician: cl.clinician || '',
