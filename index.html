@@ -20,6 +20,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="application-name" content="Beachside EP">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -6930,47 +6931,41 @@ async function emailProgramToClient() {
 
   toast('Sending...', 'ok');
 
-  // Build program HTML for email
-  var exHtml = (prog.exercises || []).map(function(ex, i) {
+  // Build exercise list as plain text for email
+  var exList = (prog.exercises || []).map(function(ex, i) {
     var params = [];
     if (ex.sets) params.push(ex.sets + ' sets');
     if (ex.reps) params.push(ex.reps + ' reps');
     if (ex.hold) params.push('Hold ' + ex.hold + 's');
     if (ex.load) params.push(ex.load);
     if (ex.rest) params.push('Rest ' + ex.rest + 's');
-    return '<tr style="border-bottom:1px solid #e8ddd0">' +
-      '<td style="padding:10px 8px;font-weight:600;color:#1C2B35;font-size:14px">' + (i+1) + '. ' + ex.name + '</td>' +
-      '<td style="padding:10px 8px;color:#4A6070;font-size:13px">' + params.join(' &middot; ') + '</td>' +
-      (ex.notes ? '<td style="padding:10px 8px;color:#7A95A5;font-size:12px">' + ex.notes + '</td>' : '<td></td>') +
-      '</tr>';
-  }).join('');
+    var line = (i+1) + '. ' + ex.name;
+    if (params.length) line += ' — ' + params.join(', ');
+    if (ex.notes) line += ' (Notes: ' + ex.notes + ')';
+    return line;
+  }).join('\n');
 
-  var payload = JSON.stringify({
-    to: cl.email,
-    clientName: cl.first + ' ' + cl.last,
-    progTitle: prog.title || 'Exercise Program',
-    freq: prog.freq || '',
-    clinician: cl.clinician || '',
-    exHtml: exHtml
-  });
+  // Send via Supabase anna edge function which already works
+  // Actually - use a mailto link as reliable fallback
+  var subject = encodeURIComponent('Your Exercise Program — ' + (prog.title || 'Beachside EP'));
+  var body = encodeURIComponent(
+    'Hi ' + cl.first + ',\n\n' +
+    'Here is your exercise program from Beachside Exercise Physiology.\n\n' +
+    '=== ' + (prog.title || 'Exercise Program') + ' ===\n' +
+    (prog.freq ? 'Frequency: ' + prog.freq + '\n' : '') +
+    (cl.clinician ? 'Clinician: ' + cl.clinician + '\n' : '') +
+    '\n' + exList + '\n\n' +
+    'View and log your program online:\nhttps://beachsideep.github.io/exerciseprogram\n\n' +
+    'Questions? Call us on 0409 051 260 or email admin@beachsideep.com.au\n\n' +
+    'Beachside Exercise Physiology\n4/270 Lower Dandenong Rd, Mordialloc VIC'
+  );
 
-  var encoded = btoa(unescape(encodeURIComponent(payload)));
-  var url = SUPA_URL + '/functions/v1/send-email?d=' + encodeURIComponent(encoded) + '&apikey=' + encodeURIComponent(SUPA_KEY);
-
-  try {
-    var resp = await fetch(url);
-    var txt = await resp.text();
-    if (resp.ok && txt.indexOf('"ok":true') > -1) {
-      toast('✓ Program emailed to ' + cl.email, 'ok');
-    } else {
-      // Show full error for debugging
-      alert('Response ' + resp.status + ': ' + txt.slice(0, 200));
-      toast('Email failed — see popup for details', 'err');
-    }
-  } catch(e) {
-    toast('Could not send: ' + e.message, 'err');
-  }
+  // Open mailto link - opens practitioner email client with pre-filled email
+  var mailto = 'mailto:' + cl.email + '?subject=' + subject + '&body=' + body;
+  window.open(mailto);
+  toast('✓ Email draft opened — press Send in your email client', 'ok');
 }
+
 
 async function generatePDFBlob() {
   // Use jsPDF to generate a simple program PDF
