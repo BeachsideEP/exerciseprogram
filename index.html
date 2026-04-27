@@ -3905,9 +3905,9 @@ function renderCV() {
         // Previous
         h += '<div style="font-size:12px;color:#8B949E">' + prevText + '</div>';
         // Weight input
-        h += '<input style="background:#1F2A33;border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="decimal" placeholder="' + loadPlaceholder + '" value="' + setLoad + '" onfocus="this.select()" oninput="cvSetRow(' + i + ',' + s + ',\'load\',this.value)">';
+        h += '<input data-ex="' + i + '" data-field="load" data-set="' + s + '" style="background:#1F2A33;border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="decimal" placeholder="' + loadPlaceholder + '" value="' + setLoad + '" onfocus="this.select()" oninput="cvSetRow(' + i + ',' + s + ',\'load\',this.value)">';
         // Reps input
-        h += '<input style="background:#1F2A33;border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="' + repsPlaceholder + '" value="' + setReps + '" onfocus="this.select()" oninput="cvSetRow(' + i + ',' + s + ',\'reps\',this.value)">';
+        h += '<input data-ex="' + i + '" data-field="reps" data-set="' + s + '" style="background:#1F2A33;border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="' + repsPlaceholder + '" value="' + setReps + '" onfocus="this.select()" oninput="cvSetRow(' + i + ',' + s + ',\'reps\',this.value)">';
         // Tick button
         h += '<div onclick="cvTickSet(' + i + ',' + s + ')" style="width:36px;height:36px;border-radius:8px;background:' + (setDone ? '#2FD4F5' : '#1F2A33') + ';border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';display:flex;align-items:center;justify-content:center;cursor:pointer;margin:0 auto">';
         if (setDone) h += '<svg viewBox="0 0 12 12" fill="none" stroke="#0B0F12" stroke-width="2.5" width="14" height="14"><polyline points="2,6 5,9 10,3"/></svg>';
@@ -4005,40 +4005,43 @@ function cvTickSet(exIdx, setIdx) {
   renderCV();
 }
 
+// Debounce timers for cascade fill
+var _cascadeTimers = {};
+
 function cvSetRow(exIdx, setIdx, field, val) {
   if (!cvState[exIdx]) cvState[exIdx] = {};
   const key = field === 'reps' ? 'setReps' : 'setLoads';
   if (!cvState[exIdx][key]) cvState[exIdx][key] = [];
   cvState[exIdx][key][setIdx] = val;
 
-  // Pre-populate all EMPTY sets below this one with the same value
-  var prog = cvData && cvData.programs && cvData.programs[cvProgIdx];
-  var ex = prog && prog.exercises && prog.exercises[exIdx];
-  var totalSets = (cvState[exIdx] && cvState[exIdx].sessionSets != null)
-    ? cvState[exIdx].sessionSets
-    : (parseInt(ex && ex.sets) || 3);
-  for (var s = setIdx + 1; s < totalSets; s++) {
-    if (!cvState[exIdx][key][s] && cvState[exIdx][key][s] !== 0) {
-      cvState[exIdx][key][s] = val;
+  // Debounce cascade fill - wait 400ms after user stops typing
+  var timerKey = 'cascade_' + exIdx + '_' + field;
+  clearTimeout(_cascadeTimers[timerKey]);
+  _cascadeTimers[timerKey] = setTimeout(function() {
+    // Only cascade if the value is non-empty
+    if (!val || val.trim() === '') return;
+
+    var prog = cvData && cvData.programs && cvData.programs[cvProgIdx];
+    var ex = prog && prog.exercises && prog.exercises[exIdx];
+    var totalSets = (cvState[exIdx] && cvState[exIdx].sessionSets != null)
+      ? cvState[exIdx].sessionSets
+      : (parseInt(ex && ex.sets) || 3);
+
+    // Update state for empty sets below
+    for (var s = setIdx + 1; s < totalSets; s++) {
+      if (!cvState[exIdx][key][s] && cvState[exIdx][key][s] !== 0) {
+        cvState[exIdx][key][s] = val;
+      }
     }
-  }
-  // Update DOM inputs directly for all sets below
-  // Use oninput attribute to find the right inputs for this exercise+field
-  var allInputs = document.querySelectorAll('input[oninput]');
-  var exInputs = [];
-  allInputs.forEach(function(inp) {
-    var attr = inp.getAttribute('oninput') || '';
-    if (attr.indexOf('cvSetRow(' + exIdx + ',') !== -1 &&
-        attr.indexOf("'" + field + "'") !== -1) {
-      exInputs.push(inp);
+
+    // Update DOM - find inputs by data attribute we'll add
+    var allInputs = document.querySelectorAll('input[data-ex="' + exIdx + '"][data-field="' + field + '"]');
+    for (var s2 = setIdx + 1; s2 < allInputs.length; s2++) {
+      if (allInputs[s2] && (!allInputs[s2].value || allInputs[s2].value.trim() === '')) {
+        allInputs[s2].value = val;
+      }
     }
-  });
-  // exInputs[setIdx] is the current input, fill empty ones below
-  for (var s2 = setIdx + 1; s2 < exInputs.length; s2++) {
-    if (exInputs[s2] && (!exInputs[s2].value || exInputs[s2].value.trim() === '')) {
-      exInputs[s2].value = val;
-    }
-  }
+  }, 400);
 }
 
 
