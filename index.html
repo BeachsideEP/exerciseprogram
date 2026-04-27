@@ -3720,6 +3720,7 @@ function renderCV() {
 
   // ── Safety check panel (client-submitted) ──
   const lastSafety = (cvData.safetyLog || []).slice(-1)[0];
+  const showSafety = cvData.requireSafetyCheck !== false;
 
   // Custom workout mode
   if (cvCustomWorkout) {
