@@ -7326,7 +7326,7 @@ function openDuplicateProg() {
   if (!cl || !prog) { toast('Select a client and program first', 'err'); return; }
   if (!prog.exercises || !prog.exercises.length) { toast('No exercises to duplicate', 'err'); return; }
 
-  var otherClients = clients.filter(function(c) { return c.id !== cl.id; });
+  var otherClients = clients.filter(function(c) { return c.id !== cl.id && !c.archived; });
   if (!otherClients.length) { toast('No other clients to copy to', 'err'); return; }
 
   var modal = document.createElement('div');
@@ -7421,7 +7421,7 @@ function renderComplianceTab() {
   }
 
   var now = new Date(); now.setHours(0,0,0,0);
-  var rows = clients.map(function(cl) {
+  var rows = clients.filter(function(cl) { return !cl.archived; }).map(function(cl) {
     var allLog = [];
     (cl.programs || []).forEach(function(p) {
       (p.log || []).forEach(function(e) { if (e.clientSubmitted) allLog.push(e); });
@@ -7663,6 +7663,7 @@ function cvRestStart(rtId, exIdx, seconds) {
 function cvRestStop(rtId) {
   clearInterval(_rtIntervals[rtId]);
   if (window._rtStates) delete window._rtStates[rtId];
+  renderCV(); // Re-render to show the rest button again
 }
 
 // Adjust sets for an exercise (+1 or -1)
