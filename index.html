@@ -3468,6 +3468,10 @@ async function verifyOTP() {
     if (r.ok && d.access_token) {
       localStorage.setItem('bep_token', d.access_token);
       if (d.refresh_token) localStorage.setItem('bep_refresh', d.refresh_token);
+      // Also set supabase-js session so supabase.from() uses the right token
+      try {
+        await supabase.auth.setSession({ access_token: d.access_token, refresh_token: d.refresh_token || '' });
+      } catch(se) { console.warn('setSession failed:', se); }
       onAuthSuccess(d.user);
     } else {
       setAuthMsg(d.error_description || d.msg || 'Invalid or expired code. Try again.', 'err');
@@ -3685,22 +3689,28 @@ async function loadClientView(user) {
 
     const email = (user.email || '').toLowerCase();
 
-    // Try fetching with supabase-js which handles auth properly
+    // Fetch client data - try multiple approaches
     var rows = [];
+    var token = localStorage.getItem('bep_token') || SUPA_KEY;
+    var fetchHeaders = {
+      'Content-Type': 'application/json',
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + token
+    };
+    // Try 1: direct fetch with stored JWT
     try {
-      const { data: sbData, error: sbErr } = await supabase
-        .from('clients')
-        .select('data');
-      if (!sbErr && sbData && sbData.length) {
-        rows = sbData;
-      } else {
-        // Fallback to direct fetch
-        const r = await fetch(SUPA_URL + '/rest/v1/clients?select=data', { headers: supaHeaders() });
-        if (r.ok) rows = await r.json();
+      const r1 = await fetch(SUPA_URL + '/rest/v1/clients?select=data', { headers: fetchHeaders });
+      if (r1.ok) {
+        const d1 = await r1.json();
+        if (d1 && d1.length) rows = d1;
       }
-    } catch(fetchErr) {
-      const r = await fetch(SUPA_URL + '/rest/v1/clients?select=data', { headers: supaHeaders() });
-      if (r.ok) rows = await r.json();
+    } catch(e1) {}
+    // Try 2: supabase-js (uses its own session)
+    if (!rows.length) {
+      try {
+        const { data: sbData } = await supabase.from('clients').select('data');
+        if (sbData && sbData.length) rows = sbData;
+      } catch(e2) {}
     }
     if (!rows || !rows.length) throw new Error('Could not load data');
     const allClients = rows.map(function(row) { return row.data; }).filter(Boolean);
