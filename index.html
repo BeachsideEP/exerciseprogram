@@ -1157,6 +1157,68 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .cv-rpe-labels { display:flex;justify-content:space-between;margin-top:8px;font-size:18px; }
 .cv-rpe-val { text-align:center;margin-top:8px;font-size:13px;font-weight:700;color:#2FD4F5; }
 
+
+/* Exercise card - white card style */
+.cv-ex-card {
+  background: #FFFFFF;
+  border-radius: 14px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(28,43,53,.10);
+}
+.cv-ex-card-hdr {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  background: #FFFFFF;
+}
+.cv-ex-card-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #F5F5F5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cv-ex-card-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
+.cv-ex-card-thumb svg { width: 40px; height: 40px; }
+.cv-ex-card-info { flex: 1; min-width: 0; }
+.cv-ex-card-name { font-size: 15px; font-weight: 700; color: #1A2530; line-height: 1.3; }
+.cv-ex-card-params { font-size: 13px; color: #7A95A5; margin-top: 2px; }
+.cv-ex-card-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.cv-ex-card-body { padding: 0 14px 14px; border-top: 1px solid #F0F0F0; }
+
+/* Exercise detail overlay */
+.cv-ex-detail {
+  position: fixed;
+  inset: 0;
+  background: #FFFFFF;
+  z-index: 800;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.cv-ex-detail-video {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #1A2530;
+  position: relative;
+  overflow: hidden;
+}
+.cv-ex-detail-video img { width: 100%; height: 100%; object-fit: cover; }
+.cv-ex-detail-video iframe { width: 100%; height: 100%; border: none; }
+.cv-ex-detail-content { padding: 20px 16px; }
+.cv-ex-detail-title { font-size: 22px; font-weight: 800; color: #1A2530; margin-bottom: 14px; }
+.cv-ex-detail-desc { font-size: 15px; color: #3A5060; line-height: 1.7; margin-bottom: 20px; }
+.cv-ex-history-title { font-size: 12px; font-weight: 700; color: #7A95A5; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; border-top: 1px solid #F0F0F0; padding-top: 16px; }
+.cv-ex-pb { background: #F0FDF9; border: 1px solid #5BBFAA; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; }
+.cv-ex-pb-label { font-size: 10px; font-weight: 700; color: #5BBFAA; text-transform: uppercase; }
+.cv-ex-pb-val { font-size: 20px; font-weight: 800; color: #1A2530; }
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -3835,25 +3897,37 @@ function renderCV() {
     const isOpen = true; // always open
 
     h += '<div class="cv-ex-card' + (allDone ? ' done' : '') + '">';
-    h += '<div class="cv-ex-hdr">';
-    // Overall done indicator (auto-set when all sets ticked)
-    h += '<div class="cv-check' + (allDone ? ' on' : '') + '">';
+    // White card header - thumbnail + name clickable to open detail
+    var thumbHTML = getExIllusStr(ex);
+    var paramsStr = sets + ' sets';
+    if (ex.reps) paramsStr += ' × ' + String(ex.reps).replace(/ ?each ?/gi,'').replace(/ ?each side ?/gi,'');
+    if (ex.hold) paramsStr += ' · hold';
+    h += '<div class="cv-ex-card">';
+    // Card header - clickable to open detail
+    h += '<div class="cv-ex-card-hdr" onclick="cvOpenExDetail(' + i + ')">';
+    // Completion circle
+    h += '<div style="width:28px;height:28px;border-radius:50%;border:2.5px solid ' + (allDone ? '#5BBFAA' : '#E0E0E0') + ';background:' + (allDone ? '#5BBFAA' : 'transparent') + ';flex-shrink:0;display:flex;align-items:center;justify-content:center">';
     if (allDone) h += '<svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" width="12" height="12"><polyline points="2,6 5,9 10,3"/></svg>';
     h += '</div>';
-    h += '<div class="cv-ex-thumb">' + getExIllusStr(ex) + '</div>';
-    h += '<div style="flex:1;min-width:0"><div class="cv-ex-name">' + ex.name + (ex.substitutedFor ? ' <span style="font-size:9px;background:var(--ocean-pale);color:var(--ocean);padding:1px 5px;border-radius:10px;font-weight:600">sub</span>' : '') + '</div>';
-    h += '<div class="cv-ex-params">' + sets + ' sets';
-    if (ex.reps) h += ' &times; ' + String(ex.reps).replace(/ ?each ?/gi,'').replace(/ ?each side ?/gi,'');
-    if (ex.load) h += ' &middot; ' + ex.load;
-    if (ex.hold) h += ' &middot; ' + String(ex.hold).replace(/ ?each ?side ?/gi,'').replace(/ ?each ?/gi,'') + ' hold';
-    h += (tickedSets > 0 ? ' <strong style="color:var(--teal)">' + tickedSets + '/' + sets + ' done</strong>' : '') + '</div>';
+    // Thumbnail
+    h += '<div class="cv-ex-card-thumb">' + thumbHTML + '</div>';
+    // Info
+    h += '<div class="cv-ex-card-info">';
+    h += '<div class="cv-ex-card-name">' + ex.name + (ex.substitutedFor ? ' <span style="font-size:9px;background:#E8F4FB;color:#1A7BA4;padding:1px 5px;border-radius:10px;font-weight:600">sub</span>' : '') + '</div>';
+    h += '<div class="cv-ex-card-params">' + paramsStr;
+    if (tickedSets > 0) h += ' <span style="color:#5BBFAA;font-weight:700">' + tickedSets + '/' + sets + '</span>';
     h += '</div>';
-    h += '<div class="cv-chevron">' + (isOpen ? '&#9650;' : '&#9660;') + '</div>';
     h += '</div>';
+    // Substitute + menu icons
+    h += '<div class="cv-ex-card-actions">';
+    h += '<button onclick="event.stopPropagation();cvStartSub(' + i + ')" style="background:none;border:none;color:#7A95A5;font-size:18px;cursor:pointer;padding:4px" title="Substitute">&#8635;</button>';
+    h += '</div>';
+    h += '</div>'; // end card-hdr
+    // Card body (set table etc)
+    h += '<div class="cv-ex-card-body">';
 
     if (isOpen) {
-      h += '<div class="cv-ex-body">';
-      if (ex.desc) h += '<div class="cv-ex-desc">' + ex.desc + '</div>';
+      if (ex.desc) h += '<div class="cv-ex-desc" style="font-size:13px;color:#5A7080;margin-bottom:12px;line-height:1.6">' + ex.desc + '</div>';
       if (ex.notes) h += '<div style="font-size:10px;color:var(--ocean);margin-bottom:10px;font-style:italic">&#128203; ' + ex.notes + '</div>';
       // YouTube video button — check customExercises FIRST (overrides), then ALL_EXERCISES
       var exVideoUrl = ex.videoUrl || '';
@@ -3949,9 +4023,9 @@ function renderCV() {
       } else {
         h += '<button class="cv-sub-btn" onclick="cvStartSub(' + i + ')">&#8635; Can\'t do this exercise? Substitute</button>';
       }
-      h += '</div>';
+      h += '</div>'; // end cv-ex-card-body
     }
-    h += '</div>';
+    h += '</div>'; // end cv-ex-card
   });
   if (_ssOpen) { h += '</div>'; } // close any open superset group
 
@@ -8375,6 +8449,127 @@ function fallbackCopyNotes(text) {
     toast('Could not copy — try selecting manually', 'err');
   }
   document.body.removeChild(ta);
+}
+
+
+// ════════════════════════════════════════════════════
+// EXERCISE DETAIL OVERLAY
+// ════════════════════════════════════════════════════
+function cvOpenExDetail(exIdx) {
+  var prog = cvData && cvData.programs && cvData.programs[cvProgIdx];
+  if (!prog) return;
+  var ex = prog.exercises[exIdx];
+  if (!ex) return;
+
+  // Remove existing overlay
+  var existing = document.getElementById('cvExDetailOverlay');
+  if (existing) existing.remove();
+
+  // Get YouTube video ID
+  var videoId = '';
+  if (ex.video) {
+    var m = ex.video.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
+    if (m) videoId = m[1];
+  }
+
+  // Get thumbnail URL
+  var thumbSrc = '';
+  if (videoId) thumbSrc = 'https://img.youtube.com/vi/' + videoId + '/hqdefault.jpg';
+
+  // Build session history for this exercise
+  var history = [];
+  (prog.log || []).forEach(function(entry) {
+    if (!entry.clientSubmitted) return;
+    var date = (entry.date || '').split(',')[0].trim();
+    var sets = [];
+    (entry.text || '').split('|').forEach(function(part) {
+      part = part.trim();
+      var m2 = part.match(/^(.+?)\s*\[(.+?)\]$/);
+      if (m2 && m2[1].trim().toLowerCase() === ex.name.toLowerCase()) {
+        sets.push(m2[2]);
+      }
+    });
+    if (sets.length) history.push({ date: date, sets: sets, prog: prog.title || 'Program' });
+  });
+  history = history.slice(-6).reverse(); // last 6 sessions, newest first
+
+  // Calculate estimated 1RM (Epley formula) from best set
+  var best1RM = null;
+  history.forEach(function(h) {
+    h.sets.forEach(function(s) {
+      var repsM = s.match(/(\d+)\s*reps?/i);
+      var loadM = s.match(/([\d.]+)\s*kg/i);
+      if (repsM && loadM) {
+        var r = parseInt(repsM[1]), w = parseFloat(loadM[1]);
+        var rm = w * (1 + r/30);
+        if (!best1RM || rm > best1RM) best1RM = rm;
+      }
+    });
+  });
+
+  var overlay = document.createElement('div');
+  overlay.className = 'cv-ex-detail';
+  overlay.id = 'cvExDetailOverlay';
+
+  var videoHTML = '';
+  if (videoId) {
+    videoHTML = '<div class="cv-ex-detail-video" onclick="cvPlayExVideo(\'' + videoId + '\')">' +
+      '<img src="' + thumbSrc + '" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'">' +
+      '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">' +
+        '<div style="width:60px;height:60px;background:rgba(255,0,0,.9);border-radius:50%;display:flex;align-items:center;justify-content:center">' +
+          '<svg viewBox="0 0 24 24" fill="white" width="28" height="28"><polygon points="8,5 19,12 8,19"/></svg>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  var histHTML = '';
+  if (history.length) {
+    histHTML += '<div class="cv-ex-history-title">Session History</div>';
+    if (best1RM) {
+      histHTML += '<div class="cv-ex-pb"><div class="cv-ex-pb-label">Personal Best To Beat</div>' +
+        '<div style="display:flex;align-items:baseline;gap:4px"><span style="font-size:13px;color:#7A95A5">Estimated 1 rep max</span></div>' +
+        '<div class="cv-ex-pb-val">' + best1RM.toFixed(1) + '<span style="font-size:13px;font-weight:400;color:#7A95A5"> kg</span></div>' +
+      '</div>';
+    }
+    history.forEach(function(h) {
+      histHTML += '<div style="margin-bottom:14px">';
+      histHTML += '<div style="display:flex;justify-content:space-between;margin-bottom:6px">';
+      histHTML += '<span style="font-size:13px;font-weight:600;color:#1A2530">' + h.prog + '</span>';
+      histHTML += '<span style="font-size:12px;color:#7A95A5">' + h.date + '</span>';
+      histHTML += '</div>';
+      h.sets.forEach(function(s, si) {
+        histHTML += '<div style="display:flex;gap:12px;padding:4px 0;border-bottom:1px solid #F5F5F5">';
+        histHTML += '<span style="font-size:13px;color:#7A95A5;min-width:48px">Set ' + (si+1) + '</span>';
+        histHTML += '<span style="font-size:13px;color:#1A2530">' + s.replace(/\d+ sets:/,'').trim() + '</span>';
+        histHTML += '</div>';
+      });
+      histHTML += '</div>';
+    });
+  }
+
+  overlay.innerHTML =
+    // Back button
+    '<div style="position:sticky;top:0;background:#FFFFFF;z-index:10;padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #F0F0F0">' +
+      '<button onclick="document.getElementById(\'cvExDetailOverlay\').remove()" style="background:none;border:none;font-size:22px;color:#1A2530;cursor:pointer;padding:4px;line-height:1">&#8249;</button>' +
+      '<div style="font-size:15px;font-weight:700;color:#1A2530;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + ex.name + '</div>' +
+    '</div>' +
+    videoHTML +
+    '<div class="cv-ex-detail-content">' +
+      '<div class="cv-ex-detail-title">' + ex.name + '</div>' +
+      (ex.desc ? '<div class="cv-ex-detail-desc">' + ex.desc.replace(/\d+\)/g, '<br><strong>$&</strong>') + '</div>' : '') +
+      (ex.notes ? '<div style="background:#F0F8FF;border-left:3px solid #1A7BA4;padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:16px;font-size:13px;color:#1A2530">' + ex.notes + '</div>' : '') +
+      histHTML +
+    '</div>';
+
+  document.body.appendChild(overlay);
+  overlay.scrollTop = 0;
+}
+
+function cvPlayExVideo(videoId) {
+  var container = document.querySelector('.cv-ex-detail-video');
+  if (!container) return;
+  container.innerHTML = '<iframe src="https://www.youtube.com/embed/' + videoId + '?autoplay=1" frameborder="0" allow="autoplay;encrypted-media" allowfullscreen style="width:100%;height:100%;border:none"></iframe>';
 }
 
 </script>
