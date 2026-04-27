@@ -1160,11 +1160,11 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 
 /* Exercise card - white card style */
 .cv-ex-card {
-  background: #FFFFFF;
+  background: #12181D;
   border-radius: 14px;
   margin-bottom: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(28,43,53,.10);
+  border: 1px solid #1F2A33;
 }
 .cv-ex-card-hdr {
   display: flex;
@@ -1172,7 +1172,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   gap: 12px;
   padding: 12px 14px;
   cursor: pointer;
-  background: #FFFFFF;
+  background: #12181D;
 }
 .cv-ex-card-thumb {
   width: 64px;
@@ -1188,16 +1188,16 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .cv-ex-card-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
 .cv-ex-card-thumb svg { width: 40px; height: 40px; }
 .cv-ex-card-info { flex: 1; min-width: 0; }
-.cv-ex-card-name { font-size: 15px; font-weight: 700; color: #1A2530; line-height: 1.3; }
-.cv-ex-card-params { font-size: 13px; color: #7A95A5; margin-top: 2px; }
+.cv-ex-card-name { font-size: 15px; font-weight: 700; color: #FFFFFF; line-height: 1.3; }
+.cv-ex-card-params { font-size: 13px; color: #8B949E; margin-top: 2px; }
 .cv-ex-card-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
-.cv-ex-card-body { padding: 0 14px 14px; border-top: 1px solid #F0F0F0; }
+.cv-ex-card-body { padding: 0 14px 14px; border-top: 1px solid #1F2A33; }
 
 /* Exercise detail overlay */
 .cv-ex-detail {
   position: fixed;
   inset: 0;
-  background: #FFFFFF;
+  background: #0B0F12;
   z-index: 800;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -1212,12 +1212,12 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .cv-ex-detail-video img { width: 100%; height: 100%; object-fit: cover; }
 .cv-ex-detail-video iframe { width: 100%; height: 100%; border: none; }
 .cv-ex-detail-content { padding: 20px 16px; }
-.cv-ex-detail-title { font-size: 22px; font-weight: 800; color: #1A2530; margin-bottom: 14px; }
-.cv-ex-detail-desc { font-size: 15px; color: #3A5060; line-height: 1.7; margin-bottom: 20px; }
-.cv-ex-history-title { font-size: 12px; font-weight: 700; color: #7A95A5; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; border-top: 1px solid #F0F0F0; padding-top: 16px; }
-.cv-ex-pb { background: #F0FDF9; border: 1px solid #5BBFAA; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; }
+.cv-ex-detail-title { font-size: 22px; font-weight: 800; color: #FFFFFF; margin-bottom: 14px; }
+.cv-ex-detail-desc { font-size: 15px; color: #C9D1D9; line-height: 1.7; margin-bottom: 20px; }
+.cv-ex-history-title { font-size: 12px; font-weight: 700; color: #8B949E; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; border-top: 1px solid #1F2A33; padding-top: 16px; }
+.cv-ex-pb { background: rgba(91,191,170,.1); border: 1px solid #5BBFAA; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; }
 .cv-ex-pb-label { font-size: 10px; font-weight: 700; color: #5BBFAA; text-transform: uppercase; }
-.cv-ex-pb-val { font-size: 20px; font-weight: 800; color: #1A2530; }
+.cv-ex-pb-val { font-size: 20px; font-weight: 800; color: #FFFFFF; }
 
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -3905,10 +3905,7 @@ function renderCV() {
     h += '<div class="cv-ex-card">';
     // Card header - clickable to open detail
     h += '<div class="cv-ex-card-hdr" onclick="cvOpenExDetail(' + i + ')">';
-    // Completion circle
-    h += '<div style="width:28px;height:28px;border-radius:50%;border:2.5px solid ' + (allDone ? '#5BBFAA' : '#E0E0E0') + ';background:' + (allDone ? '#5BBFAA' : 'transparent') + ';flex-shrink:0;display:flex;align-items:center;justify-content:center">';
-    if (allDone) h += '<svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" width="12" height="12"><polyline points="2,6 5,9 10,3"/></svg>';
-    h += '</div>';
+
     // Thumbnail
     h += '<div class="cv-ex-card-thumb">' + thumbHTML + '</div>';
     // Info
@@ -3927,7 +3924,7 @@ function renderCV() {
     h += '<div class="cv-ex-card-body">';
 
     if (isOpen) {
-      if (ex.desc) h += '<div class="cv-ex-desc" style="font-size:13px;color:#5A7080;margin-bottom:12px;line-height:1.6">' + ex.desc + '</div>';
+
       if (ex.notes) h += '<div style="font-size:10px;color:var(--ocean);margin-bottom:10px;font-style:italic">&#128203; ' + ex.notes + '</div>';
       // YouTube video button — check customExercises FIRST (overrides), then ALL_EXERCISES
       var exVideoUrl = ex.videoUrl || '';
@@ -4020,11 +4017,9 @@ function renderCV() {
         h += '<div class="cv-sub-list" id="cvSubList' + i + '">' + cvSubListHTML(i, '') + '</div>';
         h += '<div class="cv-sub-cancel" onclick="cvCancelSub(' + i + ')">Cancel</div>';
         h += '</div>';
-      } else {
-        h += '<button class="cv-sub-btn" onclick="cvStartSub(' + i + ')">&#8635; Can\'t do this exercise? Substitute</button>';
-      }
+      } // end st.subbing
       h += '</div>'; // end cv-ex-card-body
-    }
+    } // end isOpen
     h += '</div>'; // end cv-ex-card
   });
   if (_ssOpen) { h += '</div>'; } // close any open superset group
@@ -8484,11 +8479,22 @@ function cvOpenExDetail(exIdx) {
     var sets = [];
     (entry.text || '').split('|').forEach(function(part) {
       part = part.trim();
+      // Match: "Exercise Name [3 sets: 12 reps @ 20kg]" or "Exercise Name [12 reps x 20kg]"
       var m2 = part.match(/^(.+?)\s*\[(.+?)\]$/);
       if (m2 && m2[1].trim().toLowerCase() === ex.name.toLowerCase()) {
         sets.push(m2[2]);
       }
     });
+    // Fallback: check if exercise name appears anywhere in the line
+    if (!sets.length) {
+      (entry.text || '').split('|').forEach(function(part) {
+        part = part.trim();
+        if (part.toLowerCase().indexOf(ex.name.toLowerCase()) === 0) {
+          var bracketMatch = part.match(/\[([^\]]+)\]/);
+          if (bracketMatch) sets.push(bracketMatch[1]);
+        }
+      });
+    }
     if (sets.length) history.push({ date: date, sets: sets, prog: prog.title || 'Program' });
   });
   history = history.slice(-6).reverse(); // last 6 sessions, newest first
