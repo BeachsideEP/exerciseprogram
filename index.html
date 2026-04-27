@@ -588,7 +588,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .cv-wtype.sel{border-color:var(--teal);background:var(--teal);color:#fff}
 
 /* CONGRATS OVERLAY */
-.cv-congrats{position:fixed;inset:0;background:linear-gradient(135deg,rgba(13,61,82,.97),rgba(26,123,164,.95));z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.cv-congrats{position:fixed;inset:0;overflow-y:auto;background:linear-gradient(135deg,rgba(13,61,82,.97),rgba(26,123,164,.95));z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .cv-congrats-emoji{font-size:90px;margin-bottom:20px;animation:cv-bounce .6s ease}
 .cv-congrats-title{font-size:32px;font-weight:800;color:#fff;margin-bottom:10px;font-family:Georgia,serif}
 .cv-congrats-sub{font-size:15px;color:rgba(255,255,255,.75);margin-bottom:28px;line-height:1.5;max-width:280px}
@@ -1157,6 +1157,57 @@ body.prac-dark .prog-tab.active { background: #2FD4F5 !important; color: #0B0F12
 body.prac-dark .client-row { background: #12181D !important; border-color: #1F2A33 !important; }
 body.prac-dark .log-entry { background: #12181D !important; border-color: #1F2A33 !important; }
 
+
+/* Achievement badges slider */
+.cv-achievements { overflow-x:auto; display:flex; gap:10px; padding:4px 0 10px; scrollbar-width:none; }
+.cv-achievements::-webkit-scrollbar { display:none; }
+.cv-badge-card { flex-shrink:0; width:100px; background:#12181D; border:1.5px solid #1F2A33; border-radius:12px; padding:12px 8px; text-align:center; }
+.cv-badge-card.earned { border-color:#2FD4F5; background:rgba(47,212,245,.08); }
+.cv-badge-card.locked { opacity:0.4; }
+.cv-badge-icon { font-size:28px; margin-bottom:6px; }
+.cv-badge-name { font-size:10px; font-weight:700; color:#C9D1D9; line-height:1.3; }
+.cv-badge-card.locked .cv-badge-name { color:#8B949E; }
+
+
+/* Weekly summary card */
+.cv-weekly-summary { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:600; display:flex; align-items:center; justify-content:center; padding:20px; }
+.cv-weekly-inner { background:#12181D; border-radius:16px; padding:24px; max-width:360px; width:100%; border:1.5px solid #1F2A33; position:relative; max-height:85vh; overflow-y:auto; }
+
+
+/* Session timer bar */
+.cv-session-timer {
+  position: fixed;
+  bottom: 64px; /* above tab bar */
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0D1A24;
+  border: 1.5px solid #1F2A33;
+  border-radius: 20px;
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #8B949E;
+  z-index: 200;
+  box-shadow: 0 4px 16px rgba(0,0,0,.3);
+  pointer-events: none;
+}
+.cv-session-timer.active { color: #2FD4F5; border-color: #2FD4F5; }
+.cv-session-timer-dot { width: 7px; height: 7px; border-radius: 50%; background: #8B949E; }
+.cv-session-timer.active .cv-session-timer-dot { background: #2FD4F5; animation: pulse-dot 1.5s infinite; }
+@keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+
+/* RPE Slider */
+.cv-rpe-wrap { margin-bottom:14px; }
+.cv-rpe-title { font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px; }
+.cv-rpe-slider { -webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer; }
+.cv-rpe-slider::-webkit-slider-thumb { -webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:#2FD4F5;cursor:pointer;box-shadow:0 2px 8px rgba(47,212,245,.4); }
+.cv-rpe-labels { display:flex;justify-content:space-between;margin-top:8px;font-size:18px; }
+.cv-rpe-val { text-align:center;margin-top:8px;font-size:13px;font-weight:700;color:#2FD4F5; }
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -1237,6 +1288,13 @@ body.prac-dark .log-entry { background: #12181D !important; border-color: #1F2A3
     <div id="hrChartWrap"></div>
     <div class="hr-entries" id="hrEntries"></div>
   </div>
+</div>
+
+
+<!-- SESSION TIMER -->
+<div id="cvSessionTimer" class="cv-session-timer" style="display:none">
+  <div class="cv-session-timer-dot"></div>
+  <span id="cvTimerDisplay">0:00</span>
 </div>
 
   <div id="cvTabHome" style="display:block">
@@ -3634,7 +3692,7 @@ async function syncClients() {
 }
 
 // ── CLIENT VIEW ──
-let cvData = null, cvProgIdx = 0, cvState = {}, cvFeeling = '', cvSafetyDone = false, cvComment = '', cvCustomWorkout = false, cvCustomExercises = [];
+let cvData = null, cvProgIdx = 0, cvState = {}, cvFeeling = '', cvSafetyDone = false, cvComment = '', cvCustomWorkout = false, cvCustomExercises = [], cvRPE = 5;
 
 async function loadClientView(user) {
   // Show loading state in home tab
@@ -3891,7 +3949,22 @@ function renderCV() {
 
   // ── Session feel + submit ──
   h += '<div class="cv-session">';
-  h += '<div class="cv-session-title">How did the overall session feel?</div>';
+
+  // RPE Slider
+  var rpeEmojis = ['😴', '😐', '🙂', '😤', '😅', '💪', '🔥', '😰', '🥵', '💀'];
+  var rpeLabels = ['Very Light', 'Light', 'Somewhat Light', 'Moderate', 'Somewhat Hard', 'Hard', 'Very Hard', 'Extremely Hard', 'Max Effort', 'All Out'];
+  var rpeIdx = Math.max(0, Math.min(9, (cvRPE || 5) - 1));
+  var rpeGradient = 'linear-gradient(to right, #2FD4F5 0%, #2FD4F5 ' + (rpeIdx / 9 * 100) + '%, #1F2A33 ' + (rpeIdx / 9 * 100) + '%, #1F2A33 100%)';
+  h += '<div class="cv-rpe-wrap">';
+  h += '<div class="cv-rpe-title">How hard was that? <span style="font-size:10px;font-weight:400;color:var(--text-light)">(RPE 1–10)</span></div>';
+  h += '<input type="range" min="1" max="10" value="' + (cvRPE||5) + '" class="cv-rpe-slider" style="background:' + rpeGradient + '" oninput="cvRPE=parseInt(this.value);var g=\'linear-gradient(to right,#2FD4F5 0%,#2FD4F5 \'+((this.value-1)/9*100)+\'%,#1F2A33 \'+((this.value-1)/9*100)+\'%,#1F2A33 100%)\';this.style.background=g;document.getElementById(\'cvRPEVal\').textContent=this.value+\' – \'+' + JSON.stringify(rpeLabels) + '[this.value-1];document.getElementById(\'cvRPEEmoji\').textContent=' + JSON.stringify(rpeEmojis) + '[this.value-1]">';
+  h += '<div class="cv-rpe-labels">';
+  rpeEmojis.forEach(function(e) { h += '<span>' + e + '</span>'; });
+  h += '</div>';
+  h += '<div class="cv-rpe-val"><span id="cvRPEEmoji">' + rpeEmojis[rpeIdx] + '</span> <span id="cvRPEVal">' + (cvRPE||5) + ' – ' + rpeLabels[rpeIdx] + '</span></div>';
+  h += '</div>';
+
+  h += '<div class="cv-session-title" style="margin-top:4px">How did the overall session feel?</div>';
   h += '<div class="cv-feel-row">';
   ['Hard', 'Good', 'Easy', 'Pain', 'Great'].forEach(function(f) {
     h += '<div class="cv-feel' + (cvFeeling === f ? ' sel' : '') + '" onclick="cvFeeling=\'' + f + '\';renderCV()">' + f + '</div>';
@@ -4075,6 +4148,8 @@ function cvSavePreSession() {
 }
 
 async function cvSubmit() {
+  var _sessionDuration = cvGetTimerDuration();
+  cvStopTimer();
   const prog = cvData.programs[cvProgIdx];
   const exs = prog.exercises || [];
 
@@ -4126,6 +4201,7 @@ async function cvSubmit() {
   lines.push(doneCount + '/' + exs.length + ' exercises completed');
   lines = lines.concat(exLines);
   if (cvComment && cvComment.trim()) lines.push('Client comment: "' + cvComment.trim() + '"');
+  if (cvRPE) lines.push('RPE: ' + cvRPE + '/10');
   const logText = lines.join(' | ');
 
   if (!prog.log) prog.log = [];
@@ -4186,8 +4262,8 @@ async function cvSubmit() {
     });
     if (!_sr.ok) { const _st = await _sr.text(); toast('Save error ' + _sr.status + ': ' + _st.slice(0,80), 'err'); }
     cvLastSync = 0; // Force next sync to refresh
-    cvState = {}; cvFeeling = ''; cvComment = ''; cvSafetyDone = false;
-    showCVCongrats(cvData.first, false);
+    cvState = {}; cvFeeling = ''; cvComment = ''; cvSafetyDone = false; cvRPE = 5;
+    showCVCongrats(cvData.first, false, detectPBs(prog));
     cvSwitchTab('home');
   } catch (e) {
     cvState = {}; cvFeeling = ''; cvComment = ''; cvSafetyDone = false;
@@ -5738,8 +5814,8 @@ function cvSwitchTab(tab) {
   // Note: congrats overlay is removed by cvGoHome() only, not on tab switch
   // Light sync on tab switch if data is stale (>60s)
   if (cvSyncUser && Date.now() - cvLastSync > 60000) cvSilentSync();
-  if (tab === 'home') renderCVHome();
-  if (tab === 'workouts') renderCV();
+  if (tab === 'home') { renderCVHome(); if (_cvTimerStart) cvStopTimer(); }
+  if (tab === 'workouts') { renderCV(); cvStartTimer(); }
   if (tab === 'calendar') renderCVCalendar();
   if (tab === 'ai') renderAnnaTab();
 }
@@ -5914,7 +5990,16 @@ function renderCVHome() {
     }
     h += '</div>';
 
+    // ── Achievements slider ──
+    var earnedCount = calcAchievements(allLog, ownW, streak).filter(function(b){return b.earned;}).length;
+    h += '<div style="padding:0 16px 16px">';
+    h += '<div style="font-size:11px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">&#127942; Achievements <span style="color:#2FD4F5;font-weight:800">' + earnedCount + '</span></div>';
+    h += achievementBadgesHTML(allLog, ownW, streak);
+    h += '</div>';
+
     el.innerHTML = h;
+    // Check weekly summary (Mondays only)
+    setTimeout(function() { checkWeeklySummary(allLog, ownW, cvHealthData); }, 800);
     // Apply dark theme to dynamically generated cards
     el.querySelectorAll('[style*="background:#fff"]').forEach(function(card) {
       card.style.background = '#12181D';
@@ -6011,22 +6096,53 @@ function cvLogHealth(inputId, metric) {
 }
 
 // ── CONGRATS OVERLAY ──
-function showCVCongrats(name, ownWorkout) {
+function showCVCongrats(name, ownWorkout, pbList) {
   var emojis = ['&#129305;','&#127881;','&#127942;','&#128170;','&#9889;'];
   var emoji = emojis[Math.floor(Math.random() * emojis.length)];
   var titles = ['High Five!', 'Crushed it!', 'Amazing work!', 'You legend!', 'Keep it up!'];
   var title = titles[Math.floor(Math.random() * titles.length)];
   var sub = ownWorkout ? 'Workout logged. Every session counts!' : 'Session submitted. Your clinician will be proud!';
+
+  // PB section
+  var pbHTML = '';
+  if (pbList && pbList.length) {
+    pbHTML = '<div style="margin:14px 0 0;background:rgba(47,212,245,.12);border:1.5px solid #2FD4F5;border-radius:12px;padding:12px 14px;text-align:left">' +
+      '<div style="font-size:12px;font-weight:700;color:#2FD4F5;margin-bottom:6px">&#127942; New Personal Best' + (pbList.length > 1 ? 's' : '') + '!</div>' +
+      pbList.map(function(pb) {
+        return '<div style="font-size:13px;color:#FFFFFF;margin-bottom:3px">&#10024; ' + pb + '</div>';
+      }).join('') +
+    '</div>';
+  }
+
   var overlay = document.createElement('div');
   overlay.className = 'cv-congrats';
   overlay.id = 'cvCongratsOverlay';
-  overlay.innerHTML = '<div class="cv-congrats-emoji">' + emoji + '</div>' +
+  overlay.innerHTML =
+    '<button onclick="cvGoHome()" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">&#215;</button>' +
+    '<div class="cv-congrats-emoji">' + emoji + '</div>' +
     '<div class="cv-congrats-title">' + title + '</div>' +
     '<div class="cv-congrats-sub">' + sub + '</div>' +
-    '<button class="cv-congrats-btn" onclick="cvGoHome()">Thanks!</button>';
-  document.body.appendChild(overlay); // append to body so it's always on top
-  // Auto-dismiss after 3.5 seconds
-  setTimeout(function() { cvGoHome(); }, 3500);
+    pbHTML +
+    '<button class="cv-congrats-btn" onclick="cvGoHome()" style="margin-top:16px">Thanks!</button>';
+  overlay.style.position = 'relative';
+  document.body.appendChild(overlay);
+  // NO auto-dismiss - user must press X or Thanks
+}
+
+function detectPBs(prog) {
+  // Check if any exercise in this session beat previous best load
+  var pbs = [];
+  (prog.exercises || []).forEach(function(ex, i) {
+    var st = cvState[i] || {};
+    var loads = (st.setLoads || []).map(function(v) { return parseFloat(v); }).filter(function(v) { return !isNaN(v) && v > 0; });
+    if (!loads.length) return;
+    var maxThisSession = Math.max.apply(null, loads);
+    var prevBest = parseFloat(ex.lastLoad);
+    if (maxThisSession > (prevBest || 0)) {
+      pbs.push(ex.name + ' — ' + maxThisSession + 'kg');
+    }
+  });
+  return pbs;
 }
 
 // ── CALENDAR ──
@@ -6265,7 +6381,7 @@ function cvSaveOwnWorkout() {
   localStorage.setItem('cv_own_workouts_' + cvData.id, JSON.stringify(cvOwnWorkouts));
   window._cvSelectedWType = '';
   cvHideWorkoutModal();
-  showCVCongrats(cvData.first, true);
+  showCVCongrats(cvData.first, true, []);
   setTimeout(function() { cvSwitchTab('home'); }, 1500);
 }
 
@@ -7975,6 +8091,167 @@ function initPracDark() {
     var btn = document.getElementById('darkModeBtn');
     if (btn) btn.textContent = '☀️';
   }
+}
+
+
+function calcAchievements(allLog, ownW, streak) {
+  var totalSessions = allLog.length + ownW.length;
+  var BADGES = [
+    { id:'first',    icon:'&#127942;', name:'First Session',    desc:'Complete your first session',       earned: totalSessions >= 1 },
+    { id:'s5',       icon:'&#128293;', name:'5 Sessions',       desc:'Complete 5 sessions',               earned: totalSessions >= 5 },
+    { id:'s10',      icon:'&#11088;',  name:'10 Sessions',      desc:'Complete 10 sessions',              earned: totalSessions >= 10 },
+    { id:'s25',      icon:'&#127941;', name:'25 Sessions',      desc:'Complete 25 sessions',              earned: totalSessions >= 25 },
+    { id:'s50',      icon:'&#129354;', name:'50 Sessions',      desc:'Complete 50 sessions',              earned: totalSessions >= 50 },
+    { id:'streak3',  icon:'&#9889;',   name:'3-Day Streak',     desc:'3 days in a row',                   earned: streak >= 3 },
+    { id:'streak7',  icon:'&#128171;', name:'7-Day Streak',     desc:'7 days in a row',                   earned: streak >= 7 },
+    { id:'streak14', icon:'&#129299;', name:'14-Day Streak',    desc:'14 days in a row',                  earned: streak >= 14 },
+    { id:'own1',     icon:'&#128170;', name:'Solo Warrior',     desc:'Log your first own workout',        earned: ownW.length >= 1 },
+    { id:'own5',     icon:'&#127947;', name:'Self Starter',     desc:'Log 5 of your own workouts',       earned: ownW.length >= 5 },
+  ];
+  return BADGES;
+}
+
+function achievementBadgesHTML(allLog, ownW, streak) {
+  var badges = calcAchievements(allLog, ownW, streak);
+  // Sort: earned first
+  badges.sort(function(a,b) { return (b.earned ? 1 : 0) - (a.earned ? 1 : 0); });
+  return '<div class="cv-achievements">' +
+    badges.map(function(b) {
+      return '<div class="cv-badge-card ' + (b.earned ? 'earned' : 'locked') + '" title="' + b.desc + '">' +
+        '<div class="cv-badge-icon">' + b.icon + '</div>' +
+        '<div class="cv-badge-name">' + b.name + '</div>' +
+      '</div>';
+    }).join('') +
+  '</div>';
+}
+
+
+// ════════════════════════════════════════════════════
+// WEEKLY SUMMARY
+// ════════════════════════════════════════════════════
+function checkWeeklySummary(allLog, ownW, cvHealthDataLocal) {
+  var today = new Date();
+  // Only show on Mondays
+  if (today.getDay() !== 1) return;
+
+  // Check if already shown this week
+  var weekKey = today.getFullYear() + '-W' + getISOWeek(today);
+  var shown = localStorage.getItem('cv_weekly_shown_' + cvData.id);
+  if (shown === weekKey) return;
+
+  // Calculate last week stats
+  var lastMonday = new Date(today); lastMonday.setDate(today.getDate() - 7); lastMonday.setHours(0,0,0,0);
+  var lastSunday = new Date(today); lastSunday.setDate(today.getDate() - 1); lastSunday.setHours(23,59,59,999);
+
+  function normD(str) {
+    if (!str) return null;
+    var s = String(str).split(',')[0].trim();
+    var MONTHS = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+    var parts = s.replace(/\./g,'').split(/[\s\/\-]+/).filter(Boolean);
+    var d, m, y;
+    if (parts.length >= 3 && isNaN(parts[1])) {
+      d = parseInt(parts[0]); m = MONTHS[parts[1].toLowerCase().slice(0,3)]; y = parseInt(parts[2]);
+    } else if (parts.length >= 3 && parts[0].length <= 2) {
+      d = parseInt(parts[0]); m = parseInt(parts[1])-1; y = parseInt(parts[2]);
+    }
+    if (isNaN(d)||isNaN(m)||isNaN(y)||m===undefined) return null;
+    return new Date(y, m, d);
+  }
+
+  var lastWeekSessions = allLog.concat(ownW).filter(function(e) {
+    var d = normD(e.date);
+    return d && d >= lastMonday && d <= lastSunday;
+  }).length;
+
+  if (lastWeekSessions === 0) return; // nothing to report
+
+  // Health trends
+  var health = cvHealthDataLocal || {};
+  var lastWt = (health.weight || []).slice(-1)[0];
+  var lastBP = (health.bp || []).slice(-1)[0];
+
+  // Motivational messages based on sessions
+  var messages = [
+    'Every rep counts. Keep showing up!',
+    'Consistency is the key to results.',
+    'You\'re building habits that last a lifetime.',
+    'Progress is progress, no matter how small.',
+    'Your future self will thank you for this.'
+  ];
+  var msg = messages[Math.floor(Math.random() * messages.length)];
+
+  var sessionWord = lastWeekSessions === 1 ? 'session' : 'sessions';
+
+  var el = document.createElement('div');
+  el.className = 'cv-weekly-summary';
+  el.id = 'cvWeeklySummary';
+  el.innerHTML =
+    '<div class="cv-weekly-inner">' +
+      '<button onclick="document.getElementById(\'cvWeeklySummary\').remove()" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.1);border:none;color:#8B949E;font-size:20px;width:32px;height:32px;border-radius:50%;cursor:pointer">&#215;</button>' +
+      '<div style="font-size:24px;margin-bottom:8px">&#128197;</div>' +
+      '<div style="font-size:17px;font-weight:800;color:#FFFFFF;margin-bottom:4px">Last Week\'s Recap</div>' +
+      '<div style="font-size:12px;color:#8B949E;margin-bottom:20px">' + lastMonday.toLocaleDateString('en-AU',{day:'numeric',month:'short'}) + ' – ' + lastSunday.toLocaleDateString('en-AU',{day:'numeric',month:'short'}) + '</div>' +
+      '<div style="display:flex;gap:10px;margin-bottom:20px">' +
+        '<div style="flex:1;background:#0B0F12;border-radius:10px;padding:14px;text-align:center;border:1px solid #1F2A33">' +
+          '<div style="font-size:32px;font-weight:800;color:#2FD4F5">' + lastWeekSessions + '</div>' +
+          '<div style="font-size:10px;color:#8B949E;text-transform:uppercase;letter-spacing:.06em">' + sessionWord + '</div>' +
+        '</div>' +
+        (lastWt ? '<div style="flex:1;background:#0B0F12;border-radius:10px;padding:14px;text-align:center;border:1px solid #1F2A33"><div style="font-size:32px;font-weight:800;color:#5BBFAA">' + lastWt.val + '</div><div style="font-size:10px;color:#8B949E;text-transform:uppercase;letter-spacing:.06em">Weight kg</div></div>' : '') +
+      '</div>' +
+      '<div style="background:#0B0F12;border-radius:10px;padding:14px;border-left:3px solid #2FD4F5;margin-bottom:16px">' +
+        '<div style="font-size:13px;color:#C9D1D9;line-height:1.6;font-style:italic">"' + msg + '"</div>' +
+      '</div>' +
+      '<button onclick="document.getElementById(\'cvWeeklySummary\').remove()" style="width:100%;padding:12px;background:#2FD4F5;color:#0B0F12;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">Let\'s Go This Week &#128293;</button>' +
+    '</div>';
+  document.body.appendChild(el);
+
+  // Mark as shown for this week
+  localStorage.setItem('cv_weekly_shown_' + cvData.id, weekKey);
+}
+
+function getISOWeek(d) {
+  var date = new Date(d.getTime());
+  date.setHours(0,0,0,0);
+  date.setDate(date.getDate() + 3 - (date.getDay()+6) % 7);
+  var week1 = new Date(date.getFullYear(), 0, 4);
+  return 1 + Math.round(((date.getTime()-week1.getTime())/86400000 - 3 + (week1.getDay()+6)%7)/7);
+}
+
+
+// ════════════════════════════════════════════════════
+// SESSION TIMER
+// ════════════════════════════════════════════════════
+var _cvTimerStart = null;
+var _cvTimerInterval = null;
+
+function cvStartTimer() {
+  if (_cvTimerStart) return; // already running
+  _cvTimerStart = Date.now();
+  var el = document.getElementById('cvSessionTimer');
+  if (el) { el.style.display = 'flex'; el.classList.add('active'); }
+  _cvTimerInterval = setInterval(function() {
+    var elapsed = Math.floor((Date.now() - _cvTimerStart) / 1000);
+    var mins = Math.floor(elapsed / 60);
+    var secs = elapsed % 60;
+    var disp = document.getElementById('cvTimerDisplay');
+    if (disp) disp.textContent = mins + ':' + String(secs).padStart(2,'0');
+  }, 1000);
+}
+
+function cvStopTimer() {
+  clearInterval(_cvTimerInterval);
+  _cvTimerInterval = null;
+  var elapsed = _cvTimerStart ? Math.floor((Date.now() - _cvTimerStart) / 1000) : 0;
+  _cvTimerStart = null;
+  var el = document.getElementById('cvSessionTimer');
+  if (el) { el.style.display = 'none'; el.classList.remove('active'); }
+  return elapsed; // return elapsed seconds for logging
+}
+
+function cvGetTimerDuration() {
+  if (!_cvTimerStart) return null;
+  var mins = Math.floor((Date.now() - _cvTimerStart) / 60000);
+  return mins > 0 ? mins + ' min session' : null;
 }
 
 </script>
