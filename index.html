@@ -3682,6 +3682,10 @@ async function loadClientView(user) {
         '</div>';
       return;
     }
+    if (!match.programs || !match.programs.length) {
+      // Programs missing - try to get fresh from Supabase directly
+      console.warn('Client loaded with no programs - data may be incomplete');
+    }
     cvData = match; cvState = {}; cvFeeling = ''; cvProgIdx = 0; cvSafetyDone = false; cvComment = '';
     cvStartSync(user); // Begin live sync
     loadAnnouncements().then(function() { if (cvActiveTab === 'home') renderCVHome(); }); // Load announcements
@@ -4076,10 +4080,14 @@ function cvSavePreSession() {
       var saveData = cvData;
       if (rows && rows.length && rows[0].data) {
         var fresh = rows[0].data;
-        fresh.safetyLog = cvData.safetyLog;
-        fresh.outcomes = cvData.outcomes || fresh.outcomes;
-        saveData = fresh;
-        cvData = fresh; // keep local in sync
+        // Only use fresh if it has programs - prevent wiping client data
+        if (fresh && fresh.programs && fresh.programs.length) {
+          fresh.safetyLog = cvData.safetyLog;
+          fresh.outcomes = cvData.outcomes || fresh.outcomes;
+          fresh.requireSafetyCheck = cvData.requireSafetyCheck;
+          saveData = fresh;
+          cvData = fresh; // keep local in sync
+        }
       }
       return fetch(SUPA_URL + '/rest/v1/clients', {
         method: 'POST',
