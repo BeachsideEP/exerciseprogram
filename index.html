@@ -3582,12 +3582,19 @@ async function syncClients() {
           if (cloudCl.outcomes && cloudCl.outcomes.length) localCl.outcomes = cloudCl.outcomes;
           if (cloudCl.safetyLog && cloudCl.safetyLog.length) localCl.safetyLog = cloudCl.safetyLog;
           if (cloudCl.ownWorkouts && cloudCl.ownWorkouts.length) localCl.ownWorkouts = cloudCl.ownWorkouts;
-          // Merge program logs (client session submissions)
+          // Merge program logs - deduplicate by date+text so no entries are lost
           if (cloudCl.programs) {
             cloudCl.programs.forEach(function(cloudProg) {
               var localProg = (localCl.programs || []).find(function(p) { return p.id === cloudProg.id; });
-              if (localProg && cloudProg.log && cloudProg.log.length > (localProg.log || []).length) {
-                localProg.log = cloudProg.log;
+              if (localProg && cloudProg.log && cloudProg.log.length) {
+                if (!localProg.log) localProg.log = [];
+                // Add any cloud entries not already in local log
+                cloudProg.log.forEach(function(entry) {
+                  var exists = localProg.log.some(function(le) {
+                    return le.date === entry.date && le.text === entry.text;
+                  });
+                  if (!exists) localProg.log.push(entry);
+                });
               }
             });
           }
