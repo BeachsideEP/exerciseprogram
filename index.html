@@ -5862,7 +5862,7 @@ function renderCVHome() {
       Object.keys(cvHealthData).forEach(function(k) {
         if (!health[k]) health[k] = [];
         (cvHealthData[k] || []).forEach(function(e) {
-          var exists = health[k].some(function(h) { return h.date === e.date && h.val === e.val; });
+          var exists = health[k].some(function(he) { return he.date === e.date && he.val === e.val; });
           if (!exists) health[k].push(e);
         });
       });
