@@ -4005,8 +4005,8 @@ function cvTickSet(exIdx, setIdx) {
   renderCV();
 }
 
-// Debounce timers for cascade fill
-var _cascadeTimers = {};
+// Debounce timer for cascade re-render
+var _cascadeTimer = null;
 
 function cvSetRow(exIdx, setIdx, field, val) {
   if (!cvState[exIdx]) cvState[exIdx] = {};
@@ -4014,32 +4014,24 @@ function cvSetRow(exIdx, setIdx, field, val) {
   if (!cvState[exIdx][key]) cvState[exIdx][key] = [];
   cvState[exIdx][key][setIdx] = val;
 
-  // Debounce cascade - wait until user stops typing
-  var timerKey = 'cascade_' + exIdx + '_' + field;
-  clearTimeout(_cascadeTimers[timerKey]);
-  _cascadeTimers[timerKey] = setTimeout(function() {
-    if (!val || String(val).trim() === '') return;
+  // Cascade to empty sets below in state
+  if (val && String(val).trim() !== '') {
     var prog = cvData && cvData.programs && cvData.programs[cvProgIdx];
     var ex = prog && prog.exercises && prog.exercises[exIdx];
     var totalSets = (cvState[exIdx] && cvState[exIdx].sessionSets != null)
       ? cvState[exIdx].sessionSets : (parseInt(ex && ex.sets) || 3);
-
-    // Update state for empty sets below
     for (var s = setIdx + 1; s < totalSets; s++) {
       if (!cvState[exIdx][key][s] && cvState[exIdx][key][s] !== 0) {
         cvState[exIdx][key][s] = val;
       }
     }
+  }
 
-    // Update DOM inputs using data-set attribute to find exact set
-    var allInputs = document.querySelectorAll('input[data-ex="' + exIdx + '"][data-field="' + field + '"]');
-    allInputs.forEach(function(inp) {
-      var inpSet = parseInt(inp.getAttribute('data-set'));
-      if (inpSet > setIdx && (!inp.value || inp.value.trim() === '')) {
-        inp.value = val;
-      }
-    });
-  }, 400);
+  // Re-render after debounce so inputs reflect cascaded values
+  clearTimeout(_cascadeTimer);
+  _cascadeTimer = setTimeout(function() {
+    renderCV();
+  }, 600);
 }
 
 
