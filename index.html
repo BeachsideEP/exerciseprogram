@@ -3721,13 +3721,8 @@ async function loadClientView(user) {
       return;
     }
     if (!match) {
-      const found = allClients.map(function(c) { return c.first + ' ' + c.last + ' (' + (c.email||'no email') + ')'; }).join(', ');
-      var noMatchEl = document.getElementById('cvHomeContent') || document.getElementById('cvBody');
-      if (noMatchEl) noMatchEl.innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#127945;</div>' +
-        '<p style="font-weight:600;margin-bottom:8px">No program assigned yet.</p>' +
-        '<p style="font-size:11px;color:var(--text-light);margin-bottom:4px">Logged in as: ' + email + '</p>' +
-        '<p style="font-size:11px;color:var(--text-light)">Clients in DB: ' + (found || 'none') + '</p>' +
-        '</div>';
+      var noMatchMsg = document.getElementById('cvHomeContent') || document.getElementById('cvBody');
+      if (noMatchMsg) noMatchMsg.innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#9203;</div><p style="color:var(--teal);font-weight:600">No program assigned yet.</p><p style="font-size:12px;color:var(--text-light)">Logged in as: ' + email + '</p><p style="font-size:11px;color:var(--text-light)">Please contact the clinic to get set up.</p></div>';
       return;
     }
     if (!match.programs || !match.programs.length) {
