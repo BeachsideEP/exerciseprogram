@@ -1106,6 +1106,57 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 #viewClient .cv-home-content { position:relative;z-index:1; }
 
 .comp-row:hover { background: #12181D !important; }
+
+/* Practitioner Dark Mode */
+body.prac-dark {
+  --sand: #0F1419;
+  --sand-d: #1F2A33;
+  --ocean: #2FD4F5;
+  --ocean-dp: #2FD4F5;
+  --ocean-l: #5AA8C4;
+  --ocean-p: #12181D;
+  --teal: #5BBFAA;
+  --teal-l: #0F2A24;
+  --text: #C9D1D9;
+  --text-m: #8B949E;
+  --text-l: #8B949E;
+  --text-light: #8B949E;
+  --card: #12181D;
+  --card-hover: #1F2A33;
+  background: #0B0F12 !important;
+}
+body.prac-dark header {
+  background: #0D1A24 !important;
+  border-bottom: 1px solid #1F2A33 !important;
+}
+body.prac-dark .col-left { background: #0D1A24 !important; border-right: 1px solid #1F2A33 !important; }
+body.prac-dark .col-center { background: #0B0F12 !important; }
+body.prac-dark .col-right { background: #0D1A24 !important; border-left: 1px solid #1F2A33 !important; }
+body.prac-dark .ex-card { background: #12181D !important; border-color: #1F2A33 !important; color: #C9D1D9 !important; }
+body.prac-dark .ex-card:hover { background: #1F2A33 !important; }
+body.prac-dark .chip { background: #1F2A33 !important; color: #8B949E !important; border-color: #26323A !important; }
+body.prac-dark .chip.on { background: #2FD4F5 !important; color: #0B0F12 !important; }
+body.prac-dark .modal { background: #0D1A24 !important; border: 1px solid #1F2A33 !important; }
+body.prac-dark .prog-card { background: #12181D !important; border-color: #1F2A33 !important; }
+body.prac-dark .ex-prog-card { background: #12181D !important; border-color: #1F2A33 !important; }
+body.prac-dark input, body.prac-dark select, body.prac-dark textarea {
+  background: #1F2A33 !important; color: #C9D1D9 !important; border-color: #26323A !important;
+}
+body.prac-dark .prev-pane { background: #0D1A24 !important; }
+body.prac-dark .om-panel { background: #12181D !important; border-color: #1F2A33 !important; }
+body.prac-dark .om-hdr { background: #0D1A24 !important; border-color: #1F2A33 !important; }
+body.prac-dark .btn-ghost { color: #8B949E !important; border-color: #26323A !important; }
+body.prac-dark .btn-ghost:hover { background: #1F2A33 !important; color: #C9D1D9 !important; }
+body.prac-dark .sec-lbl { color: #8B949E !important; }
+body.prac-dark .logo-sub { color: rgba(255,255,255,.3) !important; }
+body.prac-dark .cat-bar { background: #0D1A24 !important; border-bottom-color: #1F2A33 !important; }
+body.prac-dark .tab-btn { color: #8B949E !important; }
+body.prac-dark .tab-btn.active { color: #2FD4F5 !important; border-bottom-color: #2FD4F5 !important; }
+body.prac-dark .prog-tab { background: #1F2A33 !important; color: #8B949E !important; }
+body.prac-dark .prog-tab.active { background: #2FD4F5 !important; color: #0B0F12 !important; }
+body.prac-dark .client-row { background: #12181D !important; border-color: #1F2A33 !important; }
+body.prac-dark .log-entry { background: #12181D !important; border-color: #1F2A33 !important; }
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -1275,6 +1326,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <button class="btn btn-ghost btn-sm" onclick="openClientDemo()" title="Preview how clients see their program">&#128247; Client View</button>
     <button class="btn btn-ghost btn-sm" onclick="openArchiveModal()">📦 Archive</button>
     <button class="btn btn-ghost btn-sm" onclick="openComplianceModal()">📊 Compliance</button>
+    <button class="btn btn-ghost btn-sm" id="darkModeBtn" onclick="togglePracDark()" title="Toggle dark mode">🌙</button>
     <button class="btn btn-ghost btn-sm" id="signOutBtn" onclick="signOut()" style="display:none">Sign Out</button>
   </div>
 </header>
@@ -2267,7 +2319,114 @@ const NEW_EXERCISES = [
 
 // Merge SVG maps and exercise arrays
 const ALL_SVG_MAP = Object.assign({}, EXERCISE_SVG_MAP, NEW_SVG_MAP);
-const ALL_EXERCISES = [...EXERCISES, ...NEW_EXERCISES];
+
+const EXTRA_EXERCISES = [
+  // ── HOME EXERCISE ──
+  {id:'he1',name:'Theraband Bicep Curl',cat:'Home Exercise',desc:'Anchor theraband underfoot. Curl hands to shoulders keeping elbows tucked.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Biceps',video:''},
+  {id:'he2',name:'Theraband Shoulder Press',cat:'Home Exercise',desc:'Stand on band. Press hands overhead from shoulder height.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Deltoids,Triceps',video:''},
+  {id:'he3',name:'Theraband Row',cat:'Home Exercise',desc:'Anchor band at chest height. Pull handles to sides of chest squeezing shoulder blades.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Rhomboids,Mid/Lower Trapezius',video:''},
+  {id:'he4',name:'Theraband Lateral Raise',cat:'Home Exercise',desc:'Stand on band. Raise arms to shoulder height with slight elbow bend.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Deltoids',video:''},
+  {id:'he5',name:'Chair Squat',cat:'Home Exercise',desc:'Stand in front of chair. Lower until you just touch the seat then stand.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Quadriceps,Glutes,Hamstrings',video:''},
+  {id:'he6',name:'Wall Push Up',cat:'Home Exercise',desc:'Place hands on wall at shoulder height. Bend elbows to bring chest to wall.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Chest,Triceps,Deltoids',video:''},
+  {id:'he7',name:'Step Ups',cat:'Home Exercise',desc:'Step up onto a stair leading with one foot. Alternate legs.',sets:'3',reps:'10 each',hold:'',rest:'60s',muscles:'Quadriceps,Glutes,Calves',video:''},
+  {id:'he8',name:'Seated Marching',cat:'Home Exercise',desc:'Sit tall. Lift alternate knees as if marching in place.',sets:'3',reps:'20',hold:'',rest:'60s',muscles:'Hip Flexors,Core',video:''},
+  {id:'he9',name:'Doorway Shoulder Stretch',cat:'Home Exercise',desc:'Place forearm on doorframe. Rotate body away to feel stretch across chest and shoulder.',sets:'3',reps:'1',hold:'30s',rest:'30s',muscles:'Chest,Deltoids',video:''},
+  {id:'he10',name:'Prone Hip Extension',cat:'Home Exercise',desc:'Lie face down. Lift one leg keeping knee straight and pelvis flat.',sets:'3',reps:'12 each',hold:'2s',rest:'60s',muscles:'Glutes,Hamstrings',video:''},
+
+  // ── MOBILITY ──
+  {id:'mob1',name:'Cat Cow Stretch',cat:'Mobility',desc:'On hands and knees. Alternate arching and rounding spine with breath.',sets:'3',reps:'10',hold:'',rest:'30s',muscles:'Erector Spinae,Core',video:''},
+  {id:'mob2',name:'Hip 90/90 Stretch',cat:'Mobility',desc:'Sit with both legs at 90 degrees. Rotate torso over front leg.',sets:'3',reps:'1 each',hold:'45s',rest:'30s',muscles:'Hip Rotators,Glutes,Hip Flexors',video:''},
+  {id:'mob3',name:'Thoracic Rotation Stretch',cat:'Mobility',desc:'Side lying with knees bent. Rotate top arm to opposite side opening chest.',sets:'3',reps:'10 each',hold:'3s',rest:'30s',muscles:'Mid/Lower Trapezius,Erector Spinae',video:''},
+  {id:'mob4',name:'Ankle Circles',cat:'Mobility',desc:'Seated. Lift foot and draw circles with toes. Clockwise then anti-clockwise.',sets:'2',reps:'10 each',hold:'',rest:'30s',muscles:'Ankle Stabilisers',video:''},
+  {id:'mob5',name:'Cervical Lateral Flexion Stretch',cat:'Mobility',desc:'Sit tall. Tilt ear to shoulder gently. Hold.',sets:'3',reps:'1 each',hold:'30s',rest:'30s',muscles:'Cervical Flexors,Cervical Extensors',video:''},
+  {id:'mob6',name:'Wrist Flexor Stretch',cat:'Mobility',desc:'Extend arm with palm up. Gently pull fingers back with other hand.',sets:'3',reps:'1 each',hold:'30s',rest:'30s',muscles:'Forearms',video:''},
+  {id:'mob7',name:'Wrist Extensor Stretch',cat:'Mobility',desc:'Extend arm with palm down. Gently press hand downward.',sets:'3',reps:'1 each',hold:'30s',rest:'30s',muscles:'Forearms',video:''},
+  {id:'mob8',name:'Pigeon Stretch',cat:'Mobility',desc:'From plank position, bring one knee forward. Lower hips toward floor.',sets:'3',reps:'1 each',hold:'45s',rest:'30s',muscles:'Hip Rotators,Glutes,Piriformis',video:''},
+  {id:'mob9',name:'Posterior Shoulder Capsule Stretch',cat:'Mobility',desc:'Bring one arm across chest. Use other arm to pull elbow gently.',sets:'3',reps:'1 each',hold:'30s',rest:'30s',muscles:'Rotator Cuff,Deltoids',video:''},
+  {id:'mob10',name:'Lumbar Rotation Stretch',cat:'Mobility',desc:'Lie on back. Drop both knees to one side keeping shoulders flat.',sets:'3',reps:'1 each',hold:'30s',rest:'30s',muscles:'Erector Spinae,Obliques',video:''},
+
+  // ── FALLS AND BALANCE ──
+  {id:'fb1',name:'Tandem Stance',cat:'Falls and Balance',desc:'Stand with one foot directly in front of the other. Hold 30 seconds.',sets:'3',reps:'1 each',hold:'30s',rest:'30s',muscles:'Ankle Stabilisers,Core,Proprioception',video:''},
+  {id:'fb2',name:'Single Leg Stance Eyes Closed',cat:'Falls and Balance',desc:'Stand on one leg. Close eyes and maintain balance.',sets:'3',reps:'1 each',hold:'20s',rest:'30s',muscles:'Ankle Stabilisers,Balance,Core',video:''},
+  {id:'fb3',name:'Timed Up and Go (TUG)',cat:'Falls and Balance',desc:'From seated: stand, walk 3m, turn, walk back, sit. Time the task.',sets:'3',reps:'1',hold:'',rest:'60s',muscles:'Balance,Proprioception',video:''},
+  {id:'fb4',name:'Step Over Obstacle',cat:'Falls and Balance',desc:'Walk toward a small obstacle and step over it without breaking stride.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Balance,Hip Flexors,Ankle Stabilisers',video:''},
+  {id:'fb5',name:'Backwards Walking',cat:'Falls and Balance',desc:'Walk backwards in a straight line over 3-5 metres.',sets:'3',reps:'5',hold:'',rest:'60s',muscles:'Balance,Proprioception,Calves',video:''},
+  {id:'fb6',name:'Star Excursion Balance',cat:'Falls and Balance',desc:'Stand on one leg. Reach other foot in 8 directions without touching floor.',sets:'3',reps:'8 each',hold:'',rest:'60s',muscles:'Ankle Stabilisers,Proprioception,Core',video:''},
+  {id:'fb7',name:'Foam Pad Standing',cat:'Falls and Balance',desc:'Stand on foam pad with feet together. Maintain balance for set time.',sets:'3',reps:'1',hold:'30s',rest:'30s',muscles:'Ankle Stabilisers,Proprioception,Balance',video:''},
+  {id:'fb8',name:'Gait Training',cat:'Falls and Balance',desc:'Walk with deliberate heel-toe pattern. Swing arms. Look forward.',sets:'3',reps:'20m',hold:'',rest:'60s',muscles:'Balance,Proprioception',video:''},
+
+  // ── CHRONIC PAIN ──
+  {id:'cp1',name:'Diaphragmatic Breathing',cat:'Chronic Pain',desc:'Lie on back. Place hands on belly. Breathe in expanding belly. Breathe out slowly.',sets:'3',reps:'10',hold:'5s',rest:'30s',muscles:'Breathing Muscles,Core',video:''},
+  {id:'cp2',name:'Graded Motor Imagery',cat:'Chronic Pain',desc:'Visualise pain-free movement. Mentally rehearse the exercise before attempting.',sets:'3',reps:'5',hold:'10s',rest:'30s',muscles:'Proprioception',video:''},
+  {id:'cp3',name:'Paced Walking',cat:'Chronic Pain',desc:'Walk at comfortable pace. Stop BEFORE pain onset. Gradually increase distance.',sets:'1',reps:'5 min',hold:'',rest:'60s',muscles:'Cardiovascular',video:''},
+  {id:'cp4',name:'Relaxation Breathing',cat:'Chronic Pain',desc:'Inhale 4 counts. Hold 4 counts. Exhale 6 counts. Repeat.',sets:'3',reps:'10',hold:'',rest:'30s',muscles:'Breathing Muscles',video:''},
+  {id:'cp5',name:'Warm Water Exercise',cat:'Chronic Pain',desc:'Gentle movement in warm water. Buoyancy reduces joint load.',sets:'2',reps:'10 each',hold:'',rest:'60s',muscles:'Core,Balance',video:''},
+
+  // ── BONE HEALTH ──
+  {id:'bh1',name:'Heel Drops',cat:'Bone Health',desc:'Rise onto toes then let heels drop firmly to floor. Creates impact stimulus.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Calves,Ankle Stabilisers',video:''},
+  {id:'bh2',name:'Weighted Vest Walk',cat:'Bone Health',desc:'Walk for set time wearing a weighted vest. Maintains loading stimulus.',sets:'1',reps:'20 min',hold:'',rest:'',muscles:'Cardiovascular,Balance',video:''},
+  {id:'bh3',name:'Impact Stepping',cat:'Bone Health',desc:'Step up and down from low step with moderate impact through heel.',sets:'3',reps:'20',hold:'',rest:'60s',muscles:'Quadriceps,Glutes,Ankle Stabilisers',video:''},
+  {id:'bh4',name:'Loaded Carry',cat:'Bone Health',desc:'Carry a weight in one or both hands while walking. Loads spine and hips.',sets:'3',reps:'20m',hold:'',rest:'60s',muscles:'Core,Erector Spinae,Glutes',video:''},
+
+  // ── UPPER LIMB - additional ──
+  {id:'ul1',name:'Rotator Cuff Strengthening (ER)',cat:'Upper Limb',desc:'Elbow at side bent 90°. Rotate hand outward against theraband resistance.',sets:'3',reps:'15 each',hold:'2s',rest:'60s',muscles:'Rotator Cuff',video:''},
+  {id:'ul2',name:'Rotator Cuff Strengthening (IR)',cat:'Upper Limb',desc:'Elbow at side bent 90°. Rotate hand inward against theraband resistance.',sets:'3',reps:'15 each',hold:'2s',rest:'60s',muscles:'Rotator Cuff',video:''},
+  {id:'ul3',name:'Shoulder Flexion (Theraband)',cat:'Upper Limb',desc:'Stand on band. Raise arm forward to shoulder height. Slow and controlled.',sets:'3',reps:'12 each',hold:'',rest:'60s',muscles:'Deltoids,Rotator Cuff',video:''},
+  {id:'ul4',name:'Wrist Extension Strengthening',cat:'Upper Limb',desc:'Forearm supported. Hold light weight and raise hand upward.',sets:'3',reps:'15',hold:'2s',rest:'60s',muscles:'Forearms',video:''},
+  {id:'ul5',name:'Wrist Flexion Strengthening',cat:'Upper Limb',desc:'Forearm supported palm up. Curl weight upward.',sets:'3',reps:'15',hold:'2s',rest:'60s',muscles:'Forearms',video:''},
+  {id:'ul6',name:'Finger Extension Band',cat:'Upper Limb',desc:'Place rubber band around fingers. Spread fingers against resistance.',sets:'3',reps:'15',hold:'2s',rest:'30s',muscles:'Forearms',video:''},
+  {id:'ul7',name:'Elbow Flexion Eccentric',cat:'Upper Limb',desc:'Curl weight up with both hands. Lower slowly with one hand over 4 counts.',sets:'3',reps:'10 each',hold:'',rest:'60s',muscles:'Biceps',video:''},
+  {id:'ul8',name:'Tricep Dips',cat:'Upper Limb',desc:'Hands on bench behind you. Dip body down bending elbows. Push back up.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Triceps,Chest',video:''},
+  {id:'ul9',name:'Scapular Protraction/Retraction',cat:'Upper Limb',desc:'Arms forward. Push hands further away rounding upper back. Then pull back squeezing blades.',sets:'3',reps:'12',hold:'2s',rest:'30s',muscles:'Serratus Anterior,Rhomboids',video:''},
+  {id:'ul10',name:'Shoulder Shrug',cat:'Upper Limb',desc:'Hold weights at sides. Shrug shoulders toward ears. Hold. Release.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Upper Trapezius',video:''},
+
+  // ── LOWER LIMB - additional ──
+  {id:'ll1',name:'Lateral Band Walk',cat:'Lower Limb',desc:'Band around ankles. Step side to side maintaining slight squat.',sets:'3',reps:'15 each',hold:'',rest:'60s',muscles:'Glute Med,Hip Abductors',video:''},
+  {id:'ll2',name:'Terminal Knee Extension',cat:'Lower Limb',desc:'Band behind knee. Start bent. Extend knee against resistance.',sets:'3',reps:'15 each',hold:'2s',rest:'60s',muscles:'Quadriceps,VMO',video:''},
+  {id:'ll3',name:'Hamstring Curl (Prone)',cat:'Lower Limb',desc:'Lie face down. Curl heel toward buttocks against theraband.',sets:'3',reps:'12 each',hold:'',rest:'60s',muscles:'Hamstrings',video:''},
+  {id:'ll4',name:'Hip Adductor Squeeze',cat:'Lower Limb',desc:'Lie on back knees bent. Squeeze ball between knees. Hold.',sets:'3',reps:'12',hold:'5s',rest:'60s',muscles:'Hip Adductors',video:''},
+  {id:'ll5',name:'Standing Hip Abduction',cat:'Lower Limb',desc:'Stand holding support. Lift leg out to side keeping pelvis level.',sets:'3',reps:'12 each',hold:'2s',rest:'60s',muscles:'Glute Med,Hip Abductors',video:''},
+  {id:'ll6',name:'Ankle Plantarflexion Strengthening',cat:'Lower Limb',desc:'Seated. Loop band over foot. Point foot down against resistance.',sets:'3',reps:'15 each',hold:'2s',rest:'60s',muscles:'Calves,Gastrocnemius',video:''},
+  {id:'ll7',name:'Ankle Dorsiflexion Strengthening',cat:'Lower Limb',desc:'Seated. Band anchored ahead. Pull foot up against resistance.',sets:'3',reps:'15 each',hold:'2s',rest:'60s',muscles:'Tibialis Anterior',video:''},
+  {id:'ll8',name:'Clamshell',cat:'Lower Limb',desc:'Lie on side knees bent. Open top knee like a clamshell. Keep pelvis still.',sets:'3',reps:'15 each',hold:'2s',rest:'60s',muscles:'Glute Med,Hip Abductors',video:''},
+  {id:'ll9',name:'Reverse Lunge',cat:'Lower Limb',desc:'Step back into lunge. Lower back knee toward floor. Drive forward to start.',sets:'3',reps:'10 each',hold:'',rest:'60s',muscles:'Quadriceps,Glutes,Hamstrings',video:''},
+  {id:'ll10',name:'Side Lying Hip Extension',cat:'Lower Limb',desc:'Lie on side. Extend top leg back keeping hip neutral.',sets:'3',reps:'12 each',hold:'2s',rest:'60s',muscles:'Glutes,Hamstrings',video:''},
+
+  // ── CARDIO ──
+  {id:'c1',name:'Stationary Bike',cat:'Cardio',desc:'Cycle at moderate intensity maintaining comfortable resistance.',sets:'1',reps:'20 min',hold:'',rest:'',muscles:'Cardiovascular,Quadriceps,Calves',video:''},
+  {id:'c2',name:'Recumbent Bike',cat:'Cardio',desc:'Seated cycling with back support. Low joint stress.',sets:'1',reps:'15 min',hold:'',rest:'',muscles:'Cardiovascular,Quadriceps,Hamstrings',video:''},
+  {id:'c3',name:'Seated Row Machine',cat:'Cardio',desc:'Pull handles to lower chest at moderate intensity for endurance.',sets:'3',reps:'15',hold:'',rest:'60s',muscles:'Rhomboids,Latissimus Dorsi,Biceps',video:''},
+  {id:'c4',name:'Step Machine',cat:'Cardio',desc:'Step at steady pace maintaining upright posture.',sets:'1',reps:'10 min',hold:'',rest:'',muscles:'Cardiovascular,Glutes,Quadriceps,Calves',video:''},
+  {id:'c5',name:'Nordic Walking',cat:'Cardio',desc:'Walk using poles for additional upper body engagement and stability.',sets:'1',reps:'20 min',hold:'',rest:'',muscles:'Cardiovascular,Deltoids,Balance',video:''},
+
+  // ── PILATES ──
+  {id:'pil1',name:'Pelvic Clock',cat:'Pilates',desc:'Lie on back knees bent. Tilt pelvis as if a clock on belly. Move 12-6 then 3-9.',sets:'3',reps:'10',hold:'',rest:'30s',muscles:'Core,Transversus Abdominis',video:''},
+  {id:'pil2',name:'Spine Stretch Forward',cat:'Pilates',desc:'Sit tall legs extended. Reach arms forward curling spine. Return.',sets:'3',reps:'8',hold:'5s',rest:'30s',muscles:'Erector Spinae,Hamstrings',video:''},
+  {id:'pil3',name:'Side Lying Leg Lift Series',cat:'Pilates',desc:'Lie on side. Lift top leg to hip height. Add circles, kicks, and lifts.',sets:'2',reps:'10 each',hold:'',rest:'30s',muscles:'Glute Med,Hip Abductors,Core',video:''},
+  {id:'pil4',name:'Swimming',cat:'Pilates',desc:'Lie prone. Lift opposite arm and leg. Alternate like a swimming motion.',sets:'3',reps:'10 each',hold:'2s',rest:'30s',muscles:'Glutes,Erector Spinae,Multifidus',video:''},
+  {id:'pil5',name:'Chest Lift',cat:'Pilates',desc:'Lie on back knees bent. Curl chest up keeping neck long. Lower slowly.',sets:'3',reps:'10',hold:'2s',rest:'30s',muscles:'Rectus Abdominis,Core',video:''},
+  {id:'pil6',name:'Leg Pull Front',cat:'Pilates',desc:'Plank position. Lift one leg keeping hips level. Alternate.',sets:'3',reps:'6 each',hold:'3s',rest:'30s',muscles:'Core,Glutes,Erector Spinae',video:''},
+  {id:'pil7',name:'Hundreds (Modified)',cat:'Pilates',desc:'Lie on back. Lift head and arms. Pump arms 100 times with breath.',sets:'1',reps:'1',hold:'100 pumps',rest:'30s',muscles:'Core,Transversus Abdominis,Rectus Abdominis',video:''},
+  {id:'pil8',name:'Side Bend',cat:'Pilates',desc:'Side plank on hand or elbow. Lift hips. Lower and repeat.',sets:'3',reps:'8 each',hold:'',rest:'30s',muscles:'Obliques,Core,Glute Med',video:''},
+
+  // ── HYDROTHERAPY ──
+  {id:'ht1',name:'Pool Walking',cat:'Hydrotherapy',desc:'Walk forward and backward in waist-deep water. Use water resistance.',sets:'3',reps:'2 min',hold:'',rest:'60s',muscles:'Cardiovascular,Balance,Quadriceps',video:''},
+  {id:'ht2',name:'Aqua Jogging',cat:'Hydrotherapy',desc:'Jog in deep water with flotation belt. High cardio low impact.',sets:'3',reps:'3 min',hold:'',rest:'60s',muscles:'Cardiovascular,Core,Hip Flexors',video:''},
+  {id:'ht3',name:'Pool Wall Push Off',cat:'Hydrotherapy',desc:'Stand facing pool wall. Push away gently. Return with controlled flutter kick.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Chest,Core,Calves',video:''},
+  {id:'ht4',name:'Aqua Arm Circles',cat:'Hydrotherapy',desc:'Submerge arms. Circle forward and backward against water resistance.',sets:'3',reps:'15 each',hold:'',rest:'30s',muscles:'Deltoids,Rotator Cuff',video:''},
+  {id:'ht5',name:'Hip Flexion in Water',cat:'Hydrotherapy',desc:'Hold pool edge. March knees up against water resistance.',sets:'3',reps:'12 each',hold:'',rest:'60s',muscles:'Hip Flexors,Core,Balance',video:''},
+  {id:'ht6',name:'Pool Side Steps',cat:'Hydrotherapy',desc:'Step sideways through water in waist depth. Resistance trains abductors.',sets:'3',reps:'10 each',hold:'',rest:'60s',muscles:'Glute Med,Hip Abductors,Balance',video:''},
+
+  // ── CORE - additional ──
+  {id:'co1',name:'McGill Curl Up',cat:'Core',desc:'One knee bent. Hands under lumbar. Lift head and shoulders only. No full crunch.',sets:'3',reps:'10',hold:'10s',rest:'60s',muscles:'Rectus Abdominis,Core',video:''},
+  {id:'co2',name:'McGill Bird Dog',cat:'Core',desc:'On hands and knees. Extend opposite arm and leg. Hold. Return slowly.',sets:'3',reps:'8 each',hold:'10s',rest:'60s',muscles:'Multifidus,Erector Spinae,Core',video:''},
+  {id:'co3',name:'McGill Side Bridge',cat:'Core',desc:'Side plank on elbow and knees (modified) or feet. Hold.',sets:'3',reps:'1 each',hold:'30s',rest:'60s',muscles:'Obliques,Core,Glute Med',video:''},
+  {id:'co4',name:'Pallof Press',cat:'Core',desc:'Cable or band at chest height. Press hands away from body. Resist rotation.',sets:'3',reps:'12 each',hold:'2s',rest:'60s',muscles:'Core,Obliques,Transversus Abdominis',video:''},
+  {id:'co5',name:'Ab Wheel Rollout',cat:'Core',desc:'Kneel with wheel. Roll forward keeping core braced. Return.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Rectus Abdominis,Core,Erector Spinae',video:''},
+  {id:'co6',name:'Hollow Body Hold',cat:'Core',desc:'Lie on back. Press lower back flat. Extend arms and legs off floor.',sets:'3',reps:'1',hold:'20s',rest:'60s',muscles:'Transversus Abdominis,Core,Rectus Abdominis',video:''},
+];
+
+const ALL_EXERCISES = [...EXERCISES, ...NEW_EXERCISES, ...EXTRA_EXERCISES];
 
 const CAT_COLORS = {
   "Lower Limb":"#1A7BA4","Upper Limb":"#5BBFAA","Core":"#9B7EC8",
@@ -4016,6 +4175,7 @@ async function cvSubmit() {
 // BOOT
 // ================================================================
 document.addEventListener('DOMContentLoaded', function() {
+  initPracDark();
   // Always init local data first
   try { loadCustomEx(); } catch(e) {}
   try { renderCatChips(); } catch(e) {}
@@ -4897,7 +5057,7 @@ function renderOMPanel() {
       const vals = chartEntries.map(e => parseFloat(e.val));
       const validVals = vals.filter(v => !isNaN(v));
       if (validVals.length >= 2) {
-        const W = 260, H = 56, padL = 28, padR = 6, padT = 6, padB = 18;
+        const W = 280, H = 70, padL = 32, padR = 8, padT = 8, padB = 22;
         const allVals = target != null ? [...validVals, target] : validVals;
         let minV = Math.min(...allVals), maxV = Math.max(...allVals);
         const range = maxV - minV || 1;
@@ -5398,32 +5558,90 @@ function openOMOverlay(i) {
   var cl = getClient();
   if (!cl || !cl.outcomes || !cl.outcomes[i]) return;
   var om = cl.outcomes[i];
-  var entries = om.entries || [];
+  var entries = (om.entries || []).slice();
   var existing = document.getElementById('omOverlayModal');
   if (existing) existing.remove();
-  var rows = entries.slice().reverse().map(function(e, idx) {
-    return '<tr style="' + (idx%2===0 ? 'background:var(--sand)' : '') + '">' +
-      '<td style="padding:6px 10px;font-size:12px">' + e.date + '</td>' +
-      '<td style="padding:6px 10px;font-size:13px;font-weight:700;text-align:center">' + e.val + '</td>' +
-      '<td style="padding:6px 10px;text-align:center"><button onclick="deleteOMEntry(' + i + ',' + (entries.length-1-idx) + ')" style="background:none;border:none;color:var(--coral);cursor:pointer;font-size:13px">✕</button></td>' +
-    '</tr>';
+
+  // Build full SVG chart
+  var chartSVG = '';
+  var numVals = entries.map(function(e) { return parseFloat(e.val); }).filter(function(v) { return !isNaN(v); });
+  if (numVals.length >= 2) {
+    var W = 560, H = 200, padL = 40, padR = 20, padT = 20, padB = 40;
+    var minV = Math.min.apply(null, numVals), maxV = Math.max.apply(null, numVals);
+    var rng = maxV - minV || 1;
+    minV -= rng * 0.15; maxV += rng * 0.15; rng = maxV - minV;
+    var toX = function(idx) { return padL + (idx / (numVals.length-1)) * (W - padL - padR); };
+    var toY = function(v) { return padT + (1 - (v - minV) / rng) * (H - padT - padB); };
+    var isPain = /pain|vas|nrs/i.test(om.name||'');
+    var colour = '#1A7BA4';
+    if (om.target != null) {
+      var lastV = numVals[numVals.length-1];
+      colour = (isPain ? lastV <= parseFloat(om.target) : lastV >= parseFloat(om.target)) ? '#5BBFAA' : '#E8735A';
+    }
+    var pts = numVals.map(function(v,i){return toX(i)+','+toY(v);}).join(' ');
+    var area = 'M'+toX(0)+','+(H-padB)+' '+numVals.map(function(v,i){return 'L'+toX(i)+','+toY(v);}).join(' ')+' L'+toX(numVals.length-1)+','+(H-padB)+' Z';
+
+    chartSVG = '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:'+H+'px">';
+    // Grid
+    [0,0.25,0.5,0.75,1].forEach(function(p) {
+      var y = padT + p * (H - padT - padB);
+      var lbl = (maxV - p * rng).toFixed(1);
+      chartSVG += '<line x1="'+padL+'" y1="'+y+'" x2="'+(W-padR)+'" y2="'+y+'" stroke="#E8DDD0" stroke-width="1"/>';
+      chartSVG += '<text x="'+(padL-4)+'" y="'+(y+3)+'" font-size="9" fill="#7A95A5" text-anchor="end">'+lbl+'</text>';
+    });
+    // Target line
+    if (om.target != null) {
+      var ty = toY(parseFloat(om.target));
+      chartSVG += '<line x1="'+padL+'" y1="'+ty+'" x2="'+(W-padR)+'" y2="'+ty+'" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,3"/>';
+      chartSVG += '<text x="'+(W-padR)+'" y="'+(ty-3)+'" font-size="9" fill="#f59e0b" text-anchor="end">Target</text>';
+    }
+    // Area + line + dots
+    chartSVG += '<path d="'+area+'" fill="'+colour+'" opacity="0.1"/>';
+    chartSVG += '<polyline points="'+pts+'" fill="none" stroke="'+colour+'" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+    numVals.forEach(function(v,idx) {
+      var isLast = idx === numVals.length-1;
+      chartSVG += '<circle cx="'+toX(idx)+'" cy="'+toY(v)+'" r="'+(isLast?5:3)+'" fill="'+colour+'">';
+      chartSVG += '<title>'+v+'</title></circle>';
+      if (isLast) {
+        chartSVG += '<text x="'+toX(idx)+'" y="'+(toY(v)-8)+'" font-size="10" font-weight="bold" fill="'+colour+'" text-anchor="middle">'+v+'</text>';
+      }
+    });
+    // X axis date labels (first, middle, last)
+    [[0,'start'],[Math.floor((numVals.length-1)/2),'middle'],[numVals.length-1,'end']].forEach(function(pair) {
+      var idx2 = pair[0], anchor = pair[1];
+      var e = entries[idx2];
+      if (e) {
+        chartSVG += '<text x="'+toX(idx2)+'" y="'+(H-padB+14)+'" font-size="9" fill="#7A95A5" text-anchor="'+anchor+'">'+(e.date||'').split(',')[0]+'</text>';
+      }
+    });
+    chartSVG += '</svg>';
+  }
+
+  // Entry table
+  var tableRows = entries.slice().reverse().map(function(e, idx) {
+    var bg = idx%2===0 ? 'background:var(--sand)' : '';
+    return '<tr style="'+bg+'"><td style="padding:4px 8px;font-size:12px;color:var(--text-light)">'+(e.date||'').split(',')[0]+'</td><td style="padding:4px 8px;font-size:13px;font-weight:700;color:var(--text)">'+e.val+'</td></tr>';
   }).join('');
+
   var modal = document.createElement('div');
   modal.id = 'omOverlayModal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px';
-  modal.innerHTML = '<div style="background:#fff;border-radius:12px;padding:24px;width:100%;max-width:420px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">' +
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = '<div style="background:#fff;border-radius:14px;padding:24px;max-width:640px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)">' +
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">' +
-      '<div style="font-size:16px;font-weight:700">' + om.name + '</div>' +
-      '<button onclick="var m=document.getElementById(&quot;omOverlayModal&quot;);if(m)m.remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-light)">x</button>' +
+      '<div><div style="font-size:17px;font-weight:700;color:var(--ocean-dp)">'+om.name+'</div>' +
+      (om.target != null ? '<div style="font-size:12px;color:var(--text-light)">Target: '+om.target+'</div>' : '') +
+      '</div>' +
+      '<button id="omOverlayClose" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-light)">✕</button>' +
     '</div>' +
-    (entries.length ? '<table style="width:100%;border-collapse:collapse"><thead><tr>' +
-      '<th style="padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-light);text-align:left">Date</th>' +
-      '<th style="padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-light);text-align:center">Score</th>' +
-      '<th></th></tr></thead><tbody>' + rows + '</tbody></table>' :
-    '<div style="text-align:center;padding:24px;color:var(--text-light);font-size:12px">No entries yet</div>') +
+    (chartSVG ? '<div style="margin-bottom:20px;border:1px solid var(--sand-d);border-radius:10px;padding:12px;overflow:hidden">'+chartSVG+'</div>' : '<div style="color:var(--text-light);font-size:13px;text-align:center;padding:20px">Need at least 2 entries to show graph.</div>') +
+    '<table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:4px 8px;font-size:11px;color:var(--text-light);text-transform:uppercase">Date</th><th style="text-align:left;padding:4px 8px;font-size:11px;color:var(--text-light);text-transform:uppercase">Value</th></tr></thead><tbody>'+tableRows+'</tbody></table>' +
   '</div>';
   document.body.appendChild(modal);
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+  var closeBtn = document.getElementById('omOverlayClose');
+  if (closeBtn) closeBtn.addEventListener('click', function() { modal.remove(); });
 }
+
 
 function deleteOMEntry(omIdx, entryIdx) {
   var cl = getClient();
@@ -7713,6 +7931,25 @@ function permanentDeleteClient(id) {
   saveDB();
   toast('Client permanently deleted', 'ok');
   openArchiveModal();
+}
+
+
+// ════════════════════════════════════════════════════
+// PRACTITIONER DARK MODE
+// ════════════════════════════════════════════════════
+function togglePracDark() {
+  var isDark = document.body.classList.toggle('prac-dark');
+  localStorage.setItem('prac_dark', isDark ? '1' : '0');
+  var btn = document.getElementById('darkModeBtn');
+  if (btn) btn.textContent = isDark ? '☀️' : '🌙';
+}
+
+function initPracDark() {
+  if (localStorage.getItem('prac_dark') === '1') {
+    document.body.classList.add('prac-dark');
+    var btn = document.getElementById('darkModeBtn');
+    if (btn) btn.textContent = '☀️';
+  }
 }
 
 </script>
