@@ -3929,6 +3929,24 @@ function cvSetRow(exIdx, setIdx, field, val) {
   const key = field === 'reps' ? 'setReps' : 'setLoads';
   if (!cvState[exIdx][key]) cvState[exIdx][key] = [];
   cvState[exIdx][key][setIdx] = val;
+
+  // Pre-populate all EMPTY sets below this one with the same value
+  var prog = cvData && cvData.programs && cvData.programs[cvProgIdx];
+  var ex = prog && prog.exercises && prog.exercises[exIdx];
+  var totalSets = (cvState[exIdx] && cvState[exIdx].sessionSets != null)
+    ? cvState[exIdx].sessionSets
+    : (parseInt(ex && ex.sets) || 3);
+  for (var s = setIdx + 1; s < totalSets; s++) {
+    // Only fill if the set below is still empty (user hasn't typed anything)
+    if (!cvState[exIdx][key][s] && cvState[exIdx][key][s] !== 0) {
+      cvState[exIdx][key][s] = val;
+      // Update the input in the DOM directly (avoid full re-render for performance)
+      var inputs = document.querySelectorAll(
+        '[oninput*="cvSetRow(' + exIdx + ',' + s + ',\'' + field + '\'"]'
+      );
+      inputs.forEach(function(inp) { if (!inp.value) inp.value = val; });
+    }
+  }
 }
 
 
