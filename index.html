@@ -3335,7 +3335,20 @@ const PRACTITIONER_WHITELIST = []; // add extra emails e.g. ['braeden@gmail.com'
 let currentUser = null;
 let userRole = null; // 'practitioner' | 'client'
 
-function authToken() { return localStorage.getItem('bep_token') || SUPA_KEY; }
+function authToken() {
+  var token = localStorage.getItem('bep_token');
+  if (token) {
+    // Check if JWT is expired (basic check on exp claim)
+    try {
+      var payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.exp && payload.exp < Math.floor(Date.now()/1000)) {
+        localStorage.removeItem('bep_token'); // expired, remove it
+        return SUPA_KEY;
+      }
+    } catch(e) {}
+  }
+  return token || SUPA_KEY;
+}
 
 function supaHeaders(extra) {
   return Object.assign({
@@ -3661,10 +3674,35 @@ async function loadClientView(user) {
   // Pull custom exercise library so photos show correctly
   await pullLibraryFromCloud();
   try {
-    const r = await fetch(SUPA_URL + '/rest/v1/clients?select=data', { headers: supaHeaders() });
-    if (!r.ok) throw new Error('Could not load data');
-    const rows = await r.json();
+    // Refresh Supabase session to ensure JWT is valid
+    try {
+      const { data: sessionData } = await supabase.auth.refreshSession();
+      if (sessionData && sessionData.session) {
+        localStorage.setItem('bep_token', sessionData.session.access_token);
+        if (sessionData.session.refresh_token) localStorage.setItem('bep_refresh', sessionData.session.refresh_token);
+      }
+    } catch(refreshErr) { console.warn('Session refresh failed:', refreshErr); }
+
     const email = (user.email || '').toLowerCase();
+
+    // Try fetching with supabase-js which handles auth properly
+    var rows = [];
+    try {
+      const { data: sbData, error: sbErr } = await supabase
+        .from('clients')
+        .select('data');
+      if (!sbErr && sbData && sbData.length) {
+        rows = sbData;
+      } else {
+        // Fallback to direct fetch
+        const r = await fetch(SUPA_URL + '/rest/v1/clients?select=data', { headers: supaHeaders() });
+        if (r.ok) rows = await r.json();
+      }
+    } catch(fetchErr) {
+      const r = await fetch(SUPA_URL + '/rest/v1/clients?select=data', { headers: supaHeaders() });
+      if (r.ok) rows = await r.json();
+    }
+    if (!rows || !rows.length) throw new Error('Could not load data');
     const allClients = rows.map(function(row) { return row.data; }).filter(Boolean);
     const match = allClients.find(function(c) { return (c.email || '').toLowerCase() === email; });
     if (match && match.archived) {
