@@ -4005,32 +4005,41 @@ function cvTickSet(exIdx, setIdx) {
   renderCV();
 }
 
-// Debounce timer for cascade
-var _cascadeTimer = null;
+// Debounce timers for cascade - one per exercise+field
+var _cascadeTimers = {};
 
 function cvSetRow(exIdx, setIdx, field, val) {
   if (!cvState[exIdx]) cvState[exIdx] = {};
   var key = field === 'reps' ? 'setReps' : 'setLoads';
   if (!cvState[exIdx][key]) cvState[exIdx][key] = [];
+  // Save current set value immediately
   cvState[exIdx][key][setIdx] = val;
 
-  // Immediate cascade in state
-  if (val && String(val).trim() !== '') {
+  // Debounce cascade - wait 800ms after typing stops before cascading
+  var tKey = exIdx + '_' + field;
+  clearTimeout(_cascadeTimers[tKey]);
+  _cascadeTimers[tKey] = setTimeout(function() {
+    // Read the FINAL value from the actual input (not the stale val in closure)
+    var inp0 = document.querySelector('input[data-ex="' + exIdx + '"][data-field="' + field + '"][data-set="' + setIdx + '"]');
+    var finalVal = inp0 ? inp0.value : cvState[exIdx][key][setIdx];
+    if (!finalVal || String(finalVal).trim() === '') return;
+
     var prog = cvData && cvData.programs && cvData.programs[cvProgIdx];
     var ex = prog && prog.exercises && prog.exercises[exIdx];
     var totalSets = (cvState[exIdx] && cvState[exIdx].sessionSets != null)
       ? cvState[exIdx].sessionSets : (parseInt(ex && ex.sets) || 3);
+
     for (var s = setIdx + 1; s < totalSets; s++) {
-      // Only cascade if user hasn't explicitly typed a different value in this set
-      var existingState = cvState[exIdx][key][s];
-      var hasUserTyped = (existingState !== undefined && existingState !== null && existingState !== '');
-      if (!hasUserTyped) {
-        cvState[exIdx][key][s] = val;
+      // Only cascade into sets the user hasnt explicitly edited
+      var stateVal = cvState[exIdx][key][s];
+      var userEdited = (stateVal !== undefined && stateVal !== null && stateVal !== '');
+      if (!userEdited) {
+        cvState[exIdx][key][s] = finalVal;
         var inp = document.querySelector('input[data-ex="' + exIdx + '"][data-field="' + field + '"][data-set="' + s + '"]');
-        if (inp) inp.value = val;
+        if (inp) inp.value = finalVal;
       }
     }
-  }
+  }, 800);
 }
 
 
