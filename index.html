@@ -1107,57 +1107,6 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 
 .comp-row:hover { background: #12181D !important; }
 
-/* Practitioner Dark Mode */
-body.prac-dark {
-  --sand: #0F1419;
-  --sand-d: #1F2A33;
-  --ocean: #2FD4F5;
-  --ocean-dp: #2FD4F5;
-  --ocean-l: #5AA8C4;
-  --ocean-p: #12181D;
-  --teal: #5BBFAA;
-  --teal-l: #0F2A24;
-  --text: #C9D1D9;
-  --text-m: #8B949E;
-  --text-l: #8B949E;
-  --text-light: #8B949E;
-  --card: #12181D;
-  --card-hover: #1F2A33;
-  background: #0B0F12 !important;
-}
-body.prac-dark header {
-  background: #0D1A24 !important;
-  border-bottom: 1px solid #1F2A33 !important;
-}
-body.prac-dark .col-left { background: #0D1A24 !important; border-right: 1px solid #1F2A33 !important; }
-body.prac-dark .col-center { background: #0B0F12 !important; }
-body.prac-dark .col-right { background: #0D1A24 !important; border-left: 1px solid #1F2A33 !important; }
-body.prac-dark .ex-card { background: #12181D !important; border-color: #1F2A33 !important; color: #C9D1D9 !important; }
-body.prac-dark .ex-card:hover { background: #1F2A33 !important; }
-body.prac-dark .chip { background: #1F2A33 !important; color: #8B949E !important; border-color: #26323A !important; }
-body.prac-dark .chip.on { background: #2FD4F5 !important; color: #0B0F12 !important; }
-body.prac-dark .modal { background: #0D1A24 !important; border: 1px solid #1F2A33 !important; }
-body.prac-dark .prog-card { background: #12181D !important; border-color: #1F2A33 !important; }
-body.prac-dark .ex-prog-card { background: #12181D !important; border-color: #1F2A33 !important; }
-body.prac-dark input, body.prac-dark select, body.prac-dark textarea {
-  background: #1F2A33 !important; color: #C9D1D9 !important; border-color: #26323A !important;
-}
-body.prac-dark .prev-pane { background: #0D1A24 !important; }
-body.prac-dark .om-panel { background: #12181D !important; border-color: #1F2A33 !important; }
-body.prac-dark .om-hdr { background: #0D1A24 !important; border-color: #1F2A33 !important; }
-body.prac-dark .btn-ghost { color: #8B949E !important; border-color: #26323A !important; }
-body.prac-dark .btn-ghost:hover { background: #1F2A33 !important; color: #C9D1D9 !important; }
-body.prac-dark .sec-lbl { color: #8B949E !important; }
-body.prac-dark .logo-sub { color: rgba(255,255,255,.3) !important; }
-body.prac-dark .cat-bar { background: #0D1A24 !important; border-bottom-color: #1F2A33 !important; }
-body.prac-dark .tab-btn { color: #8B949E !important; }
-body.prac-dark .tab-btn.active { color: #2FD4F5 !important; border-bottom-color: #2FD4F5 !important; }
-body.prac-dark .prog-tab { background: #1F2A33 !important; color: #8B949E !important; }
-body.prac-dark .prog-tab.active { background: #2FD4F5 !important; color: #0B0F12 !important; }
-body.prac-dark .client-row { background: #12181D !important; border-color: #1F2A33 !important; }
-body.prac-dark .log-entry { background: #12181D !important; border-color: #1F2A33 !important; }
-
-
 /* Achievement badges slider */
 .cv-achievements { overflow-x:auto; display:flex; gap:10px; padding:4px 0 10px; scrollbar-width:none; }
 .cv-achievements::-webkit-scrollbar { display:none; }
@@ -1384,7 +1333,6 @@ body.prac-dark .log-entry { background: #12181D !important; border-color: #1F2A3
     <button class="btn btn-ghost btn-sm" onclick="openClientDemo()" title="Preview how clients see their program">&#128247; Client View</button>
     <button class="btn btn-ghost btn-sm" onclick="openArchiveModal()">📦 Archive</button>
     <button class="btn btn-ghost btn-sm" onclick="openComplianceModal()">📊 Compliance</button>
-    <button class="btn btn-ghost btn-sm" id="darkModeBtn" onclick="togglePracDark()" title="Toggle dark mode">🌙</button>
     <button class="btn btn-ghost btn-sm" id="signOutBtn" onclick="signOut()" style="display:none">Sign Out</button>
   </div>
 </header>
@@ -1505,9 +1453,10 @@ body.prac-dark .log-entry { background: #12181D !important; border-color: #1F2A3
   </div>
   <div class="prev-actions">
     <button class="btn btn-teal" onclick="openPrintModal()">📄 Generate PDF</button>
+    <button class="btn btn-ghost btn-sm" onclick="copyToClinicNotes()">📋 Copy to Clinical Notes</button>
     <button class="btn btn-ghost btn-sm" onclick="saveProg()">💾 Save Program</button>
-    <button class="btn btn-ghost btn-sm" onclick="saveAsTemplate()">📋 Save as Template</button>
-    <button class="btn btn-ghost btn-sm" onclick="openLoadTemplate()">📂 Load Template</button>
+    <button class="btn btn-ghost btn-sm" onclick="saveAsTemplate()">Save as Template</button>
+    <button class="btn btn-ghost btn-sm" onclick="openLoadTemplate()">Load Template</button>
     <button class="btn btn-ghost btn-sm" onclick="openDuplicateProg()">⧉ Duplicate to Client</button>
   </div>
   <div class="clk-info-box">
@@ -4284,7 +4233,6 @@ async function cvSubmit() {
 // BOOT
 // ================================================================
 document.addEventListener('DOMContentLoaded', function() {
-  initPracDark();
   // Always init local data first
   try { loadCustomEx(); } catch(e) {}
   try { renderCatChips(); } catch(e) {}
@@ -8089,22 +8037,6 @@ function permanentDeleteClient(id) {
 // ════════════════════════════════════════════════════
 // PRACTITIONER DARK MODE
 // ════════════════════════════════════════════════════
-function togglePracDark() {
-  var isDark = document.body.classList.toggle('prac-dark');
-  localStorage.setItem('prac_dark', isDark ? '1' : '0');
-  var btn = document.getElementById('darkModeBtn');
-  if (btn) btn.textContent = isDark ? '☀️' : '🌙';
-}
-
-function initPracDark() {
-  if (localStorage.getItem('prac_dark') === '1') {
-    document.body.classList.add('prac-dark');
-    var btn = document.getElementById('darkModeBtn');
-    if (btn) btn.textContent = '☀️';
-  }
-}
-
-
 function calcAchievements(allLog, ownW, streak) {
   var totalSessions = allLog.length + ownW.length;
   var BADGES = [
@@ -8281,6 +8213,102 @@ function cvUpdateRPE(val) {
   if (valEl) valEl.textContent = cvRPE + ' – ' + (labels[idx] || '');
   var emojiEl = document.getElementById('cvRPEEmoji');
   if (emojiEl) emojiEl.textContent = emojis[idx] || '';
+}
+
+
+// ════════════════════════════════════════════════════
+// COPY TO CLINICAL NOTES
+// ════════════════════════════════════════════════════
+function copyToClinicNotes() {
+  var cl = getClient();
+  var prog = getProg();
+  if (!cl || !prog) { toast('Select a client and program first', 'err'); return; }
+
+  var today = new Date().toLocaleDateString('en-AU', {day:'numeric',month:'long',year:'numeric'});
+  var lines = [];
+
+  lines.push('EXERCISE PROGRAM — ' + cl.first + ' ' + cl.last);
+  lines.push('Date: ' + today);
+  if (cl.clinician) lines.push('Clinician: ' + cl.clinician);
+  lines.push('Program: ' + (prog.title || 'Home Exercise Program'));
+  if (prog.freq) lines.push('Frequency: ' + prog.freq);
+  lines.push('');
+  lines.push('──────────────────────────────────────');
+  lines.push('');
+
+  (prog.exercises || []).forEach(function(ex, i) {
+    lines.push((i + 1) + '. ' + ex.name.toUpperCase());
+
+    // Sets / Reps / Weight
+    var params = [];
+    if (ex.sets) params.push('Sets: ' + ex.sets);
+    if (ex.reps) params.push('Reps: ' + ex.reps);
+    if (ex.hold) params.push('Hold: ' + ex.hold + 's');
+    if (ex.load) params.push('Weight: ' + ex.load);
+    if (ex.rest) params.push('Rest: ' + ex.rest);
+    if (params.length) lines.push('   ' + params.join('  |  '));
+
+    // Last recorded values
+    if (ex.lastLoad || ex.lastReps) {
+      var recorded = [];
+      if (ex.lastReps) recorded.push('Reps achieved: ' + ex.lastReps);
+      if (ex.lastLoad) recorded.push('Weight used: ' + ex.lastLoad + 'kg');
+      lines.push('   Recorded: ' + recorded.join('  |  '));
+    }
+
+    // Technique notes
+    if (ex.notes) {
+      lines.push('   Technique: ' + ex.notes);
+    }
+
+    // Description (progression cues from exercise library)
+    if (ex.desc) {
+      lines.push('   Instruction: ' + ex.desc);
+    }
+
+    // Progression
+    if (ex.progression) {
+      lines.push('   Progression: ' + ex.progression);
+    }
+
+    lines.push('');
+  });
+
+  lines.push('──────────────────────────────────────');
+  if (prog.notes) {
+    lines.push('Program Notes: ' + prog.notes);
+    lines.push('');
+  }
+  lines.push('Beachside Exercise Physiology — 4/270 Lower Dandenong Rd, Mordialloc VIC');
+  lines.push('0409 051 260  |  admin@beachsideep.com.au');
+
+  var text = lines.join('\n');
+
+  // Copy to clipboard
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function() {
+      toast('✓ Copied to clipboard — paste into clinical notes', 'ok');
+    }).catch(function() {
+      fallbackCopyNotes(text);
+    });
+  } else {
+    fallbackCopyNotes(text);
+  }
+}
+
+function fallbackCopyNotes(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try {
+    document.execCommand('copy');
+    toast('✓ Copied to clipboard — paste into clinical notes', 'ok');
+  } catch(e) {
+    toast('Could not copy — try selecting manually', 'err');
+  }
+  document.body.removeChild(ta);
 }
 
 </script>
