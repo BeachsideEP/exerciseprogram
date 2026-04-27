@@ -1526,6 +1526,13 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <div class="fg"><label>Last Name</label><input id="ec_last" type="text"></div>
     <div class="fg"><label>Date of Birth</label><input id="ec_dob" type="date"></div>
     <div class="fg"><label>Clinician</label><select id="ec_clin"><option value="">Select…</option><option>Braeden King</option><option>Sierra Bulauan</option><option>Samadi Mallawa</option><option>Meg Benger</option><option>Sharon Chand</option></select></div>
+    <div class="fg" style="grid-column:1/-1">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+        <input type="checkbox" id="ec_safety" style="width:16px;height:16px;accent-color:var(--ocean)">
+        <span>Require Pre-Session Safety Check</span>
+      </label>
+      <div style="font-size:10px;color:var(--text-l);margin-top:3px">When enabled, client must complete BP/BGL/HR check before each workout</div>
+    </div>
     <div class="fg" style="grid-column:1/-1"><label>Goal / Diagnosis</label><input id="ec_goal" type="text"></div>
     <div class="fg"><label>Review Date</label><input id="ec_review" type="date"></div>
     <div class="fg"><label>Phone</label><input id="ec_phone" type="text"></div>
@@ -2618,7 +2625,7 @@ function createClient() {
   const first = v('nc_first').trim(), last = v('nc_last').trim();
   if (!first) { toast('Enter a first name', 'err'); return; }
   const email = v('nc_email') || '';
-  const cl = { id:'c_'+Date.now(), first, last, email, dob:v('nc_dob'), clinician:v('nc_clin'), goal:v('nc_goal'), review:v('nc_review'), phone:v('nc_phone'), programs:[mkProg('Home Exercise Program')] };
+  const cl = { id:'c_'+Date.now(), first, last, email, dob:v('nc_dob'), clinician:v('nc_clin'), goal:v('nc_goal'), review:v('nc_review'), phone:v('nc_phone'), requireSafetyCheck: true, programs:[mkProg('Home Exercise Program')] };
   clients.unshift(cl); saveDB();
   // Push to Supabase immediately so it persists across all devices
   pushClientToCloud(cl);
@@ -2638,6 +2645,8 @@ function saveClientEdit() {
   const cl = getClient(); if (!cl) return;
   cl.first=v('ec_first'); cl.last=v('ec_last'); cl.dob=v('ec_dob');
   cl.clinician=v('ec_clin'); cl.goal=v('ec_goal'); cl.review=v('ec_review'); cl.phone=v('ec_phone'); cl.email=v('ec_email')||'';
+  var ecSafetyEl = document.getElementById('ec_safety');
+  cl.requireSafetyCheck = ecSafetyEl ? ecSafetyEl.checked : true;
   saveDB(); pushClientToCloud(cl); renderClientDropdown(); document.getElementById('clientSel').value = cl.id;
   closeM('editClientM'); updatePreview(); toast('Client updated ✓','ok');
 }
@@ -3699,6 +3708,8 @@ function getExIllusStr(ex) {
 }
 
 function renderCV() {
+  // Auto-clear safety if not required for this client
+  if (cvData && cvData.requireSafetyCheck === false) cvSafetyDone = true;
   if (!cvData || !cvData.programs || !cvData.programs.length) {
     document.getElementById('cvBody').innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#127945;</div><p>No programs found.</p></div>';
     return;
@@ -3721,7 +3732,7 @@ function renderCV() {
   }
 
   // ── Pre-session safety check ──
-  h += '<div class="cv-session" id="cvSafetyPanel" style="margin-bottom:10px">';
+  if (showSafety) { h += '<div class="cv-session" id="cvSafetyPanel" style="margin-bottom:10px">';
   h += '<div class="cv-session-title">&#10084;&#65039; Pre-Session Check</div>';
   if (cvSafetyDone) {
     h += '<div style="font-size:11px;color:var(--teal);font-weight:600">&#10003; Safety check recorded for this session</div>';
@@ -3739,7 +3750,7 @@ function renderCV() {
       h += '<div style="font-size:9px;color:var(--text-light);margin-top:6px">Last check: ' + lastSafety.date + (lastSafety.bp ? ' · BP '+lastSafety.bp : '') + '</div>';
     }
   }
-  h += '</div>';
+  h += '</div>'; } // end showSafety
 
   // ── Program selector ──
   // Program selector - always show (includes Build Your Own)
@@ -3964,16 +3975,19 @@ function cvSetRow(exIdx, setIdx, field, val) {
     }
   }
   // Update DOM inputs directly for all sets below
-  var allInputs = document.querySelectorAll('.cv-set-inp');
+  // Use oninput attribute to find the right inputs for this exercise+field
+  var allInputs = document.querySelectorAll('input[oninput]');
   var exInputs = [];
   allInputs.forEach(function(inp) {
     var attr = inp.getAttribute('oninput') || '';
-    if (attr.indexOf('cvSetRow(' + exIdx + ',') !== -1 && attr.indexOf(",'" + field + "'") !== -1) {
+    if (attr.indexOf('cvSetRow(' + exIdx + ',') !== -1 &&
+        attr.indexOf("'" + field + "'") !== -1) {
       exInputs.push(inp);
     }
   });
+  // exInputs[setIdx] is the current input, fill empty ones below
   for (var s2 = setIdx + 1; s2 < exInputs.length; s2++) {
-    if (!exInputs[s2].value || exInputs[s2].value === '') {
+    if (exInputs[s2] && (!exInputs[s2].value || exInputs[s2].value.trim() === '')) {
       exInputs[s2].value = val;
     }
   }
@@ -6074,13 +6088,12 @@ function showCVCongrats(name, ownWorkout, pbList) {
   overlay.className = 'cv-congrats';
   overlay.id = 'cvCongratsOverlay';
   overlay.innerHTML =
-    '<button onclick="cvGoHome()" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">&#215;</button>' +
+    '<button onclick="cvGoHome()" style="position:fixed;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">&#215;</button>' +
     '<div class="cv-congrats-emoji">' + emoji + '</div>' +
     '<div class="cv-congrats-title">' + title + '</div>' +
     '<div class="cv-congrats-sub">' + sub + '</div>' +
     pbHTML +
     '<button class="cv-congrats-btn" onclick="cvGoHome()" style="margin-top:16px">Thanks!</button>';
-  overlay.style.position = 'relative';
   document.body.appendChild(overlay);
   // NO auto-dismiss - user must press X or Thanks
 }
