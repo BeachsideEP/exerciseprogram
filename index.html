@@ -3897,9 +3897,9 @@ function renderCV() {
         // Previous
         h += '<div style="font-size:12px;color:#8B949E">' + prevText + '</div>';
         // Weight input
-        h += '<input style="background:#1F2A33;border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="decimal" placeholder="' + loadPlaceholder + '" value="' + setLoad + '" oninput="cvSetRow(' + i + ',' + s + ',\'load\',this.value)">';
+        h += '<input style="background:#1F2A33;border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="decimal" placeholder="' + loadPlaceholder + '" value="' + setLoad + '" onfocus="this.select()" oninput="cvSetRow(' + i + ',' + s + ',\'load\',this.value)">';
         // Reps input
-        h += '<input style="background:#1F2A33;border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="' + repsPlaceholder + '" value="' + setReps + '" oninput="cvSetRow(' + i + ',' + s + ',\'reps\',this.value)">';
+        h += '<input style="background:#1F2A33;border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="' + repsPlaceholder + '" value="' + setReps + '" onfocus="this.select()" oninput="cvSetRow(' + i + ',' + s + ',\'reps\',this.value)">';
         // Tick button
         h += '<div onclick="cvTickSet(' + i + ',' + s + ')" style="width:36px;height:36px;border-radius:8px;background:' + (setDone ? '#2FD4F5' : '#1F2A33') + ';border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';display:flex;align-items:center;justify-content:center;cursor:pointer;margin:0 auto">';
         if (setDone) h += '<svg viewBox="0 0 12 12" fill="none" stroke="#0B0F12" stroke-width="2.5" width="14" height="14"><polyline points="2,6 5,9 10,3"/></svg>';
@@ -3957,7 +3957,7 @@ function renderCV() {
   var rpeGradient = 'linear-gradient(to right, #2FD4F5 0%, #2FD4F5 ' + (rpeIdx / 9 * 100) + '%, #1F2A33 ' + (rpeIdx / 9 * 100) + '%, #1F2A33 100%)';
   h += '<div class="cv-rpe-wrap">';
   h += '<div class="cv-rpe-title">How hard was that? <span style="font-size:10px;font-weight:400;color:var(--text-light)">(RPE 1–10)</span></div>';
-  h += '<input type="range" min="1" max="10" value="' + (cvRPE||5) + '" class="cv-rpe-slider" style="background:' + rpeGradient + '" oninput="cvRPE=parseInt(this.value);var g=\'linear-gradient(to right,#2FD4F5 0%,#2FD4F5 \'+((this.value-1)/9*100)+\'%,#1F2A33 \'+((this.value-1)/9*100)+\'%,#1F2A33 100%)\';this.style.background=g;document.getElementById(\'cvRPEVal\').textContent=this.value+\' – \'+' + JSON.stringify(rpeLabels) + '[this.value-1];document.getElementById(\'cvRPEEmoji\').textContent=' + JSON.stringify(rpeEmojis) + '[this.value-1]">';
+  h += '<input type="range" min="1" max="10" value="' + (cvRPE||5) + '" class="cv-rpe-slider" style="background:' + rpeGradient + '" oninput="cvUpdateRPE(this.value)">';
   h += '<div class="cv-rpe-labels">';
   rpeEmojis.forEach(function(e) { h += '<span>' + e + '</span>'; });
   h += '</div>';
@@ -4010,14 +4010,22 @@ function cvSetRow(exIdx, setIdx, field, val) {
     ? cvState[exIdx].sessionSets
     : (parseInt(ex && ex.sets) || 3);
   for (var s = setIdx + 1; s < totalSets; s++) {
-    // Only fill if the set below is still empty (user hasn't typed anything)
     if (!cvState[exIdx][key][s] && cvState[exIdx][key][s] !== 0) {
       cvState[exIdx][key][s] = val;
-      // Update the input in the DOM directly (avoid full re-render for performance)
-      var inputs = document.querySelectorAll(
-        '[oninput*="cvSetRow(' + exIdx + ',' + s + ',\'' + field + '\'"]'
-      );
-      inputs.forEach(function(inp) { if (!inp.value) inp.value = val; });
+    }
+  }
+  // Update DOM inputs directly for all sets below
+  var allInputs = document.querySelectorAll('.cv-set-inp');
+  var exInputs = [];
+  allInputs.forEach(function(inp) {
+    var attr = inp.getAttribute('oninput') || '';
+    if (attr.indexOf('cvSetRow(' + exIdx + ',') !== -1 && attr.indexOf(",'" + field + "'") !== -1) {
+      exInputs.push(inp);
+    }
+  });
+  for (var s2 = setIdx + 1; s2 < exInputs.length; s2++) {
+    if (!exInputs[s2].value || exInputs[s2].value === '') {
+      exInputs[s2].value = val;
     }
   }
 }
@@ -6918,15 +6926,18 @@ async function cvSaveWkt() {
 // CLIENT BUILD-YOUR-OWN WORKOUT
 // ════════════════════════════════════════════════════
 function cvSelectProg(val) {
+  // Reset timer when switching programs
+  cvStopTimer();
+  cvStartTimer();
   if (val === 'custom') {
     cvCustomWorkout = true;
     cvCustomExercises = [];
-    // Don't reset cvState - preserve safety check and any ticked sets
+    cvState = {};
     renderCV();
   } else {
     cvCustomWorkout = false;
     cvProgIdx = parseInt(val.replace('prog_', '')) || 0;
-    // Don't reset cvState - preserve safety check completion
+    cvState = {};
     renderCV();
   }
 }
@@ -8252,6 +8263,24 @@ function cvGetTimerDuration() {
   if (!_cvTimerStart) return null;
   var mins = Math.floor((Date.now() - _cvTimerStart) / 60000);
   return mins > 0 ? mins + ' min session' : null;
+}
+
+
+function cvUpdateRPE(val) {
+  cvRPE = parseInt(val);
+  var emojis = ['😴','😐','🙂','😤','😅','💪','🔥','😰','🥵','💀'];
+  var labels = ['Very Light','Light','Somewhat Light','Moderate','Somewhat Hard','Hard','Very Hard','Extremely Hard','Max Effort','All Out'];
+  var idx = cvRPE - 1;
+  var pct = (idx / 9 * 100);
+  var gradient = 'linear-gradient(to right,#2FD4F5 0%,#2FD4F5 ' + pct + '%,#1F2A33 ' + pct + '%,#1F2A33 100%)';
+  // Update slider background
+  var slider = document.querySelector('.cv-rpe-slider');
+  if (slider) slider.style.background = gradient;
+  // Update display
+  var valEl = document.getElementById('cvRPEVal');
+  if (valEl) valEl.textContent = cvRPE + ' – ' + (labels[idx] || '');
+  var emojiEl = document.getElementById('cvRPEEmoji');
+  if (emojiEl) emojiEl.textContent = emojis[idx] || '';
 }
 
 </script>
