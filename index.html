@@ -4005,7 +4005,7 @@ function cvTickSet(exIdx, setIdx) {
   renderCV();
 }
 
-// Debounce timer for cascade re-render
+// Debounce timer for cascade
 var _cascadeTimer = null;
 
 function cvSetRow(exIdx, setIdx, field, val) {
@@ -4014,7 +4014,7 @@ function cvSetRow(exIdx, setIdx, field, val) {
   if (!cvState[exIdx][key]) cvState[exIdx][key] = [];
   cvState[exIdx][key][setIdx] = val;
 
-  // Cascade to empty sets below in state
+  // Immediate cascade in state
   if (val && String(val).trim() !== '') {
     var prog = cvData && cvData.programs && cvData.programs[cvProgIdx];
     var ex = prog && prog.exercises && prog.exercises[exIdx];
@@ -4023,15 +4023,12 @@ function cvSetRow(exIdx, setIdx, field, val) {
     for (var s = setIdx + 1; s < totalSets; s++) {
       if (!cvState[exIdx][key][s] && cvState[exIdx][key][s] !== 0) {
         cvState[exIdx][key][s] = val;
+        // Direct DOM update - find inputs with matching data attributes
+        var inp = document.querySelector('input[data-ex="' + exIdx + '"][data-field="' + field + '"][data-set="' + s + '"]');
+        if (inp && !inp.value) inp.value = val;
       }
     }
   }
-
-  // Re-render after debounce so inputs reflect cascaded values
-  clearTimeout(_cascadeTimer);
-  _cascadeTimer = setTimeout(function() {
-    renderCV();
-  }, 600);
 }
 
 
