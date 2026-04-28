@@ -4713,6 +4713,7 @@ function cvSavePreSession() {
   // Save to localStorage so home screen health tiles update immediately
   try {
     localStorage.setItem('cv_health_' + cvData.id, JSON.stringify(cvHealthData));
+    cvData.healthData = cvHealthData; // sync to Supabase
   } catch(e) {}
 
   cvSafetyDone = true;
@@ -6971,6 +6972,9 @@ function cvLogHealthKey(btn) {
   if (health[key].length > 90) health[key] = health[key].slice(-90);
   localStorage.setItem('cv_health_' + cvData.id, JSON.stringify(health));
 
+  // Also store in cvData so it syncs to Supabase
+  cvData.healthData = health;
+
   // 2. Update in-memory cvHealthData so chart shows immediately
   if (!cvHealthData) cvHealthData = {};
   if (!cvHealthData[key]) cvHealthData[key] = [];
@@ -8365,6 +8369,13 @@ function renderComplianceTab() {
     var lastBP  = lastSafety?(lastSafety.bp||''):'';
     var lastBGL = lastSafety?(lastSafety.bg||''):'';
     var lastHR  = lastSafety?(lastSafety.hr||''):'';
+    // Also check healthData for more recent readings
+    try {
+      var hd3 = cl.healthData || {};
+      if (!lastBP && hd3.bp && hd3.bp.length) lastBP = hd3.bp[hd3.bp.length-1].val;
+      if (!lastBGL && hd3.bg && hd3.bg.length) lastBGL = hd3.bg[hd3.bg.length-1].val;
+      if (!lastHR && hd3.hr && hd3.hr.length) lastHR = hd3.hr[hd3.hr.length-1].val+'bpm';
+    } catch(e3) {};
     var outcomeCount = (cl.outcomes||[]).reduce(function(s,o){ return s+(o.entries||[]).length; },0);
     var progs = (cl.programs||[]).filter(function(p){ return !p.archived; });
     var progCount = progs.length;
@@ -8372,7 +8383,8 @@ function renderComplianceTab() {
     var progAge = progs.length&&progs[0].created ? Math.floor((now-new Date(progs[0].created))/(1000*60*60*24)) : null;
     var healthEntries=0, lastWeight='';
     try {
-      var hd=JSON.parse(localStorage.getItem('cv_health_'+cl.id)||'{}');
+      // Read from Supabase-synced healthData field, fall back to localStorage
+      var hd = cl.healthData || JSON.parse(localStorage.getItem('cv_health_'+cl.id)||'{}');
       ['weight','bp','bg','hr','sleep'].forEach(function(k){ healthEntries+=(hd[k]||[]).length; });
       var wArr=hd.weight||[]; if(wArr.length) lastWeight=wArr[wArr.length-1].val+'kg';
     } catch(e2){}
