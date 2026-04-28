@@ -8374,22 +8374,25 @@ function renderComplianceTab() {
       if (bpSafe && (!bpHlth || new Date(bpSafe.date||0) >= new Date(bpHlth.date||0))) lastBP = bpSafe.bp;
       else if (bpHlth) lastBP = bpHlth.val;
     } catch(e3) {}
-    // BGL: safetyLog uses s.bgl (not s.bg), healthData uses hd3.bg[].val
+    // BGL: check safetyLog (s.bgl) and healthData (hd3.bg)
     var lastBGL = '';
     try {
-      var bglSafe = safetyLog.filter(function(s){ return s.bgl||s.bg; }).slice(-1)[0];
+      // Get most recent from safetyLog
+      for (var si = safetyLog.length-1; si >= 0; si--) {
+        if (safetyLog[si].bgl) { lastBGL = String(safetyLog[si].bgl).replace(' mmol/L','').trim(); break; }
+      }
+      // Override with healthData if available (it's already clean)
       var bglHlth = (hd3.bg||[]).slice(-1)[0];
-      var bglSafeVal = bglSafe ? (bglSafe.bgl||bglSafe.bg||'') : '';
-      if (bglSafe && (!bglHlth || new Date(bglSafe.date||0) >= new Date(bglHlth.date||0))) lastBGL = bglSafeVal.replace(' mmol/L','');
-      else if (bglHlth) lastBGL = bglHlth.val;
+      if (bglHlth && bglHlth.val) lastBGL = bglHlth.val;
     } catch(e4) {}
-    // HR: safetyLog uses s.hr (may include ' bpm'), healthData uses hd3.hr[].val
+    // HR: check safetyLog (s.hr) and healthData (hd3.hr)
     var lastHR = '';
     try {
-      var hrSafe = safetyLog.filter(function(s){ return s.hr; }).slice(-1)[0];
+      for (var hi = safetyLog.length-1; hi >= 0; hi--) {
+        if (safetyLog[hi].hr) { lastHR = String(safetyLog[hi].hr).replace(' bpm','').trim()+'bpm'; break; }
+      }
       var hrHlth = (hd3.hr||[]).slice(-1)[0];
-      if (hrSafe && (!hrHlth || new Date(hrSafe.date||0) >= new Date(hrHlth.date||0))) lastHR = String(hrSafe.hr).replace(' bpm','')+'bpm';
-      else if (hrHlth) lastHR = hrHlth.val+'bpm';
+      if (hrHlth && hrHlth.val) lastHR = hrHlth.val+'bpm';
     } catch(e5) {};
     var outcomeCount = (cl.outcomes||[]).reduce(function(s,o){ return s+(o.entries||[]).length; },0);
     var progs = (cl.programs||[]).filter(function(p){ return !p.archived; });
