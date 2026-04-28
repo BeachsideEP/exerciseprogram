@@ -319,13 +319,13 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .cv-note label{display:block;font-size:8px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
 .cv-note textarea{width:100%;padding:7px 9px;border:1.5px solid var(--sand-dark);border-radius:5px;font-size:12px;font-family:-apple-system,sans-serif;color:var(--text);background:var(--sand);outline:none;resize:none;height:60px;line-height:1.5}
 .cv-note textarea:focus{border-color:var(--ocean-light);background:#fff}
-.cv-session{background:#fff;border-radius:10px;padding:16px;margin-top:14px;box-shadow:0 1px 6px rgba(28,43,53,.07)}
-.cv-session-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px}
+.cv-session{background:#12181D;border-radius:10px;padding:16px;margin-top:14px;border:1px solid #1F2A33}
+.cv-session-title{font-size:13px;font-weight:600;color:#C9D1D9;margin-bottom:10px}
 .cv-feel-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
 .cv-feel{padding:7px 11px;border-radius:20px;border:1.5px solid var(--sand-dark);background:#fff;font-size:12px;cursor:pointer;transition:all .12s}
 .cv-feel:hover{border-color:var(--ocean-light)}
 .cv-feel.sel{background:var(--ocean);border-color:var(--ocean);color:#fff}
-.cv-submit{width:100%;padding:13px;border:none;border-radius:8px;background:var(--teal);color:#fff;font-size:14px;font-weight:700;font-family:-apple-system,sans-serif;cursor:pointer}
+.cv-submit{width:100%;padding:13px;border:none;border-radius:8px;background:#2FD4F5;color:#0B0F12;font-size:14px;font-weight:700;font-family:-apple-system,sans-serif;cursor:pointer}
 .cv-submit:hover{background:#45aa95}
 .cv-empty{text-align:center;padding:40px 20px;color:var(--text-light)}
 .cv-empty-icon{font-size:36px;margin-bottom:12px;opacity:.3}
@@ -1720,20 +1720,35 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 
 <!-- MESSAGES MODAL -->
 <div class="overlay" id="messagesM" onclick="if(event.target===this)closeMessagesModal()">
-  <div class="modal" style="max-width:560px;width:95%;height:80vh;background:#0D1A24;border:1px solid #1F2A33;border-radius:16px;padding:0;overflow:hidden;display:flex;flex-direction:column">
+  <div class="modal" style="max-width:760px;width:96%;height:85vh;background:#0D1A24;border:1px solid #1F2A33;border-radius:16px;padding:0;overflow:hidden;display:flex;flex-direction:column">
+    <!-- Header -->
     <div style="background:#0B1820;padding:14px 20px;border-bottom:1px solid #1F2A33;display:flex;align-items:center;gap:12px;flex-shrink:0">
-      <div>
-        <div style="font-size:15px;font-weight:700;color:#FFFFFF">💬 <span id="msgClientName">Client</span></div>
-        <div style="font-size:11px;color:#8B949E;margin-top:1px">Two-way messaging</div>
+      <div style="font-size:15px;font-weight:700;color:#FFFFFF">💬 Messages</div>
+      <button onclick="loadAllClientMessages()" style="background:#1F2A33;border:1px solid #26323A;color:#8B949E;padding:5px 10px;border-radius:6px;font-size:11px;cursor:pointer;margin-left:auto">↻</button>
+      <button onclick="closeMessagesModal()" style="background:none;border:none;color:#8B949E;font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <!-- Two panel layout -->
+    <div style="display:flex;flex:1;overflow:hidden">
+      <!-- Left: Client list -->
+      <div style="width:240px;border-right:1px solid #1F2A33;overflow-y:auto;flex-shrink:0;background:#0B1217">
+        <div style="padding:10px 12px;font-size:10px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid #1F2A33">Conversations</div>
+        <div id="msgClientList">
+          <div style="padding:20px;text-align:center;color:#8B949E;font-size:12px">Loading...</div>
+        </div>
       </div>
-      <button onclick="closeMessagesModal()" style="background:none;border:none;color:#8B949E;font-size:20px;cursor:pointer;margin-left:auto">✕</button>
-    </div>
-    <div id="practChatMessages" class="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px">
-      <div class="chat-empty"><div style="font-size:32px;margin-bottom:8px">💬</div><div style="color:#8B949E">Select a client and open messages</div></div>
-    </div>
-    <div class="chat-input-bar" style="flex-shrink:0">
-      <input id="practChatInput" class="chat-input" placeholder="Reply to client..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();practSendMessage();}">
-      <button class="chat-send-btn" onclick="practSendMessage()">&#10148;</button>
+      <!-- Right: Thread -->
+      <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+        <div id="msgThreadHeader" style="padding:12px 16px;border-bottom:1px solid #1F2A33;font-size:13px;font-weight:600;color:#FFFFFF;background:#0D1A24;flex-shrink:0">
+          Select a client to view messages
+        </div>
+        <div id="practChatMessages" class="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px">
+          <div class="chat-empty"><div style="font-size:32px;margin-bottom:8px">💬</div><div style="color:#8B949E">Select a client from the list</div></div>
+        </div>
+        <div class="chat-input-bar" style="flex-shrink:0" id="practChatInputBar">
+          <input id="practChatInput" class="chat-input" placeholder="Reply to client..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();practSendMessage();}">
+          <button class="chat-send-btn" onclick="practSendMessage()">&#10148;</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -9850,14 +9865,96 @@ var practChatMessages = [];
 var practChatInterval = null;
 
 async function openMessagesModal(clientId) {
-  practChatClientId = clientId;
   openM('messagesM');
-  var cl = clients.find(function(c){return c.id===clientId;});
-  var nameEl = document.getElementById('msgClientName');
-  if (nameEl && cl) nameEl.textContent = cl.first + ' ' + cl.last;
-  await loadPractMessages();
+  await loadAllClientMessages();
+  if (clientId) await selectMsgClient(clientId);
   if (practChatInterval) clearInterval(practChatInterval);
-  practChatInterval = setInterval(loadPractMessages, 10000);
+  practChatInterval = setInterval(loadAllClientMessages, 10000);
+}
+
+async function loadAllClientMessages() {
+  // Fetch all messages grouped by client
+  try {
+    var r = await fetch(SUPA_URL + '/rest/v1/messages?order=created_at.desc&limit=500', {
+      headers: {'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken())}
+    });
+    if (!r.ok) return;
+    var allMsgs = await r.json();
+
+    // Group by client_id, count unread client messages
+    var byClient = {};
+    allMsgs.forEach(function(msg) {
+      if (!byClient[msg.client_id]) byClient[msg.client_id] = { msgs:[], unread:0, lastMsg:null };
+      byClient[msg.client_id].msgs.push(msg);
+      if (msg.sender === 'client' && !msg.read_by_practitioner) byClient[msg.client_id].unread++;
+      if (!byClient[msg.client_id].lastMsg || new Date(msg.created_at) > new Date(byClient[msg.client_id].lastMsg.created_at)) {
+        byClient[msg.client_id].lastMsg = msg;
+      }
+    });
+
+    // Also include clients who have never messaged (show all active clients)
+    var activeClients2 = clients.filter(function(c){ return !c.archived; });
+    
+    // Build client list sorted: unread first, then by last message date
+    var clientEntries = Object.keys(byClient).map(function(cid) {
+      var cl2 = clients.find(function(c){return c.id===cid;}) || {id:cid,first:'Unknown',last:'Client'};
+      return { cl:cl2, data:byClient[cid] };
+    });
+    clientEntries.sort(function(a,b) {
+      if (b.data.unread !== a.data.unread) return b.data.unread - a.data.unread;
+      return new Date(b.data.lastMsg.created_at) - new Date(a.data.lastMsg.created_at);
+    });
+
+    // Clients with no messages at bottom
+    var noMsgClients = activeClients2.filter(function(cl2){
+      return !byClient[cl2.id];
+    });
+
+    var listEl = document.getElementById('msgClientList');
+    if (!listEl) return;
+
+    var totalUnread = clientEntries.reduce(function(s,e){return s+e.data.unread;},0);
+    var badge = document.getElementById('msgUnreadBadge');
+    if (badge) { badge.textContent=totalUnread; badge.style.display=totalUnread?'inline-flex':'none'; }
+
+    var listHTML = clientEntries.map(function(entry) {
+      var cl2 = entry.cl;
+      var data = entry.data;
+      var lastText = data.lastMsg ? (data.lastMsg.text||'').slice(0,30)+(data.lastMsg.text&&data.lastMsg.text.length>30?'…':'') : '';
+      var isSelected = practChatClientId === cl2.id;
+      return '<div onclick="selectMsgClient(\'' + cl2.id + '\')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid #0D1217;background:' + (isSelected?'#12181D':'transparent') + ';transition:background .1s" onmouseover="this.style.background=\'' + (isSelected?'#12181D':'#0D1A24') + '\'" onmouseout="this.style.background=\'' + (isSelected?'#12181D':'transparent') + '\'">' +
+        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">' +
+          '<div style="font-size:13px;font-weight:' + (data.unread?'700':'600') + ';color:' + (data.unread?'#FFFFFF':'#C9D1D9') + ';flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + cl2.first + ' ' + cl2.last + '</div>' +
+          (data.unread ? '<span style="background:#2FD4F5;color:#0B0F12;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + data.unread + '</span>' : '') +
+        '</div>' +
+        '<div style="font-size:11px;color:#8B949E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (data.lastMsg&&data.lastMsg.sender==='client'?'Client: ':'You: ') + lastText + '</div>' +
+      '</div>';
+    }).join('');
+
+    // Add clients with no messages
+    if (noMsgClients.length) {
+      listHTML += '<div style="padding:8px 12px;font-size:10px;color:#8B949E;border-top:1px solid #1F2A33;margin-top:4px">No messages yet</div>';
+      listHTML += noMsgClients.map(function(cl2) {
+        var isSelected = practChatClientId === cl2.id;
+        return '<div onclick="selectMsgClient(\'' + cl2.id + '\')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid #0D1217;background:' + (isSelected?'#12181D':'transparent') + ';opacity:.6">' +
+          '<div style="font-size:13px;font-weight:600;color:#C9D1D9">' + cl2.first + ' ' + cl2.last + '</div>' +
+          '<div style="font-size:11px;color:#8B949E">No messages</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    listEl.innerHTML = listHTML || '<div style="padding:20px;text-align:center;color:#8B949E;font-size:12px">No conversations yet</div>';
+  } catch(e) { console.warn('loadAllClientMessages error:', e); }
+}
+
+async function selectMsgClient(clientId) {
+  practChatClientId = clientId;
+  var cl2 = clients.find(function(c){return c.id===clientId;});
+  var hdr = document.getElementById('msgThreadHeader');
+  if (hdr && cl2) hdr.textContent = cl2.first + ' ' + cl2.last;
+  await loadPractMessages();
+  // Refresh client list to update selection highlight
+  loadAllClientMessages();
 }
 
 async function loadPractMessages() {
@@ -9912,7 +10009,6 @@ async function practSendMessage() {
 }
 
 async function updateMessageBadges() {
-  // Check for unread client messages across all clients
   try {
     var r = await fetch(SUPA_URL + '/rest/v1/messages?sender=eq.client&read_by_practitioner=eq.false&select=client_id', {
       headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken())}
@@ -9926,6 +10022,11 @@ async function updateMessageBadges() {
       }
     }
   } catch(e) {}
+}
+
+// Poll for new messages every 30s when practitioner is logged in
+function startMessagePolling() {
+  setInterval(updateMessageBadges, 30000);
 }
 
 function closeMessagesModal() {
