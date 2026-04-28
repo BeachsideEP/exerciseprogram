@@ -7022,27 +7022,26 @@ function cvSelectProg(val) {
 }
 
 function renderCVCustomWorkout() {
-  // Render the build-your-own workout interface
   var h = '';
 
-  // Search box
   // Back button
-  h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">';
-  h += '<button onclick="cvExitCustomWorkout()" style="background:none;border:1.5px solid var(--sand-dark);color:var(--text-light);padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:-apple-system,sans-serif">&#8592; Back to Program</button>';
+  h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">';
+  h += '<button onclick="cvExitCustomWorkout()" style="background:none;border:1.5px solid #26323A;color:#8B949E;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:-apple-system,sans-serif">&#8592; Back to Program</button>';
   h += '</div>';
-  h += '<div style="background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:10px;box-shadow:0 1px 5px rgba(28,43,53,.06)">';
-  h += '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">&#127947; Build Your Own Workout</div>';
-  h += '<div style="font-size:11px;color:var(--text-light);margin-bottom:10px">Search for exercises to add to your session</div>';
+
+  // Search card
+  h += '<div style="background:#12181D;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #1F2A33">';
+  h += '<div style="font-size:14px;font-weight:700;color:#FFFFFF;margin-bottom:4px">&#127947; Build Your Own Workout</div>';
+  h += '<div style="font-size:11px;color:#8B949E;margin-bottom:12px">Search and add exercises to your session</div>';
   h += '<input id="cvCustomSrch" type="text" placeholder="Search exercises..." oninput="cvFilterCustomEx(this.value)" '
-     + 'style="width:100%;padding:9px 12px;border:1.5px solid var(--sand-dark);border-radius:8px;font-size:14px;'
-     + 'font-family:-apple-system,sans-serif;outline:none;background:var(--sand);box-sizing:border-box">';
-  h += '<div id="cvCustomExResults" style="margin-top:8px;max-height:200px;overflow-y:auto"></div>';
+     + 'style="width:100%;padding:10px 12px;border:1.5px solid #26323A;border-radius:8px;font-size:14px;'
+     + 'font-family:-apple-system,sans-serif;outline:none;background:#1F2A33;color:#FFFFFF;box-sizing:border-box">';
+  h += '<div id="cvCustomExResults" style="margin-top:8px;max-height:220px;overflow-y:auto;border-radius:8px;overflow:hidden"></div>';
   h += '</div>';
 
   // Added exercises
   if (cvCustomExercises.length > 0) {
-    h += '<div style="background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:10px;box-shadow:0 1px 5px rgba(28,43,53,.06)">';
-    h += '<div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Your exercises</div>';
+    h += '<div style="font-size:11px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Your exercises (' + cvCustomExercises.length + ')</div>';
 
     cvCustomExercises.forEach(function(ex, i) {
       var st = cvState[i] || {};
@@ -7051,57 +7050,59 @@ function renderCVCustomWorkout() {
       var totalSessionSets = (cvState[i] && cvState[i].sessionSets != null) ? cvState[i].sessionSets : totalSets;
       var allDone = setsDone >= totalSessionSets;
 
-      h += '<div class="cv-ex-card' + (allDone ? ' done' : '') + '" style="margin-bottom:8px">';
-      h += '<div class="cv-ex-hdr" onclick="cvToggle(' + i + ')">';
-      h += '<div class="cv-check' + (allDone ? ' on' : '') + '">';
-      if (allDone) h += '<svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" width="12" height="12"><polyline points="2,6 5,9 10,3"/></svg>';
+      // Card header
+      h += '<div style="background:#12181D;border-radius:12px;margin-bottom:10px;border:1px solid ' + (allDone ? '#5BBFAA' : '#1F2A33') + ';overflow:hidden">';
+      h += '<div style="display:flex;align-items:center;gap:10px;padding:12px 14px">';
+      h += '<div style="width:52px;height:52px;border-radius:10px;background:#1F2A33;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center">' + getExIllusStr(ex) + '</div>';
+      h += '<div style="flex:1;min-width:0">';
+      h += '<div style="font-size:15px;font-weight:700;color:#FFFFFF">' + ex.name + '</div>';
+      h += '<div style="font-size:12px;color:#8B949E;margin-top:2px">' + totalSessionSets + ' sets' + (ex.reps ? ' × ' + ex.reps : '') + (setsDone > 0 ? ' <span style="color:#5BBFAA;font-weight:700">' + setsDone + '/' + totalSessionSets + ' done</span>' : '') + '</div>';
       h += '</div>';
-      h += '<div class="cv-ex-thumb">' + getExIllusStr(ex) + '</div>';
-      h += '<div style="flex:1;min-width:0"><div class="cv-ex-name">' + ex.name + '</div>';
-      h += '<div class="cv-ex-params">' + totalSets + ' sets' + (ex.reps ? ' \xd7 ' + ex.reps : '') + (setsDone > 0 ? ' <strong style="color:var(--teal)">' + setsDone + '/' + totalSets + ' done</strong>' : '') + '</div></div>';
-      h += '<button onclick="event.stopPropagation();cvCustomExercises.splice(' + i + ',1);cvState={};renderCV()" '
-         + 'style="background:none;border:none;color:var(--coral);font-size:18px;cursor:pointer;padding:0 4px">&times;</button>';
+      h += '<button onclick="cvCustomExercises.splice(' + i + ',1);cvState={};renderCV()" style="background:none;border:none;color:#8B949E;font-size:20px;cursor:pointer;padding:4px">&#215;</button>';
       h += '</div>';
 
-      if (st.open || allDone) {
-        h += '<div class="cv-ex-body">';
-        // Set +/- controls
-        h += '<div class="cv-set-ctrl">';
-        h += '<button class="cv-set-ctrl-btn" onclick="cvAdjSets(' + i + ',-1)">&#8722;</button>';
-        h += '<span class="cv-set-ctrl-label">' + totalSessionSets + ' set' + (totalSessionSets !== 1 ? 's' : '') + '</span>';
-        h += '<button class="cv-set-ctrl-btn" onclick="cvAdjSets(' + i + ',1)">+</button>';
+      // Set table - always open
+      h += '<div style="padding:0 14px 14px">';
+      // Column headers
+      h += '<div style="display:grid;grid-template-columns:36px 1fr 90px 80px 44px;gap:4px;padding:4px 4px 6px;margin-bottom:2px">';
+      h += '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">Set</div>';
+      h += '<div style="font-size:10px;font-weight:700;color:#8B949E">Previous</div>';
+      h += '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">Weight</div>';
+      h += '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">Reps</div>';
+      h += '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">✓</div>';
+      h += '</div>';
+
+      for (var s = 0; s < totalSessionSets; s++) {
+        var setDone = st.sets && st.sets[s];
+        var setReps = (st.setReps && st.setReps[s]) || '';
+        var setLoad = (st.setLoads && st.setLoads[s]) || '';
+        var borderCol = setDone ? '#2FD4F5' : '#26323A';
+        h += '<div style="display:grid;grid-template-columns:36px 1fr 90px 80px 44px;gap:4px;align-items:center;padding:3px 4px;border-radius:8px;background:' + (setDone ? 'rgba(47,212,245,.08)' : 'transparent') + ';margin-bottom:4px">';
+        h += '<div style="width:28px;height:28px;border-radius:8px;background:#1F2A33;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#C9D1D9;margin:0 auto">' + (s+1) + '</div>';
+        h += '<div style="font-size:12px;color:#8B949E">—</div>';
+        h += '<input data-ex="' + i + '" data-field="load" data-set="' + s + '" style="background:#1F2A33;border:1.5px solid ' + borderCol + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="decimal" placeholder="' + (ex.load || 'kg') + '" value="' + setLoad + '" onfocus="this.select()" oninput="cvSetRow(' + i + ',' + s + ',\'load\',this.value)">';
+        h += '<input data-ex="' + i + '" data-field="reps" data-set="' + s + '" style="background:#1F2A33;border:1.5px solid ' + borderCol + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="' + (ex.reps || '-') + '" value="' + setReps + '" onfocus="this.select()" oninput="cvSetRow(' + i + ',' + s + ',\'reps\',this.value)">';
+        h += '<div onclick="cvTickSet(' + i + ',' + s + ')" style="width:36px;height:36px;border-radius:8px;background:' + (setDone ? '#2FD4F5' : '#1F2A33') + ';border:1.5px solid ' + borderCol + ';display:flex;align-items:center;justify-content:center;cursor:pointer;margin:0 auto">';
+        if (setDone) h += '<svg viewBox="0 0 12 12" fill="none" stroke="#0B0F12" stroke-width="2.5" width="14" height="14"><polyline points="2,6 5,9 10,3"/></svg>';
         h += '</div>';
-        h += '<div style="font-size:10px;color:var(--text-light);margin-bottom:8px;text-align:center">Fill in what you did, then tap &#10003; to mark each set complete</div>';
-        h += '<table class="cv-set-table"><thead><tr><th>Set</th><th>Reps done</th><th>Weight used</th><th>&#10003; Done</th></tr></thead><tbody>';
-        for (var s = 0; s < totalSessionSets; s++) {
-          var setDone = st.sets && st.sets[s];
-          var setReps = (st.setReps && st.setReps[s]) || '';
-          var setLoad = (st.setLoads && st.setLoads[s]) || '';
-          h += '<tr style="' + (setDone ? 'background:#f7fffc' : '') + '">';
-          h += '<td class="cv-set-num">' + (s+1) + '</td>';
-          h += '<td><input class="cv-set-inp" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="' + (ex.reps || '-') + '" value="' + setReps + '" oninput="cvSetRow(' + i + ',' + s + ',\'reps\',this.value)"></td>';
-          h += '<td><input class="cv-set-inp" type="text" inputmode="decimal" placeholder="' + (ex.load || 'kg') + '" value="' + setLoad + '" oninput="cvSetRow(' + i + ',' + s + ',\'load\',this.value)"></td>';
-          h += '<td class="cv-set-tick" style="padding-bottom:16px"><div class="cv-set-tickbox' + (setDone ? ' on' : '') + '" onclick="cvTickSet(' + i + ',' + s + ')">';
-          if (setDone) h += '<svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" width="12" height="12"><polyline points="2,6 5,9 10,3"/></svg>';
-          h += '</div></td></tr>';
-        }
-        h += '</tbody></table>';
         h += '</div>';
       }
+
+      // +/- set buttons + rest timer
+      h += '<div style="display:flex;gap:8px;margin-top:10px;align-items:center">';
+      h += '<button onclick="cvRestStart(\'cwo_' + i + '\',' + i + ',60)" id="cwo_' + i + '_btn" style="flex:1;padding:10px;background:#1F2A33;border:1.5px solid #2FD4F5;border-radius:10px;color:#2FD4F5;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><span style="font-size:16px">⏱</span> Rest Timer (60s)</button>';
+      h += '<button onclick="cvAdjSets(' + i + ',-1)" style="width:36px;height:36px;background:#1F2A33;border:1.5px solid #26323A;border-radius:8px;color:#8B949E;font-size:18px;font-weight:700;cursor:pointer;line-height:1">-</button>';
+      h += '<button onclick="cvAdjSets(' + i + ',1)" style="width:36px;height:36px;background:#1F2A33;border:1.5px solid #26323A;border-radius:8px;color:#8B949E;font-size:18px;font-weight:700;cursor:pointer;line-height:1">+</button>';
       h += '</div>';
+
+      h += '</div>'; // end set area
+      h += '</div>'; // end card
     });
-    h += '</div>';
   }
 
-  // Session feel + submit
+  // Submit section
   if (cvCustomExercises.length > 0) {
-    h += '<div class="cv-session">';
-    h += '<div class="cv-session-title">How did the session feel?</div>';
-    h += '<div class="cv-feel-row">';
-    ['Hard','Good','Easy','Pain','Great'].forEach(function(f) {
-      h += '<div class="cv-feel' + (cvFeeling === f ? ' sel' : '') + '" onclick="cvFeeling=\'' + f + '\';renderCV()">' + f + '</div>';
-    });
-    h += '</div>';
+    h += '<div class="cv-session" style="margin-top:4px">';
     h += '<button class="cv-submit" onclick="cvSubmitCustomWorkout()">&#10003; Submit Workout</button>';
     h += '</div>';
   }
