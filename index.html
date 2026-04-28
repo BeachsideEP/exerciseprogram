@@ -4192,6 +4192,23 @@ async function loadClientView(user) {
   try {
     // Refresh Supabase session to ensure JWT is valid
     try {
+      // Try using stored refresh token first
+      var storedRefresh = localStorage.getItem('bep_refresh');
+      if (storedRefresh) {
+        var refreshResp = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
+          body: JSON.stringify({ refresh_token: storedRefresh })
+        });
+        if (refreshResp.ok) {
+          var refreshData = await refreshResp.json();
+          if (refreshData.access_token) {
+            localStorage.setItem('bep_token', refreshData.access_token);
+            if (refreshData.refresh_token) localStorage.setItem('bep_refresh', refreshData.refresh_token);
+          }
+        }
+      }
+      // Also try supabase-js session refresh
       const { data: sessionData } = await supabase.auth.refreshSession();
       if (sessionData && sessionData.session) {
         localStorage.setItem('bep_token', sessionData.session.access_token);
@@ -4262,6 +4279,14 @@ async function loadClientView(user) {
 
 function getExIllusStr(ex) {
   if (ex && ex.photo) return '<img src="' + ex.photo + '" style="width:100%;height:100%;object-fit:cover;display:block">';
+  // Use YouTube thumbnail if video exists
+  if (ex && ex.video) {
+    var ytm = ex.video.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
+    if (ytm) {
+      var thumbUrl = 'https://img.youtube.com/vi/' + ytm[1] + '/mqdefault.jpg';
+      return '<img src="' + thumbUrl + '" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:8px">';
+    }
+  }
   if (typeof EXERCISE_SVG_MAP !== 'undefined' && EXERCISE_SVG_MAP[ex.name]) return EXERCISE_SVG_MAP[ex.name];
   return '<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="60" fill="#D4EAF3" rx="6"/><circle cx="30" cy="10" r="4" fill="#1A7BA4"/><path d="M30 14 L30 30" stroke="#1A7BA4" stroke-width="2.5" stroke-linecap="round"/></svg>';
 }
