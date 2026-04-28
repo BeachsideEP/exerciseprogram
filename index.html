@@ -3150,7 +3150,9 @@ function openEditClient() {
 function saveClientEdit() {
   const cl = getClient(); if (!cl) return;
   cl.first=v('ec_first'); cl.last=v('ec_last'); cl.dob=v('ec_dob');
-  cl.clinician=v('ec_clin'); cl.goal=v('ec_goal'); cl.review=v('ec_review'); cl.phone=v('ec_phone'); cl.email=v('ec_email')||'';
+  cl.clinician=v('ec_clin'); cl.goal=v('ec_goal'); cl.review=v('ec_review'); cl.phone=v('ec_phone');
+  var newEmail = (v('ec_email')||'').trim();
+  if (newEmail) cl.email = newEmail; // only update email if field has a value
   var ecSafetyEl = document.getElementById('ec_safety');
   cl.requireSafetyCheck = ecSafetyEl ? ecSafetyEl.checked : true;
   saveDB(); pushClientToCloud(cl); renderClientDropdown(); document.getElementById('clientSel').value = cl.id;
@@ -4071,6 +4073,11 @@ function onAuthSuccess(user) {
 // ── SUPABASE SYNC ──
 async function pushClientToCloud(cl) {
   if (userRole !== 'practitioner' && document.getElementById('viewApp').style.display === 'none') return;
+  // Safety check: never push a record with blank email if local has one
+  var localCopy = clients.find(function(c){ return c.id === cl.id; });
+  if (!cl.email && localCopy && localCopy.email) {
+    cl.email = localCopy.email;
+  }
   setSyncStatus('busy');
   try {
     const now = new Date().toISOString();
@@ -4148,6 +4155,14 @@ async function syncClients() {
         if (cloudCl.requireSafetyCheck === undefined) cloudCl.requireSafetyCheck = localCl.requireSafetyCheck;
         return cloudCl; // cloud is newer or equal
       }).filter(Boolean);
+
+      // Global email preservation pass - ensure no client loses their email
+      merged.forEach(function(cl) {
+        if (!cl.email) {
+          var localMatch = clients.find(function(lc){ return lc.id === cl.id && lc.email; });
+          if (localMatch) cl.email = localMatch.email;
+        }
+      });
 
       // Add any local-only clients not in cloud
       rows.forEach(function(row) { if (row.data) delete localMap[row.data.id]; });
@@ -4229,8 +4244,18 @@ async function loadClientView(user) {
       } catch(e2) {}
     }
     if (!rows || !rows.length) throw new Error('Could not load data');
-    const allClients = rows.map(function(row) { return row.data; }).filter(Boolean);
-    const match = allClients.find(function(c) { return (c.email || '').toLowerCase() === email; });
+    const allClients = rows.map(function(row) { return row.data || row; }).filter(Boolean);
+    // If we fetched by cached ID, that single row IS the match
+    var match = (cachedId && allClients.length === 1) ? allClients[0] : 
+                allClients.find(function(c) { return (c.email || '').toLowerCase() === email; });
+    // Also try case-insensitive partial match as fallback
+    if (!match) {
+      match = allClients.find(function(c) { 
+        var ce = (c.email||'').toLowerCase().trim();
+        var ue = email.trim();
+        return ce === ue || ce.split('@')[0] === ue.split('@')[0];
+      });
+    }
     if (match && match.archived) {
       toast('Your account is currently inactive. Please contact Beachside Exercise Physiology to reactivate your access.', 'err');
       setTimeout(function() { supabase.auth.signOut(); showView('auth'); }, 2500);
