@@ -1283,6 +1283,68 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   margin-left: auto; flex-shrink: 0;
 }
 
+
+/* Milestones */
+.cv-milestone-toast {
+  position:fixed;top:20px;left:50%;transform:translateX(-50%);
+  background:linear-gradient(135deg,#12181D,#1F2A33);
+  border:1px solid #2FD4F5;border-radius:16px;padding:14px 20px;
+  z-index:950;min-width:280px;box-shadow:0 8px 32px rgba(47,212,245,.2);
+  animation:milestoneIn .4s cubic-bezier(.34,1.56,.64,1);
+  display:flex;align-items:center;gap:12px;
+}
+@keyframes milestoneIn {
+  from{transform:translateX(-50%) translateY(-60px);opacity:0}
+  to{transform:translateX(-50%) translateY(0);opacity:1}
+}
+.cv-milestone-icon{font-size:32px;flex-shrink:0}
+.cv-milestone-title{font-size:13px;font-weight:800;color:#2FD4F5}
+.cv-milestone-desc{font-size:12px;color:#8B949E;margin-top:2px}
+
+
+/* Two-Way Chat */
+.chat-wrap { display:flex; flex-direction:column; height:100%; }
+.chat-messages {
+  flex:1; overflow-y:auto; padding:12px 16px;
+  display:flex; flex-direction:column; gap:10px;
+  -webkit-overflow-scrolling:touch;
+}
+.chat-bubble {
+  max-width:80%; padding:10px 14px; border-radius:16px;
+  font-size:14px; line-height:1.5; word-wrap:break-word;
+}
+.chat-bubble.client {
+  background:#1F2A33; color:#C9D1D9; align-self:flex-start;
+  border-bottom-left-radius:4px;
+}
+.chat-bubble.practitioner {
+  background:#2FD4F5; color:#0B0F12; align-self:flex-end;
+  border-bottom-right-radius:4px; font-weight:500;
+}
+.chat-meta { font-size:10px; color:#8B949E; margin-top:3px; }
+.chat-meta.right { text-align:right; }
+.chat-input-bar {
+  padding:12px 16px; border-top:1px solid #1F2A33;
+  display:flex; gap:8px; align-items:center; background:#0D1A24; flex-shrink:0;
+}
+.chat-input {
+  flex:1; padding:10px 14px; background:#1F2A33; border:1.5px solid #26323A;
+  border-radius:22px; color:#FFFFFF; font-size:14px; outline:none;
+  font-family:'DM Sans',sans-serif; resize:none; max-height:100px;
+}
+.chat-send-btn {
+  width:40px; height:40px; border-radius:50%; background:#2FD4F5;
+  border:none; color:#0B0F12; font-size:18px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.chat-empty { text-align:center; padding:40px 20px; color:#8B949E; }
+.chat-unread-badge {
+  background:#ef4444; color:#fff; border-radius:50%;
+  width:16px; height:16px; font-size:10px; font-weight:700;
+  display:inline-flex; align-items:center; justify-content:center;
+  margin-left:4px;
+}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -1387,7 +1449,17 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   <div id="cvTabCalendar" style="display:none">
     <div class="cv-calendar" id="cvCalContent"></div>
   </div>
-  <div id="cvTabAi" style="display:none;flex-direction:column;height:calc(100vh - 60px);padding-bottom:70px">
+  <div id="cvTabMessages" style="display:none;flex-direction:column;flex:1;height:calc(100vh - 120px)">
+    <div id="cvChatMessages" class="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px">
+      <div class="chat-empty"><div style="font-size:32px;margin-bottom:12px">💬</div><div style="color:#8B949E">Loading messages...</div></div>
+    </div>
+    <div class="chat-input-bar">
+      <input id="cvChatInput" class="chat-input" placeholder="Message your practitioner..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();cvSendMessage();}">
+      <button class="chat-send-btn" onclick="cvSendMessage()">&#10148;</button>
+    </div>
+  </div>
+
+  <div id="cvTabAi"  style="display:none;flex-direction:column;height:calc(100vh - 60px);padding-bottom:70px">
     <div class="anna-header">
       <div class="anna-avatar">&#129302;</div>
       <div class="anna-intro">
@@ -1428,6 +1500,11 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
       Calendar
     </button>
   
+    <button class="cv-tab" id="cvTabBtnMessages" onclick="cvSwitchTab('messages')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span style="font-size:10px;margin-top:2px">Chat</span>
+    </button>
+
     <button class="cv-tab" id="cvTabBtnAi" onclick="cvSwitchTab('ai')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M12 8v4l3 3"/></svg>
       Anna
@@ -1460,6 +1537,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <button class="btn btn-ghost btn-sm" onclick="openArchiveModal()">📦 Archive</button>
     <button class="btn btn-ghost btn-sm" onclick="openDashboardModal()">🏠 Dashboard</button>
     <button class="btn btn-ghost btn-sm" onclick="openComplianceModal()">📊 Compliance</button>
+    <button class="btn btn-ghost btn-sm" onclick="openMessagesModal(getClient()&&getClient().id)" id="msgBtn">💬 Messages<span id="msgUnreadBadge" class="chat-unread-badge" style="display:none">0</span></button>
     <button class="btn btn-ghost btn-sm" id="signOutBtn" onclick="signOut()" style="display:none">Sign Out</button>
   </div>
 </header>
@@ -1636,6 +1714,27 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
       </div>
     </div>
     <div id="dashboardContent" style="overflow-y:auto;padding:16px;flex:1"></div>
+  </div>
+</div>
+
+
+<!-- MESSAGES MODAL -->
+<div class="overlay" id="messagesM" onclick="if(event.target===this)closeMessagesModal()">
+  <div class="modal" style="max-width:560px;width:95%;height:80vh;background:#0D1A24;border:1px solid #1F2A33;border-radius:16px;padding:0;overflow:hidden;display:flex;flex-direction:column">
+    <div style="background:#0B1820;padding:14px 20px;border-bottom:1px solid #1F2A33;display:flex;align-items:center;gap:12px;flex-shrink:0">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#FFFFFF">💬 <span id="msgClientName">Client</span></div>
+        <div style="font-size:11px;color:#8B949E;margin-top:1px">Two-way messaging</div>
+      </div>
+      <button onclick="closeMessagesModal()" style="background:none;border:none;color:#8B949E;font-size:20px;cursor:pointer;margin-left:auto">✕</button>
+    </div>
+    <div id="practChatMessages" class="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px">
+      <div class="chat-empty"><div style="font-size:32px;margin-bottom:8px">💬</div><div style="color:#8B949E">Select a client and open messages</div></div>
+    </div>
+    <div class="chat-input-bar" style="flex-shrink:0">
+      <input id="practChatInput" class="chat-input" placeholder="Reply to client..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();practSendMessage();}">
+      <button class="chat-send-btn" onclick="practSendMessage()">&#10148;</button>
+    </div>
   </div>
 </div>
 
@@ -4351,6 +4450,7 @@ async function loadClientView(user) {
     // Cache client ID for faster future loads (bypasses RLS)
     localStorage.setItem('bep_cid_' + email, match.id);
     cvData = match; cvState = {}; cvFeeling = ''; cvProgIdx = 0; cvSafetyDone = false; cvComment = '';
+    setTimeout(function(){cvCheckMilestones();},2000);
     cvStartSync(user); // Begin live sync
     loadAnnouncements().then(function() { if (cvActiveTab === 'home') renderCVHome(); }); // Load announcements
     // Load health data from localStorage into cvHealthData
@@ -6014,26 +6114,49 @@ function openClientDemo() {
   var cl = getClient();
   if (!cl) { toast('Select a client first', 'err'); return; }
   if (!cl.programs || !cl.programs.length) { toast('Client has no programs yet', 'err'); return; }
-  cvData = cl;
-  cvState = {};
-  cvFeeling = '';
-  cvProgIdx = 0;
-  cvSafetyDone = true;
-  cvComment = '';
-  // Show back button, hide sign out, update label
+  cvData = cl; cvState = {}; cvFeeling = ''; cvProgIdx = 0; cvSafetyDone = true; cvComment = '';
   document.getElementById('cvBackBtn').style.display = '';
   document.getElementById('cvSignOutBtn').style.display = 'none';
-  document.getElementById('cvLogoText').textContent = '👁 Demo: ' + cl.first + ' ' + cl.last;
+  document.getElementById('cvLogoText').textContent = 'Preview: ' + cl.first + ' ' + cl.last;
   cvOwnWorkouts = JSON.parse(localStorage.getItem('cv_own_workouts_' + cl.id) || '[]');
+  // Apply phone frame to viewClient
+  var vc = document.getElementById('viewClient');
+  vc.dataset.phoneMode = '1';
+  vc.style.cssText = 'display:flex;align-items:flex-start;justify-content:center;min-height:100vh;background:#111;padding:20px;';
+  if (!document.getElementById('cvPhoneWrap')) {
+    var wrap = document.createElement('div');
+    wrap.id = 'cvPhoneWrap';
+    wrap.style.cssText = 'width:393px;min-height:852px;background:#0B0F12;border-radius:48px;border:8px solid #2A2A2A;box-shadow:0 0 0 2px #3A3A3A,0 40px 100px rgba(0,0,0,.9);position:relative;overflow:hidden;flex-shrink:0;';
+    // Notch
+    wrap.innerHTML = '<div style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:120px;height:32px;background:#1A1A1A;border-radius:0 0 18px 18px;z-index:100;display:flex;align-items:center;justify-content:center"><div style="width:10px;height:10px;border-radius:50%;background:#222;border:2px solid #333"></div></div>' +
+      '<div id="cvPhoneInner" style="height:100%;overflow-y:auto;padding-top:32px;-webkit-overflow-scrolling:touch;"></div>' +
+      '<div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:130px;height:5px;background:#3A3A3A;border-radius:3px"></div>';
+    // Move all vc children into phone inner
+    var inner = document.getElementById('cvPhoneInner');
+    while (vc.firstChild) inner.appendChild(vc.firstChild);
+    vc.appendChild(wrap);
+  }
   showView('client');
   cvSwitchTab('home');
 }
 
+// openClientDemo replaced with phone frame version above
+
+
 function closeClientDemo() {
-  // Restore normal header state
   document.getElementById('cvBackBtn').style.display = 'none';
   document.getElementById('cvSignOutBtn').style.display = '';
   document.getElementById('cvLogoText').textContent = 'Beachside Exercise Physiology';
+  // Restore viewClient from phone frame
+  var vc = document.getElementById('viewClient');
+  var wrap = document.getElementById('cvPhoneWrap');
+  if (wrap) {
+    var inner = document.getElementById('cvPhoneInner');
+    while (inner && inner.firstChild) vc.insertBefore(inner.firstChild, wrap);
+    wrap.remove();
+  }
+  vc.dataset.phoneMode = '';
+  vc.style.cssText = '';
   showView('practitioner');
 }
 
@@ -6450,12 +6573,15 @@ var cvOwnWorkouts = []; // [{date, type, duration, note}]
 
 function cvSwitchTab(tab) {
   cvActiveTab = tab;
-  ['home','workouts','calendar','ai'].forEach(function(t) {
+  if (tab === 'messages') {
+    setTimeout(function() { if (typeof cvInitChat === 'function') cvInitChat(); }, 100);
+  }
+  ['home','workouts','calendar','ai','messages'].forEach(function(t) {
     var content = document.getElementById('cvTab' + t.charAt(0).toUpperCase() + t.slice(1));
     var btn = document.getElementById('cvTabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
     if (content) {
       if (t === tab) {
-        content.style.display = (t === 'ai') ? 'flex' : 'block';
+        content.style.display = (t === 'ai' || t === 'messages') ? 'flex' : 'block';
       } else {
         content.style.display = 'none';
       }
@@ -6648,6 +6774,19 @@ function renderCVHome() {
     h += '<div style="padding:0 16px 16px">';
     h += '<div style="font-size:11px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">&#127942; Achievements <span style="color:#2FD4F5;font-weight:800">' + earnedCount + '</span></div>';
     h += achievementBadgesHTML(allLog, ownW, streak);
+    var earnedMs=cvGetEarnedMilestones();
+    if(earnedMs.length){
+      h+='<div style="padding:0 16px 12px">';
+      h+='<div style="font-size:11px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Your Milestones</div>';
+      h+='<div style="display:flex;flex-wrap:wrap;gap:8px">';
+      earnedMs.forEach(function(m){
+        h+='<div style="background:#12181D;border:1px solid #1F2A33;border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:8px">'+
+          '<span style="font-size:18px">'+m.icon+'</span>'+
+          '<span style="font-size:12px;font-weight:600;color:#C9D1D9">'+m.title+'</span>'+
+          '</div>';
+      });
+      h+='</div></div>';
+    }
     h += '</div>';
 
     el.innerHTML = h;
@@ -9518,6 +9657,244 @@ function renderDashboard() {
       selectClientById(this.getAttribute('data-cid'));
     });
   });
+}
+
+
+// MILESTONES
+var CV_MILESTONES = [
+  {id:'first_session', icon:'🎉', title:'First Workout!', desc:'You completed your very first session. Amazing start!',
+   check:function(log){return log.length>=1;}},
+  {id:'sessions_5',    icon:'🔥', title:'5 Sessions Done!', desc:'You have logged 5 workouts. You are building a habit!',
+   check:function(log){return log.length>=5;}},
+  {id:'sessions_10',   icon:'⭐', title:'10 Sessions!', desc:'Double digits! Your consistency is paying off.',
+   check:function(log){return log.length>=10;}},
+  {id:'sessions_25',   icon:'🏅', title:'25 Sessions!', desc:'You are a regular now. Incredible dedication.',
+   check:function(log){return log.length>=25;}},
+  {id:'sessions_50',   icon:'💥', title:'50 Sessions!', desc:'50 workouts completed. Extraordinary effort!',
+   check:function(log){return log.length>=50;}},
+  {id:'sessions_100',  icon:'🏆', title:'100 Sessions!', desc:'One hundred sessions! You are a legend.',
+   check:function(log){return log.length>=100;}},
+  {id:'streak_7',      icon:'🔥', title:'7-Day Streak!', desc:'7 days of activity. Keep the momentum going!',
+   check:function(log,st){return st>=7;}},
+  {id:'streak_30',     icon:'👏', title:'30-Day Streak!', desc:'30 days of consistency. You are unstoppable!',
+   check:function(log,st){return st>=30;}},
+];
+
+var SESSION_MSGS = {
+  low:  ['Looking strong! That felt easy — your fitness is improving.','Barely broke a sweat! You are getting stronger.'],
+  med:  ['Solid work today! That is how progress is made.','Great effort! Consistency is everything.'],
+  high: ['You pushed hard today — that is where growth happens.','Tough session! Your body will thank you.']
+};
+
+function cvCheckMilestones() {
+  if (!cvData) return;
+  var allLog = [];
+  (cvData.programs||[]).forEach(function(p){(p.log||[]).forEach(function(e){if(e.clientSubmitted)allLog.push(e);});});
+  var combined = allLog.concat(cvOwnWorkouts||[]);
+  // Streak calc
+  var now2 = new Date(); now2.setHours(0,0,0,0);
+  var streak2 = 0;
+  for (var d=0;d<365;d++) {
+    var day=new Date(now2); day.setDate(now2.getDate()-d);
+    var nxt=new Date(day); nxt.setDate(day.getDate()+1);
+    if (combined.some(function(e){var ed=new Date(e.date);ed.setHours(0,0,0,0);return ed>=day&&ed<nxt;})) streak2++;
+    else if (d>0) break;
+  }
+  var key = 'cv_ms_'+(cvData.id||'');
+  var earned = JSON.parse(localStorage.getItem(key)||'[]');
+  var newMs = [];
+  CV_MILESTONES.forEach(function(m){
+    if (earned.indexOf(m.id)===-1 && m.check(combined,streak2)) {
+      newMs.push(m); earned.push(m.id);
+    }
+  });
+  if (newMs.length) {
+    localStorage.setItem(key,JSON.stringify(earned));
+    newMs.forEach(function(m,i){ setTimeout(function(){cvShowMilestone(m);},i*3500); });
+  }
+}
+
+function cvTriggerMilestone(id) {
+  if (!cvData) return;
+  var m = CV_MILESTONES.find(function(ms){return ms.id===id;});
+  if (!m) return;
+  var key='cv_ms_'+(cvData.id||'');
+  var earned=JSON.parse(localStorage.getItem(key)||'[]');
+  if (earned.indexOf(id)!==-1) return;
+  earned.push(id); localStorage.setItem(key,JSON.stringify(earned));
+  cvShowMilestone(m);
+}
+
+function cvShowMilestone(m) {
+  var old=document.getElementById('cvMsToast'); if(old) old.remove();
+  var el=document.createElement('div');
+  el.id='cvMsToast'; el.className='cv-milestone-toast';
+  el.innerHTML='<div class="cv-milestone-icon">'+m.icon+'</div>'+
+    '<div style="flex:1"><div class="cv-milestone-title">'+m.title+'</div>'+
+    '<div class="cv-milestone-desc">'+m.desc+'</div></div>'+
+    '<div onclick="this.parentElement.remove()" style="color:#8B949E;cursor:pointer;font-size:18px;flex-shrink:0">&times;</div>';
+  document.body.appendChild(el);
+  setTimeout(function(){if(el.parentElement)el.remove();},5000);
+}
+
+function cvGetEarnedMilestones() {
+  if (!cvData) return [];
+  var earned=JSON.parse(localStorage.getItem('cv_ms_'+(cvData.id||''))||'[]');
+  return CV_MILESTONES.filter(function(m){return earned.indexOf(m.id)!==-1;});
+}
+
+
+// ════════════════════════════════════════════════════
+// TWO-WAY CHAT
+// ════════════════════════════════════════════════════
+var chatMessages = [];
+var chatPollingInterval = null;
+
+// ── CLIENT SIDE ──
+async function cvLoadMessages() {
+  if (!cvData) return;
+  try {
+    var r = await fetch(SUPA_URL + '/rest/v1/messages?client_id=eq.' + cvData.id + '&order=created_at.asc&limit=50', {
+      headers: { 'Content-Type':'application/json', 'apikey':SUPA_KEY, 'Authorization':'Bearer '+(localStorage.getItem('bep_token')||SUPA_KEY) }
+    });
+    if (r.ok) {
+      chatMessages = await r.json();
+      cvRenderChat();
+      // Mark client messages as read
+      await fetch(SUPA_URL + '/rest/v1/messages?client_id=eq.' + cvData.id + '&sender=eq.practitioner', {
+        method:'PATCH', headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(localStorage.getItem('bep_token')||SUPA_KEY),'Prefer':'return=minimal'},
+        body: JSON.stringify({read_by_client:true})
+      });
+    }
+  } catch(e) { console.warn('Chat load error:', e); }
+}
+
+function cvRenderChat() {
+  var el = document.getElementById('cvChatMessages');
+  if (!el) return;
+  if (!chatMessages.length) {
+    el.innerHTML = '<div class="chat-empty"><div style="font-size:32px;margin-bottom:8px">💬</div><div>No messages yet</div><div style="font-size:12px;margin-top:4px">Send your practitioner a message below</div></div>';
+    return;
+  }
+  el.innerHTML = chatMessages.map(function(msg) {
+    var isClient = msg.sender === 'client';
+    var time = new Date(msg.created_at).toLocaleString('en-AU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    return '<div style="display:flex;flex-direction:column;align-items:' + (isClient?'flex-start':'flex-end') + '">' +
+      '<div class="chat-bubble ' + (isClient?'client':'practitioner') + '">' + (msg.text||'').replace(/</g,'&lt;') + '</div>' +
+      '<div class="chat-meta' + (isClient?'':' right') + '">' + time + '</div>' +
+    '</div>';
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+async function cvSendMessage() {
+  var inp = document.getElementById('cvChatInput');
+  if (!inp || !inp.value.trim() || !cvData) return;
+  var text = inp.value.trim();
+  inp.value = '';
+  try {
+    await fetch(SUPA_URL + '/rest/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(localStorage.getItem('bep_token')||SUPA_KEY),'Prefer':'return=minimal'},
+      body: JSON.stringify({client_id:cvData.id, sender:'client', text:text, read_by_practitioner:false, read_by_client:true})
+    });
+    await cvLoadMessages();
+  } catch(e) { toast('Could not send message', 'err'); }
+}
+
+function cvInitChat() {
+  cvLoadMessages();
+  if (chatPollingInterval) clearInterval(chatPollingInterval);
+  chatPollingInterval = setInterval(cvLoadMessages, 15000); // poll every 15s
+}
+
+// ── PRACTITIONER SIDE ──
+var practChatClientId = null;
+var practChatMessages = [];
+var practChatInterval = null;
+
+async function openMessagesModal(clientId) {
+  practChatClientId = clientId;
+  openM('messagesM');
+  var cl = clients.find(function(c){return c.id===clientId;});
+  var nameEl = document.getElementById('msgClientName');
+  if (nameEl && cl) nameEl.textContent = cl.first + ' ' + cl.last;
+  await loadPractMessages();
+  if (practChatInterval) clearInterval(practChatInterval);
+  practChatInterval = setInterval(loadPractMessages, 10000);
+}
+
+async function loadPractMessages() {
+  if (!practChatClientId) return;
+  try {
+    var r = await fetch(SUPA_URL + '/rest/v1/messages?client_id=eq.' + practChatClientId + '&order=created_at.asc&limit=100', {
+      headers: { 'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken()) }
+    });
+    if (r.ok) {
+      practChatMessages = await r.json();
+      renderPractChat();
+      // Mark as read by practitioner
+      await fetch(SUPA_URL + '/rest/v1/messages?client_id=eq.' + practChatClientId + '&sender=eq.client', {
+        method:'PATCH', headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken()),'Prefer':'return=minimal'},
+        body: JSON.stringify({read_by_practitioner:true})
+      });
+      updateMessageBadges();
+    }
+  } catch(e) {}
+}
+
+function renderPractChat() {
+  var el = document.getElementById('practChatMessages');
+  if (!el) return;
+  if (!practChatMessages.length) {
+    el.innerHTML = '<div class="chat-empty"><div style="font-size:32px;margin-bottom:8px">💬</div><div style="color:#8B949E">No messages yet with this client</div></div>';
+    return;
+  }
+  el.innerHTML = practChatMessages.map(function(msg) {
+    var isPract = msg.sender === 'practitioner';
+    var time = new Date(msg.created_at).toLocaleString('en-AU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    return '<div style="display:flex;flex-direction:column;align-items:' + (isPract?'flex-end':'flex-start') + '">' +
+      '<div class="chat-bubble ' + (isPract?'practitioner':'client') + '">' + (msg.text||'').replace(/</g,'&lt;') + '</div>' +
+      '<div class="chat-meta' + (isPract?' right':'') + '">' + (isPract?'You':'Client') + ' · ' + time + '</div>' +
+    '</div>';
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+async function practSendMessage() {
+  var inp = document.getElementById('practChatInput');
+  if (!inp || !inp.value.trim() || !practChatClientId) return;
+  var text = inp.value.trim(); inp.value = '';
+  try {
+    await fetch(SUPA_URL + '/rest/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken()),'Prefer':'return=minimal'},
+      body: JSON.stringify({client_id:practChatClientId, sender:'practitioner', text:text, read_by_practitioner:true, read_by_client:false})
+    });
+    await loadPractMessages();
+  } catch(e) { toast('Could not send', 'err'); }
+}
+
+async function updateMessageBadges() {
+  // Check for unread client messages across all clients
+  try {
+    var r = await fetch(SUPA_URL + '/rest/v1/messages?sender=eq.client&read_by_practitioner=eq.false&select=client_id', {
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken())}
+    });
+    if (r.ok) {
+      var unread = await r.json();
+      var badge = document.getElementById('msgUnreadBadge');
+      if (badge) {
+        badge.textContent = unread.length;
+        badge.style.display = unread.length ? 'inline-flex' : 'none';
+      }
+    }
+  } catch(e) {}
+}
+
+function closeMessagesModal() {
+  if (practChatInterval) clearInterval(practChatInterval);
+  closeM('messagesM');
 }
 
 </script>
