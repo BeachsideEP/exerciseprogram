@@ -1220,6 +1220,69 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .cv-ex-pb-label { font-size: 10px; font-weight: 700; color: #5BBFAA; text-transform: uppercase; }
 .cv-ex-pb-val { font-size: 20px; font-weight: 800; color: #FFFFFF; }
 
+
+/* ── Client Onboarding Tutorial ── */
+.cv-onboard-overlay {
+  position: fixed; inset: 0; z-index: 900;
+  background: rgba(0,0,0,.85);
+  display: flex; align-items: flex-end;
+  animation: cvFadeIn .3s ease;
+}
+.cv-onboard-card {
+  width: 100%; background: #0D1A24;
+  border-radius: 20px 20px 0 0;
+  padding: 28px 24px 40px;
+  border-top: 1px solid #1F2A33;
+}
+.cv-onboard-dots {
+  display: flex; gap: 6px; justify-content: center; margin-bottom: 24px;
+}
+.cv-onboard-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #26323A; transition: background .3s;
+}
+.cv-onboard-dot.active { background: #2FD4F5; width: 20px; border-radius: 4px; }
+.cv-onboard-icon { font-size: 48px; text-align: center; margin-bottom: 16px; }
+.cv-onboard-title { font-size: 22px; font-weight: 800; color: #FFFFFF; text-align: center; margin-bottom: 10px; }
+.cv-onboard-desc { font-size: 14px; color: #8B949E; text-align: center; line-height: 1.7; margin-bottom: 28px; }
+.cv-onboard-btn {
+  width: 100%; padding: 16px; background: #2FD4F5; color: #0B0F12;
+  border: none; border-radius: 12px; font-size: 16px; font-weight: 700;
+  cursor: pointer; font-family: 'DM Sans', sans-serif;
+}
+.cv-onboard-skip {
+  display: block; text-align: center; margin-top: 14px;
+  font-size: 13px; color: #8B949E; cursor: pointer; padding: 8px;
+}
+
+
+/* ── Practitioner Dashboard ── */
+.dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.dash-card {
+  background: #12181D; border-radius: 12px; padding: 16px;
+  border: 1px solid #1F2A33; cursor: pointer; transition: border-color .2s;
+}
+.dash-card:hover { border-color: #2FD4F5; }
+.dash-card-val { font-size: 28px; font-weight: 800; color: #2FD4F5; }
+.dash-card-label { font-size: 11px; color: #8B949E; margin-top: 3px; text-transform: uppercase; letter-spacing: .06em; }
+.dash-card-sub { font-size: 12px; color: #5BBFAA; margin-top: 2px; font-weight: 600; }
+.dash-section { background: #12181D; border-radius: 12px; border: 1px solid #1F2A33; margin-bottom: 12px; overflow: hidden; }
+.dash-section-hdr {
+  padding: 12px 16px; border-bottom: 1px solid #1F2A33; background: #0D1A24;
+  font-size: 12px; font-weight: 700; color: #8B949E; text-transform: uppercase; letter-spacing: .07em;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.dash-row {
+  display: flex; align-items: center; padding: 11px 16px;
+  border-bottom: 1px solid #0D1A24; cursor: pointer; transition: background .15s;
+}
+.dash-row:hover { background: #0D1A24; }
+.dash-row:last-child { border-bottom: none; }
+.dash-badge {
+  font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+  margin-left: auto; flex-shrink: 0;
+}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -1395,6 +1458,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <span id="syncBadge" class="sync-badge sync-idle" onclick="syncClients()" title="Click to sync now" style="cursor:pointer">Offline</span>
     <button class="btn btn-ghost btn-sm" onclick="openClientDemo()" title="Preview how clients see their program">&#128247; Client View</button>
     <button class="btn btn-ghost btn-sm" onclick="openArchiveModal()">📦 Archive</button>
+    <button class="btn btn-ghost btn-sm" onclick="openDashboardModal()">🏠 Dashboard</button>
     <button class="btn btn-ghost btn-sm" onclick="openComplianceModal()">📊 Compliance</button>
     <button class="btn btn-ghost btn-sm" id="signOutBtn" onclick="signOut()" style="display:none">Sign Out</button>
   </div>
@@ -1557,6 +1621,21 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
       <button onclick="closeM('archiveM')" style="background:none;border:none;color:#8B949E;font-size:20px;cursor:pointer">✕</button>
     </div>
     <div id="archiveContent" style="max-height:60vh;overflow-y:auto;padding:16px"></div>
+  </div>
+</div>
+
+
+<!-- DASHBOARD MODAL -->
+<div class="overlay" id="dashboardM" onclick="closeBg(event,'dashboardM')">
+  <div class="modal" style="max-width:680px;width:95%;max-height:88vh;background:#0D1A24;border:1px solid #1F2A33;border-radius:16px;padding:0;overflow:hidden;display:flex;flex-direction:column">
+    <div style="background:#0B1820;padding:14px 20px;border-bottom:1px solid #1F2A33;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div style="font-size:16px;font-weight:700;color:#FFFFFF">🏠 Dashboard</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="renderDashboard()" style="background:#1F2A33;border:1px solid #26323A;color:#8B949E;padding:6px 10px;border-radius:6px;font-size:11px;cursor:pointer">↻ Refresh</button>
+        <button onclick="closeM('dashboardM')" style="background:none;border:none;color:#8B949E;font-size:20px;cursor:pointer">✕</button>
+      </div>
+    </div>
+    <div id="dashboardContent" style="overflow-y:auto;padding:16px;flex:1"></div>
   </div>
 </div>
 
@@ -6394,6 +6473,8 @@ function cvSwitchTab(tab) {
 
 // ── HOME SCREEN ──
 function renderCVHome() {
+  // Show onboarding on first visit
+  setTimeout(function() { cvShowOnboarding(); }, 1000);
   var el = document.getElementById('cvHomeContent');
   if (!el) { setTimeout(renderCVHome, 200); return; }
   if (!cvData) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-light)"><div style="font-size:32px;margin-bottom:8px">&#9201;</div><p>Loading...</p></div>'; setTimeout(renderCVHome, 500); return; }
@@ -8323,6 +8404,11 @@ function doDuplicate(targetId) {
 // ════════════════════════════════════════════════════
 // COMPLIANCE REPORT
 // ════════════════════════════════════════════════════
+function openDashboardModal() {
+  openM('dashboardM');
+  renderDashboard();
+}
+
 function openComplianceModal() {
   openM('complianceM');
   renderComplianceTab();
@@ -9155,6 +9241,285 @@ function cvPlayExVideo(videoId) {
   container.innerHTML = '<iframe src="https://www.youtube.com/embed/' + videoId + '?autoplay=1" frameborder="0" allow="autoplay;encrypted-media" allowfullscreen style="width:100%;height:100%;border:none"></iframe>';
 }
 
+
+// ════════════════════════════════════════════════════
+// CLIENT ONBOARDING TUTORIAL
+// ════════════════════════════════════════════════════
+var cvOnboardStep = 0;
+var cvOnboardSteps = [
+  {
+    icon: '🏠',
+    title: 'Welcome to your Exercise Program',
+    desc: 'Your personalised program has been set up by your Exercise Physiologist. Let’s take a quick tour so you know how everything works.',
+    btn: 'Get Started →'
+  },
+  {
+    icon: '🏋️',
+    title: 'Your Workouts',
+    desc: 'Tap the Workouts tab to see your exercises. Each card shows the exercise name, sets and reps. Tap the card to see a video and description.',
+    btn: 'Next →'
+  },
+  {
+    icon: '✅',
+    title: 'Logging Your Sets',
+    desc: 'Enter your weight and reps for each set, then tap the ✓ tick to mark it complete. Your weight from last session shows as a guide.',
+    btn: 'Next →'
+  },
+  {
+    icon: '❤️',
+    title: 'Health Tracking',
+    desc: 'Use the Home tab to log your blood pressure, blood glucose, heart rate, weight and sleep. Your Exercise Physiologist can see this data.',
+    btn: 'Next →'
+  },
+  {
+    icon: '🤖',
+    title: 'Ask Anna',
+    desc: 'Have a health question between appointments? Tap the Anna tab to chat with your AI health assistant anytime.',
+    btn: 'Let\u2019s Go!'
+  }
+];
+
+function cvShowOnboarding() {
+  var seen = localStorage.getItem('cv_onboarded_' + (cvData && cvData.id));
+  if (seen) return;
+  cvOnboardStep = 0;
+  cvOnboardRender();
+  document.getElementById('cvOnboarding').style.display = 'flex';
+}
+
+function cvOnboardRender() {
+  var step = cvOnboardSteps[cvOnboardStep];
+  document.getElementById('ob_icon').textContent  = step.icon;
+  document.getElementById('ob_title').textContent = step.title;
+  document.getElementById('ob_desc').textContent  = step.desc;
+  document.getElementById('ob_btn').textContent   = step.btn;
+  // Update dots
+  for (var i = 0; i < cvOnboardSteps.length; i++) {
+    var dot = document.getElementById('ob_dot_' + i);
+    if (dot) dot.className = 'cv-onboard-dot' + (i === cvOnboardStep ? ' active' : '');
+  }
+}
+
+function cvOnboardNext() {
+  cvOnboardStep++;
+  if (cvOnboardStep >= cvOnboardSteps.length) {
+    cvOnboardDone();
+  } else {
+    cvOnboardRender();
+  }
+}
+
+function cvOnboardDone() {
+  document.getElementById('cvOnboarding').style.display = 'none';
+  if (cvData && cvData.id) {
+    localStorage.setItem('cv_onboarded_' + cvData.id, '1');
+  }
+}
+
+
+// ════════════════════════════════════════════════════
+// PRACTITIONER DASHBOARD
+// ════════════════════════════════════════════════════
+function renderDashboard() {
+  var el = document.getElementById('dashboardContent');
+  if (!el) return;
+
+  var now = new Date(); now.setHours(0,0,0,0);
+  var sevenAgo   = new Date(now); sevenAgo.setDate(now.getDate()-7);
+  var thirtyAgo  = new Date(now); thirtyAgo.setDate(now.getDate()-30);
+  var today      = now.toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'});
+
+  function normD(s) { if(!s) return null; var d=new Date(s); return isNaN(d)?null:d; }
+
+  var activeClients = clients.filter(function(c){ return !c.archived; });
+
+  // ── Stats ──
+  var totalClients = activeClients.length;
+  var activeThisWeek = activeClients.filter(function(cl) {
+    var allLog = [];
+    (cl.programs||[]).forEach(function(p){ (p.log||[]).forEach(function(e){ if(e.clientSubmitted) allLog.push(e); }); });
+    return allLog.concat(cl.ownWorkouts||[]).some(function(e){ var d=normD(e.date); return d&&d>=sevenAgo; });
+  }).length;
+
+  var inactiveClients = activeClients.filter(function(cl) {
+    var allLog = [];
+    (cl.programs||[]).forEach(function(p){ (p.log||[]).forEach(function(e){ if(e.clientSubmitted) allLog.push(e); }); });
+    var combined = allLog.concat(cl.ownWorkouts||[]);
+    if (!combined.length) return true;
+    var lastDate = null;
+    combined.forEach(function(e){ var d=normD(e.date); if(d&&(!lastDate||d>lastDate)) lastDate=d; });
+    return lastDate ? Math.floor((now-lastDate)/(1000*60*60*24)) > 21 : true;
+  }).length;
+
+  var sessionsThisWeek = 0;
+  activeClients.forEach(function(cl) {
+    (cl.programs||[]).forEach(function(p){
+      (p.log||[]).forEach(function(e){ if(e.clientSubmitted){ var d=normD(e.date); if(d&&d>=sevenAgo) sessionsThisWeek++; }});
+    });
+    (cl.ownWorkouts||[]).forEach(function(e){ var d=normD(e.date); if(d&&d>=sevenAgo) sessionsThisWeek++; });
+  });
+
+  // ── Clients needing attention ──
+  var atRisk = activeClients.filter(function(cl) {
+    var allLog = [];
+    (cl.programs||[]).forEach(function(p){ (p.log||[]).forEach(function(e){ if(e.clientSubmitted) allLog.push(e); }); });
+    var combined = allLog.concat(cl.ownWorkouts||[]);
+    if (!combined.length) return false;
+    var lastDate = null;
+    combined.forEach(function(e){ var d=normD(e.date); if(d&&(!lastDate||d>lastDate)) lastDate=d; });
+    var days = lastDate ? Math.floor((now-lastDate)/(1000*60*60*24)) : 999;
+    return days > 7 && days <= 21;
+  }).slice(0,5);
+
+  // ── Recent activity (last 7 days sessions) ──
+  var recentSessions = [];
+  activeClients.forEach(function(cl) {
+    (cl.programs||[]).forEach(function(p){
+      (p.log||[]).forEach(function(e){
+        if(e.clientSubmitted){ var d=normD(e.date); if(d&&d>=sevenAgo)
+          recentSessions.push({ cl: cl, date: e.date, prog: p.title||'Program' });
+      }});
+    });
+  });
+  recentSessions.sort(function(a,b){ return new Date(b.date)-new Date(a.date); });
+  recentSessions = recentSessions.slice(0,6);
+
+  // ── Clients with no program ──
+  var noProgram = activeClients.filter(function(cl) {
+    return !(cl.programs||[]).some(function(p){ return (p.exercises||[]).length > 0; });
+  }).slice(0,5);
+
+  // ── Clinician workload ──
+  var byClinic = {};
+  activeClients.forEach(function(cl) {
+    var c = cl.clinician || 'Unassigned';
+    if (!byClinic[c]) byClinic[c] = { total:0, active:0 };
+    byClinic[c].total++;
+    var allLog = [];
+    (cl.programs||[]).forEach(function(p){ (p.log||[]).forEach(function(e){ if(e.clientSubmitted) allLog.push(e); }); });
+    if (allLog.concat(cl.ownWorkouts||[]).some(function(e){ var d=normD(e.date); return d&&d>=sevenAgo; })) byClinic[c].active++;
+  });
+
+  // ── Quick add client button ──
+    var quickActions = '';
+  quickActions += '<div style="display:flex;gap:10px;margin-bottom:16px">';
+  quickActions += '<button onclick="openM(\'newClientM\')" style="flex:1;padding:12px;background:#1F2A33;border:1.5px solid #2FD4F5;border-radius:10px;color:#2FD4F5;font-size:13px;font-weight:700;cursor:pointer">+ New Client</button>';
+  quickActions += '<button onclick="closeM(\'dashboardM\');openComplianceModal()" style="flex:1;padding:12px;background:#1F2A33;border:1.5px solid #26323A;border-radius:10px;color:#C9D1D9;font-size:13px;font-weight:700;cursor:pointer">Compliance</button>';
+  quickActions += '</div>';
+
+  // ── Stat cards ──
+  var statCards =
+    '<div class="dash-grid">' +
+    '<div class="dash-card" onclick=\"openComplianceModal()\">' +
+      '<div class="dash-card-val">' + totalClients + '</div>' +
+      '<div class="dash-card-label">Active Clients</div>' +
+      '<div class="dash-card-sub">↗ ' + activeThisWeek + ' trained this week</div>' +
+    '</div>' +
+    '<div class="dash-card" onclick=\"openComplianceModal()\">' +
+      '<div class="dash-card-val" style="color:#5BBFAA">' + sessionsThisWeek + '</div>' +
+      '<div class="dash-card-label">Sessions This Week</div>' +
+      '<div class="dash-card-sub" style="color:#8B949E">across all clients</div>' +
+    '</div>' +
+    '<div class="dash-card" onclick=\"openComplianceModal()\">' +
+      '<div class="dash-card-val" style="color:#f59e0b">' + atRisk.length + '</div>' +
+      '<div class="dash-card-label">At Risk (8-21d)</div>' +
+      '<div class="dash-card-sub" style="color:#8B949E">haven’t trained recently</div>' +
+    '</div>' +
+    '<div class="dash-card" onclick=\"openComplianceModal()\">' +
+      '<div class="dash-card-val" style="color:#ef4444">' + inactiveClients + '</div>' +
+      '<div class="dash-card-label">Inactive (21d+)</div>' +
+      '<div class="dash-card-sub" style="color:#8B949E">need follow-up</div>' +
+    '</div>' +
+    '</div>';
+
+  // ── Recent sessions ──
+  var recentHTML = recentSessions.length ?
+    '<div class="dash-section">' +
+    '<div class="dash-section-hdr">Recent Sessions <span style="color:#2FD4F5;font-size:11px">Last 7 days</span></div>' +
+    recentSessions.map(function(s) {
+      var d = normD(s.date);
+      var daysAgo = d ? Math.floor((now-d)/(1000*60*60*24)) : '?';
+      var dText = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : daysAgo + 'd ago';
+      return '<div class="dash-row">' +
+        '<div style="width:32px;height:32px;border-radius:8px;background:#1F2A33;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#2FD4F5;flex-shrink:0;margin-right:12px">' +
+          s.cl.first[0] + s.cl.last[0] + '</div>' +
+        '<div><div style="font-size:13px;font-weight:600;color:#FFFFFF">' + s.cl.first + ' ' + s.cl.last + '</div>' +
+        '<div style="font-size:11px;color:#8B949E">' + s.prog + '</div></div>' +
+        '<span class="dash-badge" style="background:#5BBFAA20;color:#5BBFAA;border:1px solid #5BBFAA44">' + dText + '</span>' +
+      '</div>';
+    }).join('') +
+    '</div>' : '';
+
+  // ── At risk clients ──
+  var atRiskHTML = atRisk.length ?
+    '<div class="dash-section">' +
+    '<div class="dash-section-hdr">Needs Attention <span style="color:#f59e0b;font-size:11px">8-21 days inactive</span></div>' +
+    atRisk.map(function(cl) {
+      var allLog = [];
+      (cl.programs||[]).forEach(function(p){ (p.log||[]).forEach(function(e){ if(e.clientSubmitted) allLog.push(e); }); });
+      var combined = allLog.concat(cl.ownWorkouts||[]);
+      var lastDate = null;
+      combined.forEach(function(e){ var d=normD(e.date); if(d&&(!lastDate||d>lastDate)) lastDate=d; });
+      var days = lastDate ? Math.floor((now-lastDate)/(1000*60*60*24)) : '?';
+      return '<div class="dash-row">' +
+        '<div style="width:32px;height:32px;border-radius:8px;background:#f59e0b20;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#f59e0b;flex-shrink:0;margin-right:12px">' +
+          cl.first[0] + cl.last[0] + '</div>' +
+        '<div><div style="font-size:13px;font-weight:600;color:#FFFFFF">' + cl.first + ' ' + cl.last + '</div>' +
+        '<div style="font-size:11px;color:#8B949E">' + (cl.clinician||'') + '</div></div>' +
+        '<span class="dash-badge" style="background:#f59e0b20;color:#f59e0b;border:1px solid #f59e0b44">' + days + 'd ago</span>' +
+      '</div>';
+    }).join('') +
+    '</div>' : '';
+
+  // ── No program clients ──
+  var noProgHTML = noProgram.length ?
+    '<div class="dash-section">' +
+    '<div class="dash-section-hdr">No Program Assigned <span style="color:#ef4444;font-size:11px">' + noProgram.length + ' clients</span></div>' +
+    noProgram.map(function(cl) {
+      return '<div class="dash-row">' +
+        '<div style="width:32px;height:32px;border-radius:8px;background:#ef444420;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#ef4444;flex-shrink:0;margin-right:12px">' +
+          cl.first[0] + cl.last[0] + '</div>' +
+        '<div style="font-size:13px;font-weight:600;color:#FFFFFF">' + cl.first + ' ' + cl.last + '</div>' +
+        '<span class="dash-badge" style="background:#ef444420;color:#ef4444;border:1px solid #ef444444">No program</span>' +
+      '</div>';
+    }).join('') +
+    '</div>' : '';
+
+  // ── Clinician workload ──
+  var clinicHTML = Object.keys(byClinic).length > 1 ?
+    '<div class="dash-section">' +
+    '<div class="dash-section-hdr">Team Workload</div>' +
+    Object.keys(byClinic).map(function(name) {
+      var c = byClinic[name];
+      var pct = c.total ? Math.round(c.active/c.total*100) : 0;
+      return '<div class="dash-row">' +
+        '<div style="font-size:13px;font-weight:600;color:#FFFFFF;flex:1">' + name + '</div>' +
+        '<div style="font-size:12px;color:#8B949E;margin-right:12px">' + c.total + ' clients</div>' +
+        '<div style="width:80px;height:5px;background:#1F2A33;border-radius:3px;overflow:hidden">' +
+          '<div style="width:'+pct+'%;height:100%;background:#5BBFAA;border-radius:3px"></div></div>' +
+      '</div>';
+    }).join('') +
+    '</div>' : '';
+
+  // ── Date header ──
+  var header = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">' +
+    '<div>' +
+      '<div style="font-size:20px;font-weight:800;color:#FFFFFF">Dashboard</div>' +
+      '<div style="font-size:12px;color:#8B949E">' + today + '</div>' +
+    '</div>' +
+    '<button onclick="renderDashboard()" style="background:#1F2A33;border:1px solid #26323A;color:#8B949E;padding:7px 12px;border-radius:8px;font-size:12px;cursor:pointer">↻ Refresh</button>' +
+  '</div>';
+
+  el.innerHTML = header + quickActions + statCards + recentHTML + atRiskHTML + noProgHTML + clinicHTML;
+  // Add click handlers to all dash-row elements
+  el.querySelectorAll('.dash-row[data-cid]').forEach(function(row) {
+    row.addEventListener('click', function() {
+      closeM('dashboardM');
+      selectClientById(this.getAttribute('data-cid'));
+    });
+  });
+}
+
 </script>
 
 
@@ -9186,5 +9551,24 @@ function cvPlayExVideo(videoId) {
 </div>
 
 <script>if("serviceWorker"in navigator){navigator.serviceWorker.register("./sw.js").catch(function(){});}</script>
+
+<!-- ── CLIENT ONBOARDING TUTORIAL ── -->
+<div id="cvOnboarding" style="display:none" class="cv-onboard-overlay">
+  <div class="cv-onboard-card">
+    <div class="cv-onboard-dots">
+      <div class="cv-onboard-dot active" id="ob_dot_0"></div>
+      <div class="cv-onboard-dot" id="ob_dot_1"></div>
+      <div class="cv-onboard-dot" id="ob_dot_2"></div>
+      <div class="cv-onboard-dot" id="ob_dot_3"></div>
+      <div class="cv-onboard-dot" id="ob_dot_4"></div>
+    </div>
+    <div class="cv-onboard-icon" id="ob_icon">🏠</div>
+    <div class="cv-onboard-title" id="ob_title">Welcome to your Exercise Program</div>
+    <div class="cv-onboard-desc" id="ob_desc">Your personalised program has been set up by your Exercise Physiologist. Let’s take a quick tour so you know how everything works.</div>
+    <button class="cv-onboard-btn" id="ob_btn" onclick="cvOnboardNext()">Get Started →</button>
+    <span class="cv-onboard-skip" onclick="cvOnboardDone()">Skip tutorial</span>
+  </div>
+</div>
+
 </body>
 </html>
