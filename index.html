@@ -1537,7 +1537,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <button class="btn btn-ghost btn-sm" onclick="openArchiveModal()">📦 Archive</button>
     <button class="btn btn-ghost btn-sm" onclick="openDashboardModal()">🏠 Dashboard</button>
     <button class="btn btn-ghost btn-sm" onclick="openComplianceModal()">📊 Compliance</button>
-    <button class="btn btn-ghost btn-sm" onclick="openMessagesModal(getClient()&&getClient().id)" id="msgBtn">💬 Messages<span id="msgUnreadBadge" class="chat-unread-badge" style="display:none">0</span></button>
+    <button class="btn btn-ghost btn-sm" onclick="var _cl=getClient();if(!_cl){toast('Select a client first','err');return;}openMessagesModal(_cl.id)" id="msgBtn">💬 Messages<span id="msgUnreadBadge" class="chat-unread-badge" style="display:none">0</span></button>
     <button class="btn btn-ghost btn-sm" id="signOutBtn" onclick="signOut()" style="display:none">Sign Out</button>
   </div>
 </header>
@@ -6119,25 +6119,38 @@ function openClientDemo() {
   document.getElementById('cvSignOutBtn').style.display = 'none';
   document.getElementById('cvLogoText').textContent = 'Preview: ' + cl.first + ' ' + cl.last;
   cvOwnWorkouts = JSON.parse(localStorage.getItem('cv_own_workouts_' + cl.id) || '[]');
-  // Show client view first, then wrap in phone frame
+  // Show client view first
   showView('client');
-  cvSwitchTab('home');
-  // Apply phone frame after DOM is visible
+  // Apply phone frame after DOM is visible, then render content
   setTimeout(function() {
     var vc = document.getElementById('viewClient');
     if (!vc) return;
     vc.dataset.phoneMode = '1';
-    vc.style.cssText = 'display:flex;align-items:flex-start;justify-content:center;min-height:100vh;background:#1A1A2E;padding:20px;box-sizing:border-box;';
+    vc.style.cssText = 'display:flex;align-items:flex-start;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0D0D1A,#1A1A2E,#0D1A24);padding:40px 20px;box-sizing:border-box;';
     if (document.getElementById('cvPhoneWrap')) return;
     var wrap = document.createElement('div');
     wrap.id = 'cvPhoneWrap';
-    wrap.style.cssText = 'width:393px;min-height:852px;background:#0B0F12;border-radius:48px;border:8px solid #2A2A2A;box-shadow:0 0 0 2px #3A3A3A,0 40px 100px rgba(0,0,0,.9);position:relative;overflow:hidden;flex-shrink:0;display:flex;flex-direction:column;';
+    wrap.style.cssText = 'width:393px;min-height:852px;background:#0B0F12;border-radius:50px;position:relative;overflow:hidden;flex-shrink:0;display:flex;flex-direction:column;';
+    // Outer chrome frame
+    var outerFrame = document.createElement('div');
+    outerFrame.style.cssText = 'position:absolute;inset:-10px;border-radius:58px;border:10px solid #1C1C1E;box-shadow:0 0 0 1px #3A3A3C,0 0 0 11px #1C1C1E,0 50px 120px rgba(0,0,0,.95),inset 0 0 0 1px #3A3A3C;pointer-events:none;z-index:1000;';
+    wrap.appendChild(outerFrame);
+    // Side buttons
+    var sideBtn1 = document.createElement('div');
+    sideBtn1.style.cssText = 'position:absolute;left:-13px;top:120px;width:4px;height:32px;background:#2C2C2E;border-radius:2px 0 0 2px;';
+    var sideBtn2 = document.createElement('div');
+    sideBtn2.style.cssText = 'position:absolute;left:-13px;top:168px;width:4px;height:60px;background:#2C2C2E;border-radius:2px 0 0 2px;';
+    var sideBtn3 = document.createElement('div');
+    sideBtn3.style.cssText = 'position:absolute;left:-13px;top:240px;width:4px;height:60px;background:#2C2C2E;border-radius:2px 0 0 2px;';
+    var powerBtn = document.createElement('div');
+    powerBtn.style.cssText = 'position:absolute;right:-13px;top:160px;width:4px;height:80px;background:#2C2C2E;border-radius:0 2px 2px 0;';
+    wrap.appendChild(sideBtn1); wrap.appendChild(sideBtn2); wrap.appendChild(sideBtn3); wrap.appendChild(powerBtn);
     var notch = document.createElement('div');
-    notch.style.cssText = 'position:absolute;top:0;left:50%;transform:translateX(-50%);width:120px;height:32px;background:#1A1A1A;border-radius:0 0 18px 18px;z-index:200;display:flex;align-items:center;justify-content:center;';
-    notch.innerHTML = '<div style="width:10px;height:10px;border-radius:50%;background:#333;border:2px solid #444"></div>';
+    notch.style.cssText = 'position:absolute;top:10px;left:50%;transform:translateX(-50%);width:120px;height:34px;background:#000;border-radius:20px;z-index:300;display:flex;align-items:center;justify-content:center;gap:8px;';
+    notch.innerHTML = '<div style="width:12px;height:12px;border-radius:50%;background:#1a1a1a;border:2px solid #2a2a2a"></div><div style="width:8px;height:8px;border-radius:50%;background:#1a1a1a"></div>';
     var inner = document.createElement('div');
     inner.id = 'cvPhoneInner';
-    inner.style.cssText = 'flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;position:relative;';
+    inner.style.cssText = 'flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;position:relative;padding-top:54px;';
     var homeBar = document.createElement('div');
     homeBar.style.cssText = 'position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:130px;height:5px;background:#3A3A3A;border-radius:3px;z-index:200;flex-shrink:0;';
     // Move vc children into phone inner (skip the wrap itself)
@@ -6147,6 +6160,8 @@ function openClientDemo() {
     wrap.appendChild(inner);
     wrap.appendChild(homeBar);
     vc.appendChild(wrap);
+    // Now render content inside the frame
+    cvSwitchTab('home');
   }, 50);
 }
 
