@@ -3141,7 +3141,10 @@ function createClient() {
 function openEditClient() {
   const cl = getClient(); if (!cl) return;
   sv('ec_first',cl.first); sv('ec_last',cl.last); sv('ec_dob',cl.dob);
-  sv('ec_clin',cl.clinician); sv('ec_goal',cl.goal); sv('ec_review',cl.review); sv('ec_phone',cl.phone||'');
+  sv('ec_clin',cl.clinician); sv('ec_goal',cl.goal); sv('ec_review',cl.review||''); sv('ec_phone',cl.phone||'');
+  sv('ec_email',cl.email||'');
+  var ecSafety = document.getElementById('ec_safety');
+  if (ecSafety) ecSafety.checked = cl.requireSafetyCheck !== false;
 }
 
 function saveClientEdit() {
@@ -3421,6 +3424,7 @@ function updatePreview() {
   if (p.title !== progTitle) { p.title = progTitle; renderProgTabs(); }
   let html = '';
   html += row('Client', `${cl.first} ${cl.last}`);
+  if (cl.email) html += row('Email', cl.email);
   if (cl.dob) html += row('DOB', fd(cl.dob));
   if (cl.clinician) html += row('Clinician', cl.clinician);
   if (cl.goal) html += row('Goal', cl.goal);
@@ -3937,7 +3941,7 @@ async function sendOTP() {
     var r = await fetch(SUPA_URL + '/auth/v1/otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
-      body: JSON.stringify({ email: email, create_user: false, options: { shouldCreateUser: false } })
+      body: JSON.stringify({ email: email, create_user: true })
     });
     var d = await r.json();
     if (r.ok) {
@@ -3946,11 +3950,12 @@ async function sendOTP() {
       showOTPStep(2);
     } else {
       var msg = d.error_description || d.msg || d.error || JSON.stringify(d);
-      // If OTP not enabled, fall back to magic link
       if (msg.includes('Email logins are disabled') || msg.includes('not enabled')) {
-        setAuthMsg('Code sign-in not enabled — ask your clinician to enable it in settings.', 'err');
+        setAuthMsg('Sign-in not enabled — please contact the clinic.', 'err');
+      } else if (msg.includes('signup') || msg.includes('Signup')) {
+        setAuthMsg('Please contact the clinic to set up your account.', 'err');
       } else {
-        setAuthMsg('Could not send: ' + msg, 'err');
+        setAuthMsg('Could not send code: ' + msg, 'err');
       }
     }
   } catch (e) { setAuthMsg('Connection error: ' + e.message, 'err'); }
@@ -4137,6 +4142,10 @@ async function syncClients() {
           pushClientToCloud(localCl);
           return localCl;
         }
+        // Cloud is newer - but preserve key fields if cloud is missing them
+        if (!cloudCl.email && localCl.email) cloudCl.email = localCl.email;
+        if (!cloudCl.phone && localCl.phone) cloudCl.phone = localCl.phone;
+        if (cloudCl.requireSafetyCheck === undefined) cloudCl.requireSafetyCheck = localCl.requireSafetyCheck;
         return cloudCl; // cloud is newer or equal
       }).filter(Boolean);
 
@@ -8799,13 +8808,10 @@ function copyToClinicNotes() {
   var today = new Date().toLocaleDateString('en-AU', {day:'numeric',month:'long',year:'numeric'});
   var lines = [];
 
-  lines.push('EXERCISE PROGRAM — ' + cl.first + ' ' + cl.last);
-  lines.push('Date: ' + today);
+  lines.push(cl.first + ' ' + cl.last);
   if (cl.clinician) lines.push('Clinician: ' + cl.clinician);
   lines.push('Program: ' + (prog.title || 'Home Exercise Program'));
   if (prog.freq) lines.push('Frequency: ' + prog.freq);
-  lines.push('');
-  lines.push('──────────────────────────────────────');
   lines.push('');
 
   (prog.exercises || []).forEach(function(ex, i) {
@@ -8846,13 +8852,10 @@ function copyToClinicNotes() {
     lines.push('');
   });
 
-  lines.push('──────────────────────────────────────');
   if (prog.notes) {
     lines.push('Program Notes: ' + prog.notes);
     lines.push('');
   }
-  lines.push('Beachside Exercise Physiology — 4/270 Lower Dandenong Rd, Mordialloc VIC');
-  lines.push('0409 051 260  |  admin@beachsideep.com.au');
 
   var text = lines.join('\n');
 
@@ -8966,15 +8969,15 @@ function cvOpenExDetail(exIdx) {
     histHTML += '<div class="cv-ex-history-title">Session History</div>';
     if (best1RM) {
       histHTML += '<div class="cv-ex-pb"><div class="cv-ex-pb-label">Personal Best To Beat</div>' +
-        '<div style="display:flex;align-items:baseline;gap:4px"><span style="font-size:13px;color:#7A95A5">Estimated 1 rep max</span></div>' +
-        '<div class="cv-ex-pb-val">' + best1RM.toFixed(1) + '<span style="font-size:13px;font-weight:400;color:#7A95A5"> kg</span></div>' +
+        '<div style="display:flex;align-items:baseline;gap:4px"><span style="font-size:13px;color:#8B949E">Estimated 1 rep max</span></div>' +
+        '<div class="cv-ex-pb-val">' + best1RM.toFixed(1) + '<span style="font-size:13px;font-weight:400;color:#8B949E"> kg</span></div>' +
       '</div>';
     }
     history.forEach(function(h) {
       histHTML += '<div style="margin-bottom:14px">';
       histHTML += '<div style="display:flex;justify-content:space-between;margin-bottom:6px">';
-      histHTML += '<span style="font-size:13px;font-weight:600;color:#1A2530">' + h.prog + '</span>';
-      histHTML += '<span style="font-size:12px;color:#7A95A5">' + h.date + '</span>';
+      histHTML += '<span style="font-size:13px;font-weight:600;color:#FFFFFF">' + h.prog + '</span>';
+      histHTML += '<span style="font-size:12px;color:#8B949E">' + h.date + '</span>';
       histHTML += '</div>';
       h.sets.forEach(function(s, si) {
         // Parse "12 reps @ 20kg" or "12 reps @ 20 (prescribed)" format
@@ -9004,8 +9007,8 @@ function cvOpenExDetail(exIdx) {
     videoHTML +
     '<div class="cv-ex-detail-content">' +
       '<div class="cv-ex-detail-title">' + ex.name + '</div>' +
-      (ex.desc ? '<div class="cv-ex-detail-desc">' + ex.desc.replace(/\d+\)/g, '<br><strong>$&</strong>') + '</div>' : '') +
-      (ex.notes ? '<div style="background:#F0F8FF;border-left:3px solid #1A7BA4;padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:16px;font-size:13px;color:#1A2530">' + ex.notes + '</div>' : '') +
+      (ex.desc ? '<div class="cv-ex-detail-desc" style="color:#C9D1D9">' + ex.desc.replace(/\d+\)/g, '<br><strong style="color:#FFFFFF">$&</strong>') + '</div>' : '') +
+      (ex.notes ? '<div style="background:#0D1F2D;border-left:3px solid #2FD4F5;padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:16px;font-size:13px;color:#C9D1D9">' + ex.notes + '</div>' : '') +
       histHTML +
     '</div>';
 
