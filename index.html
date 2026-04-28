@@ -497,12 +497,12 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 /* Exercise substitution in client view */
 .cv-sub-btn{background:none;border:1.5px solid var(--sand-dark);color:var(--text-light);font-size:10px;padding:4px 9px;border-radius:20px;cursor:pointer;margin-top:5px;font-family:-apple-system,sans-serif;transition:all .12s}
 .cv-sub-btn:hover{border-color:var(--ocean-light);color:var(--ocean)}
-.cv-sub-panel{background:var(--sand);border-radius:8px;padding:10px 11px;margin-top:8px}
-.cv-sub-search{width:100%;padding:8px 10px;border:1.5px solid var(--sand-dark);border-radius:6px;font-size:13px;font-family:-apple-system,sans-serif;outline:none;margin-bottom:7px}
+.cv-sub-panel{background:#12181D;border-radius:8px;padding:10px 11px;margin-top:8px;border:1px solid #1F2A33}
+.cv-sub-search{width:100%;padding:8px 10px;border:1.5px solid #26323A;border-radius:6px;font-size:13px;background:#1F2A33;color:#C9D1D9;outline:none;font-family:'DM Sans',sans-serif}
 .cv-sub-search:focus{border-color:var(--ocean-light);background:#fff}
 .cv-sub-list{max-height:180px;overflow-y:auto}
-.cv-sub-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;cursor:pointer;transition:background .1s}
-.cv-sub-item:hover{background:#fff}
+.cv-sub-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .1s;color:#C9D1D9}
+.cv-sub-item:hover{background:#1F2A33}
 .cv-sub-thumb{width:30px;height:30px;border-radius:5px;overflow:hidden;flex-shrink:0;background:var(--sand-dark)}
 .cv-sub-thumb svg,.cv-sub-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .cv-sub-name{font-size:12px;font-weight:600;color:var(--text)}
@@ -4013,7 +4013,7 @@ function renderCV() {
       // Substitute button
       if (st.subbing) {
         h += '<div class="cv-sub-panel">';
-        h += '<div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:6px">Choose a substitute for <em>' + ex.name + '</em></div>';
+        h += '<div style="font-size:11px;font-weight:600;color:#C9D1D9;margin-bottom:6px">Choose a substitute for <em>' + ex.name + '</em></div>';
         h += '<input class="cv-sub-search" type="text" placeholder="Search exercises…" oninput="cvFilterSub(' + i + ',this.value)" id="cvSubSrch' + i + '">';
         h += '<div class="cv-sub-list" id="cvSubList' + i + '">' + cvSubListHTML(i, '') + '</div>';
         h += '<div class="cv-sub-cancel" onclick="cvCancelSub(' + i + ')">Cancel</div>';
@@ -5549,11 +5549,11 @@ function cvSubListHTML(idx, query) {
     if (!q) return ex.cat === currentEx.cat;
     return ex.name.toLowerCase().indexOf(q) !== -1 || ex.cat.toLowerCase().indexOf(q) !== -1;
   }).slice(0, 8);
-  if (!pool.length) return '<div style="padding:8px;font-size:11px;color:var(--text-light)">No matches found</div>';
+  if (!pool.length) return '<div style="padding:8px;font-size:11px;color:#8B949E">No matches found</div>';
   return pool.map(function(ex) {
-    return '<div onclick="cvDoSub(' + idx + ',\'' + ex.id + '\')" style="padding:8px 10px;border-bottom:1px solid var(--sand-dark);cursor:pointer;font-size:12px;display:flex;align-items:center;gap:8px">' +
-      '<div style="width:30px;height:30px;border-radius:5px;overflow:hidden;flex-shrink:0">' + getExIllusStr(ex.name, ex.cat) + '</div>' +
-      '<div><div style="font-weight:600">' + ex.name + '</div><div style="font-size:10px;color:var(--text-light)">' + ex.cat + '</div></div>' +
+    return '<div onclick="cvDoSub(' + idx + ',\'' + ex.id + '\')" style="padding:10px;border-bottom:1px solid #1F2A33;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:10px;background:#12181D;transition:background .1s" onmouseover="this.style.background=\'#1F2A33\'" onmouseout="this.style.background=\'#12181D\'">' +
+      '<div style="width:36px;height:36px;border-radius:8px;overflow:hidden;flex-shrink:0;background:#1F2A33">' + getExIllusStr(ex.name, ex.cat) + '</div>' +
+      '<div><div style="font-weight:600;color:#FFFFFF">' + ex.name + '</div><div style="font-size:11px;color:#8B949E;margin-top:2px">' + ex.cat + '</div></div>' +
     '</div>';
   }).join('');
 }
@@ -7135,7 +7135,7 @@ function cvFilterCustomEx(q) {
       + 'style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer;border-bottom:1px solid var(--sand-dark)">'
       + '<div style="width:36px;height:36px;border-radius:6px;overflow:hidden;flex-shrink:0;background:var(--sand)">' + thumb + '</div>'
       + '<div><div style="font-size:13px;font-weight:600;color:var(--text)">' + ex.name + '</div>'
-      + '<div style="font-size:10px;color:var(--text-light)">' + (ex.cat || '') + '</div></div>'
+      + '<div style="font-size:10px;color:#8B949E">' + (ex.cat || '') + '</div></div>'
       + '</div>';
   }).join('');
 }
@@ -8473,24 +8473,19 @@ function cvOpenExDetail(exIdx) {
     if (!entry.clientSubmitted) return;
     var date = (entry.date || '').split(',')[0].trim();
     var sets = [];
+    // Log format: "ExName [N/N sets]: Set 1: 12 reps @ 20kg, Set 2: ..."
     (entry.text || '').split('|').forEach(function(part) {
       part = part.trim();
-      // Match: "Exercise Name [3 sets: 12 reps @ 20kg]" or "Exercise Name [12 reps x 20kg]"
-      var m2 = part.match(/^(.+?)\s*\[(.+?)\]$/);
-      if (m2 && m2[1].trim().toLowerCase() === ex.name.toLowerCase()) {
-        sets.push(m2[2]);
-      }
+      if (!part) return;
+      // Check if this part starts with the exercise name
+      if (part.toLowerCase().indexOf(ex.name.toLowerCase()) !== 0) return;
+      // Extract everything after the [sets] bracket
+      var afterBracket = part.replace(/^.+?\[[\d\/\s\w]+\]\s*:?\s*/,'');
+      if (!afterBracket) return;
+      // Split by "Set N:" to get individual set data
+      var setMatches = afterBracket.split(/,?\s*Set\s+\d+:\s*/i).filter(Boolean);
+      setMatches.forEach(function(s) { if (s.trim()) sets.push(s.trim()); });
     });
-    // Fallback: check if exercise name appears anywhere in the line
-    if (!sets.length) {
-      (entry.text || '').split('|').forEach(function(part) {
-        part = part.trim();
-        if (part.toLowerCase().indexOf(ex.name.toLowerCase()) === 0) {
-          var bracketMatch = part.match(/\[([^\]]+)\]/);
-          if (bracketMatch) sets.push(bracketMatch[1]);
-        }
-      });
-    }
     if (sets.length) history.push({ date: date, sets: sets, prog: prog.title || 'Program' });
   });
   history = history.slice(-6).reverse(); // last 6 sessions, newest first
@@ -8541,14 +8536,15 @@ function cvOpenExDetail(exIdx) {
       histHTML += '<span style="font-size:12px;color:#7A95A5">' + h.date + '</span>';
       histHTML += '</div>';
       h.sets.forEach(function(s, si) {
+        // Parse "12 reps @ 20kg" or "12 reps @ 20 (prescribed)" format
         var repsM = s.match(/(\d+(?:-\d+)?)\s*reps?/i);
-        var loadM = s.match(/([\d.]+)\s*kg/i);
+        var loadM = s.match(/@\s*([\d.]+)/i) || s.match(/([\d.]+)\s*kg/i);
         var holdM = s.match(/hold\s*(\d+)/i);
         var setDisplay = '';
         if (repsM) setDisplay += repsM[1] + ' reps';
-        if (loadM) setDisplay += (setDisplay ? ' × ' : '') + loadM[1] + ' kg';
+        if (loadM && loadM[1]) setDisplay += (setDisplay ? ' × ' : '') + loadM[1] + ' kg';
         if (holdM) setDisplay += (setDisplay ? ' · ' : '') + holdM[1] + 's hold';
-        if (!setDisplay) setDisplay = s.replace(/\d+ sets?:/i,'').trim();
+        if (!setDisplay) setDisplay = s.replace(/\(prescribed\)/i,'').replace(/\d+ sets?:/i,'').trim();
         histHTML += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1F2A33">';
         histHTML += '<span style="font-size:12px;color:#8B949E;min-width:44px">Set ' + (si+1) + '</span>';
         histHTML += '<span style="font-size:14px;font-weight:600;color:#C9D1D9">' + setDisplay + '</span>';
@@ -8559,10 +8555,10 @@ function cvOpenExDetail(exIdx) {
   }
 
   overlay.innerHTML =
-    // Back button
-    '<div style="position:sticky;top:0;background:#FFFFFF;z-index:10;padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #F0F0F0">' +
-      '<button onclick="document.getElementById(\'cvExDetailOverlay\').remove()" style="background:none;border:none;font-size:22px;color:#1A2530;cursor:pointer;padding:4px;line-height:1">&#8249;</button>' +
-      '<div style="font-size:15px;font-weight:700;color:#1A2530;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + ex.name + '</div>' +
+    // Back button - dark theme
+    '<div style="position:sticky;top:0;background:#0D1A24;z-index:10;padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #1F2A33">' +
+      '<button onclick="document.getElementById(\'cvExDetailOverlay\').remove()" style="background:none;border:none;font-size:26px;color:#FFFFFF;cursor:pointer;padding:4px;line-height:1">&#8249;</button>' +
+      '<div style="font-size:15px;font-weight:700;color:#FFFFFF;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + ex.name + '</div>' +
     '</div>' +
     videoHTML +
     '<div class="cv-ex-detail-content">' +
