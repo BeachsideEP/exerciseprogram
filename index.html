@@ -8365,37 +8365,31 @@ function renderComplianceTab() {
                         .map(function(e){ return parseFloat(e.rpe)||0; }).filter(Boolean);
     var avgRPE = rpeVals.length ? (rpeVals.reduce(function(a,b){return a+b;},0)/rpeVals.length).toFixed(1) : null;
     var safetyLog = cl.safetyLog||[];
-    // Get latest readings - check both safetyLog and healthData
     var hd3 = cl.healthData || {};
-    // BP - most recent from either source
+    // BP: safetyLog uses s.bp, healthData uses hd3.bp[].val
     var lastBP = '';
     try {
-      var bpFromSafety = safetyLog.filter(function(s){ return s.bp; }).slice(-1)[0];
-      var bpFromHealth = (hd3.bp||[]).slice(-1)[0];
-      var bpSafetyDate = bpFromSafety ? new Date(bpFromSafety.date||0) : new Date(0);
-      var bpHealthDate = bpFromHealth ? new Date(bpFromHealth.date||0) : new Date(0);
-      if (bpFromSafety && bpSafetyDate >= bpHealthDate) lastBP = bpFromSafety.bp;
-      else if (bpFromHealth) lastBP = bpFromHealth.val;
+      var bpSafe = safetyLog.filter(function(s){ return s.bp; }).slice(-1)[0];
+      var bpHlth = (hd3.bp||[]).slice(-1)[0];
+      if (bpSafe && (!bpHlth || new Date(bpSafe.date||0) >= new Date(bpHlth.date||0))) lastBP = bpSafe.bp;
+      else if (bpHlth) lastBP = bpHlth.val;
     } catch(e3) {}
-    // BGL - most recent from either source
+    // BGL: safetyLog uses s.bgl (not s.bg), healthData uses hd3.bg[].val
     var lastBGL = '';
     try {
-      var bglFromSafety = safetyLog.filter(function(s){ return s.bg; }).slice(-1)[0];
-      var bglFromHealth = (hd3.bg||[]).slice(-1)[0];
-      var bglSafetyDate = bglFromSafety ? new Date(bglFromSafety.date||0) : new Date(0);
-      var bglHealthDate = bglFromHealth ? new Date(bglFromHealth.date||0) : new Date(0);
-      if (bglFromSafety && bglSafetyDate >= bglHealthDate) lastBGL = bglFromSafety.bg;
-      else if (bglFromHealth) lastBGL = bglFromHealth.val;
+      var bglSafe = safetyLog.filter(function(s){ return s.bgl||s.bg; }).slice(-1)[0];
+      var bglHlth = (hd3.bg||[]).slice(-1)[0];
+      var bglSafeVal = bglSafe ? (bglSafe.bgl||bglSafe.bg||'') : '';
+      if (bglSafe && (!bglHlth || new Date(bglSafe.date||0) >= new Date(bglHlth.date||0))) lastBGL = bglSafeVal.replace(' mmol/L','');
+      else if (bglHlth) lastBGL = bglHlth.val;
     } catch(e4) {}
-    // HR
+    // HR: safetyLog uses s.hr (may include ' bpm'), healthData uses hd3.hr[].val
     var lastHR = '';
     try {
-      var hrFromSafety = safetyLog.filter(function(s){ return s.hr; }).slice(-1)[0];
-      var hrFromHealth = (hd3.hr||[]).slice(-1)[0];
-      var hrSafetyDate = hrFromSafety ? new Date(hrFromSafety.date||0) : new Date(0);
-      var hrHealthDate = hrFromHealth ? new Date(hrFromHealth.date||0) : new Date(0);
-      if (hrFromSafety && hrSafetyDate >= hrHealthDate) lastHR = hrFromSafety.hr+'bpm';
-      else if (hrFromHealth) lastHR = hrFromHealth.val+'bpm';
+      var hrSafe = safetyLog.filter(function(s){ return s.hr; }).slice(-1)[0];
+      var hrHlth = (hd3.hr||[]).slice(-1)[0];
+      if (hrSafe && (!hrHlth || new Date(hrSafe.date||0) >= new Date(hrHlth.date||0))) lastHR = String(hrSafe.hr).replace(' bpm','')+'bpm';
+      else if (hrHlth) lastHR = hrHlth.val+'bpm';
     } catch(e5) {};
     var outcomeCount = (cl.outcomes||[]).reduce(function(s,o){ return s+(o.entries||[]).length; },0);
     var progs = (cl.programs||[]).filter(function(p){ return !p.archived; });
