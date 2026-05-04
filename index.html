@@ -3558,6 +3558,11 @@ function addEx(id) {
   p.exercises.push({...ex, uid: Date.now()+Math.random(), load:'', notes:''});
   saveDB(); renderDropZone(); updatePreview();
   toast(`${ex.name} added`, 'ok');
+  // Scroll to the newly added exercise
+  setTimeout(function() {
+    var items = document.querySelectorAll('.pe');
+    if (items.length) items[items.length-1].scrollIntoView({behavior:'smooth', block:'nearest'});
+  }, 100);
 }
 
 function removeEx(uid) { const p = getProg(); if (!p) return; p.exercises = p.exercises.filter(e => e.uid !== uid); saveDB(); renderDropZone(); updatePreview(); }
@@ -3594,7 +3599,7 @@ function renderDropZone() {
       </div>
       <div class="pe-params">
         <div class="pp"><label>Sets</label><input type="number" value="${ex.sets}" min="1" max="20" onchange="updEx(${ex.uid},'sets',this.value)"></div>
-        <div class="pp"><label>Reps</label><input type="text" value="${ex.reps}" placeholder="10-12" onchange="updEx(${ex.uid},'reps',this.value)"></div>
+        <div class="pp"><label>${ex.cat === 'Cardio' ? 'Duration' : 'Reps'}</label><input type="text" value="${ex.reps}" placeholder="${ex.cat === 'Cardio' ? '20 min' : '10-12'}" onchange="updEx(${ex.uid},'reps',this.value)"></div>
         <div class="pp"><label>Hold</label><input type="text" value="${ex.hold}" placeholder="30s" onchange="updEx(${ex.uid},'hold',this.value)"></div>
         <div class="pp"><label>Load</label><input type="text" value="${ex.load}" placeholder="kg/band" onchange="updEx(${ex.uid},'load',this.value)"></div>
         <div class="pp"><label>Rest</label><input type="text" value="${ex.rest}" placeholder="60s" onchange="updEx(${ex.uid},'rest',this.value)"></div>
@@ -4577,8 +4582,12 @@ function renderCV() {
     h += '<div class="cv-ex-card' + (allDone ? ' done' : '') + '">';
     // White card header - thumbnail + name clickable to open detail
     var thumbHTML = getExIllusStr(ex);
-    var paramsStr = sets + ' sets';
-    if (ex.reps) paramsStr += ' × ' + String(ex.reps).replace(/ ?each ?/gi,'').replace(/ ?each side ?/gi,'');
+    var isCardioEx = ex.cat === 'Cardio';
+    var paramsStr = isCardioEx ? '' : sets + ' sets';
+    if (ex.reps) {
+      if (isCardioEx) paramsStr = ex.reps;
+      else paramsStr += ' × ' + String(ex.reps).replace(/ ?each ?/gi,'').replace(/ ?each side ?/gi,'');
+    }
     if (ex.hold) paramsStr += ' · hold';
     h += '<div class="cv-ex-card">';
     // Card header - clickable to open detail
@@ -4634,8 +4643,8 @@ function renderCV() {
       h += '<div style="display:grid;grid-template-columns:36px 1fr 90px 80px 44px;gap:4px;padding:4px 4px 2px;margin-bottom:2px">';
       h += '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">Set</div>';
       h += '<div style="font-size:10px;font-weight:700;color:#8B949E">Previous</div>';
-      h += '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">Weight</div>';
-      h += '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">Reps</div>';
+      h += isCardioEx ? '' : '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">Weight</div>';
+      h += '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">' + (isCardioEx ? 'Duration' : 'Reps') + '</div>';
       h += '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">✓</div>';
       h += '</div>';
       for (let s = 0; s < sessionSets; s++) {
@@ -7822,7 +7831,7 @@ function renderCVCustomWorkout() {
       // Set table - always open
       h += '<div style="padding:0 14px 14px">';
       // Column headers
-      h += '<div style="display:grid;grid-template-columns:36px 1fr 90px 80px 44px;gap:4px;padding:4px 4px 6px;margin-bottom:2px">';
+      h += '<div style="display:grid;grid-template-columns:' + (isCardioEx ? '36px 1fr 1fr 44px' : '36px 1fr 90px 80px 44px') + ';gap:4px;padding:4px 4px 6px;margin-bottom:2px">';
       h += '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">Set</div>';
       h += '<div style="font-size:10px;font-weight:700;color:#8B949E">Previous</div>';
       h += '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">Weight</div>';
@@ -7835,7 +7844,7 @@ function renderCVCustomWorkout() {
         var setReps = (st.setReps && st.setReps[s]) || '';
         var setLoad = (st.setLoads && st.setLoads[s]) || '';
         var borderCol = setDone ? '#2FD4F5' : '#26323A';
-        h += '<div style="display:grid;grid-template-columns:36px 1fr 90px 80px 44px;gap:4px;align-items:center;padding:3px 4px;border-radius:8px;background:' + (setDone ? 'rgba(47,212,245,.08)' : 'transparent') + ';margin-bottom:4px">';
+        h += '<div style="display:grid;grid-template-columns:' + (isCardioEx ? '36px 1fr 1fr 44px' : '36px 1fr 90px 80px 44px') + ';gap:4px;align-items:center;padding:3px 4px;border-radius:8px;background:' + (setDone ? 'rgba(47,212,245,.08)' : 'transparent') + ';margin-bottom:4px">';
         h += '<div style="width:28px;height:28px;border-radius:8px;background:#1F2A33;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#C9D1D9;margin:0 auto">' + (s+1) + '</div>';
         h += '<div style="font-size:12px;color:#8B949E">—</div>';
         h += '<input data-ex="' + i + '" data-field="load" data-set="' + s + '" style="background:#1F2A33;border:1.5px solid ' + borderCol + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="decimal" placeholder="' + (ex.load || 'kg') + '" value="' + setLoad + '" onfocus="this.select()" oninput="cvSetRow(' + i + ',' + s + ',\'load\',this.value)">';
