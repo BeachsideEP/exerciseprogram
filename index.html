@@ -1537,7 +1537,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <button class="btn btn-ghost btn-sm" onclick="openArchiveModal()">📦 Archive</button>
     <button class="btn btn-ghost btn-sm" onclick="openDashboardModal()">🏠 Dashboard</button>
     <button class="btn btn-ghost btn-sm" onclick="openComplianceModal()">📊 Compliance</button>
-    <button class="btn btn-ghost btn-sm" onclick="var _cl=getClient();if(!_cl){toast('Select a client first','err');return;}openMessagesModal(_cl.id)" id="msgBtn">💬 Messages<span id="msgUnreadBadge" class="chat-unread-badge" style="display:none">0</span></button>
+    <button class="btn btn-ghost btn-sm" onclick="openMessagesModal()" id="msgBtn">💬 Messages<span id="msgUnreadBadge" class="chat-unread-badge" style="display:none">0</span></button>
     <button class="btn btn-ghost btn-sm" id="signOutBtn" onclick="signOut()" style="display:none">Sign Out</button>
   </div>
 </header>
@@ -9876,6 +9876,7 @@ var practChatInterval = null;
 async function openMessagesModal(clientId) {
   openM('messagesM');
   await loadAllClientMessages();
+  // If a specific client was passed (e.g. from dashboard), open their thread
   if (clientId) await selectMsgClient(clientId);
   if (practChatInterval) clearInterval(practChatInterval);
   practChatInterval = setInterval(loadAllClientMessages, 10000);
