@@ -4652,7 +4652,7 @@ function renderCV() {
         const setReps = (st.setReps && st.setReps[s] != null) ? st.setReps[s] : (ex.lastReps || '');
         const setLoad = (st.setLoads && st.setLoads[s] != null) ? st.setLoads[s] : (ex.lastLoad || '');
         const repsPlaceholder = (ex.reps || '—').toString().replace(/ ?each ?/gi,'').replace(/ ?each side ?/gi,'');
-        const loadPlaceholder = ex.load || 'kg';
+        const loadPlaceholder = (ex.cat === 'Cardio') ? 'min' : (ex.load || 'kg');
         // Previous session values
         var prevLoad = ex.lastLoad || '—';
         var prevReps = String(ex.lastReps || ex.reps || '—').replace(/ ?each ?side ?/gi,'').replace(/ ?each ?/gi,'');
