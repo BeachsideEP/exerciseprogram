@@ -4470,7 +4470,6 @@ async function loadClientView(user) {
     // Cache client ID for faster future loads (bypasses RLS)
     localStorage.setItem('bep_cid_' + email, match.id);
     cvData = match; cvState = {}; cvFeeling = ''; cvProgIdx = 0; cvSafetyDone = false; cvComment = '';
-    releaseWakeLock(); // Done working out
     setTimeout(function(){cvCheckMilestones();},2000);
     cvStartSync(user); // Begin live sync
     loadAnnouncements().then(function() { if (cvActiveTab === 'home') renderCVHome(); }); // Load announcements
@@ -4653,7 +4652,7 @@ function renderCV() {
         const setReps = (st.setReps && st.setReps[s] != null) ? st.setReps[s] : (ex.lastReps || '');
         const setLoad = (st.setLoads && st.setLoads[s] != null) ? st.setLoads[s] : (ex.lastLoad || '');
         const repsPlaceholder = (ex.reps || '—').toString().replace(/ ?each ?/gi,'').replace(/ ?each side ?/gi,'');
-        const loadPlaceholder = isCardioEx ? 'min' : (ex.load || 'kg');
+        const loadPlaceholder = ex.load || 'kg';
         // Previous session values
         var prevLoad = ex.lastLoad || '—';
         var prevReps = String(ex.lastReps || ex.reps || '—').replace(/ ?each ?side ?/gi,'').replace(/ ?each ?/gi,'');
@@ -4664,7 +4663,7 @@ function renderCV() {
         // Previous
         h += '<div style="font-size:12px;color:#8B949E">' + prevText + '</div>';
         // Weight input
-        if (!isCardioEx) h += '<input data-ex="' + i + '" data-field="load" data-set="' + s + '" style="background:#1F2A33;border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="decimal" placeholder="' + loadPlaceholder + '" value="' + setLoad + '" onfocus="this.select()" oninput="cvSetRow(' + i + ',' + s + ',\'load\',this.value)">';
+        h += '<input data-ex="' + i + '" data-field="load" data-set="' + s + '" style="background:#1F2A33;border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="decimal" placeholder="' + loadPlaceholder + '" value="' + setLoad + '" onfocus="this.select()" oninput="cvSetRow(' + i + ',' + s + ',\'load\',this.value)">';
         // Reps input
         h += '<input data-ex="' + i + '" data-field="reps" data-set="' + s + '" style="background:#1F2A33;border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="' + repsPlaceholder + '" value="' + setReps + '" onfocus="this.select()" oninput="cvSetRow(' + i + ',' + s + ',\'reps\',this.value)">';
         // Tick button
@@ -6623,9 +6622,6 @@ var cvOwnWorkouts = []; // [{date, type, duration, note}]
 
 function cvSwitchTab(tab) {
   cvActiveTab = tab;
-  if (tab !== 'workouts') {
-    releaseWakeLock(); // Release when not in workout
-  }
   if (tab === 'messages') {
     setTimeout(function() { if (typeof cvInitChat === 'function') cvInitChat(); }, 100);
   }
@@ -6645,8 +6641,7 @@ function cvSwitchTab(tab) {
   // Light sync on tab switch if data is stale (>60s)
   if (cvSyncUser && Date.now() - cvLastSync > 60000) cvSilentSync();
   if (tab === 'home') { renderCVHome(); if (_cvTimerStart) cvStopTimer(); }
-  if (tab === 'workouts') {
-    requestWakeLock(); // Keep screen on during workouts renderCV(); cvStartTimer(); }
+  if (tab === 'workouts') { renderCV(); cvStartTimer(); }
   if (tab === 'calendar') renderCVCalendar();
   if (tab === 'ai') renderAnnaTab();
 }
@@ -9454,7 +9449,7 @@ var cvOnboardSteps = [
   {
     icon: '🏠',
     title: 'Welcome to your Exercise Program',
-    desc: 'Your personalised program has been set up by your Exercise Physiologist. Let us take a quick tour so you know how everything works.',
+    desc: 'Your personalised program has been set up by your Exercise Physiologist. Let’s take a quick tour so you know how everything works.',
     btn: 'Get Started →'
   },
   {
@@ -9627,7 +9622,7 @@ function renderDashboard() {
     '<div class="dash-card" onclick=\"openComplianceModal()\">' +
       '<div class="dash-card-val" style="color:#f59e0b">' + atRisk.length + '</div>' +
       '<div class="dash-card-label">At Risk (8-21d)</div>' +
-      '<div class="dash-card-sub" style="color:#8B949E">haven\'t trained recently</div>' +
+      '<div class="dash-card-sub" style="color:#8B949E">haven’t trained recently</div>' +
     '</div>' +
     '<div class="dash-card" onclick=\"openComplianceModal()\">' +
       '<div class="dash-card-val" style="color:#ef4444">' + inactiveClients + '</div>' +
@@ -9816,21 +9811,22 @@ var chatMessages = [];
 var chatPollingInterval = null;
 
 // ── CLIENT SIDE ──
-function cvLoadMessages() {
+async function cvLoadMessages() {
   if (!cvData) return;
-  var headers = { 'Content-Type':'application/json', 'apikey':SUPA_KEY, 'Authorization':'Bearer '+(localStorage.getItem('bep_token')||SUPA_KEY) };
-  fetch(SUPA_URL + '/rest/v1/messages?client_id=eq.' + cvData.id + '&order=created_at.asc&limit=50', { headers: headers })
-    .then(function(r) {
-      if (!r.ok) return;
-      r.json().then(function(msgs) {
-        chatMessages = msgs;
-        cvRenderChat();
-        fetch(SUPA_URL + '/rest/v1/messages?client_id=eq.' + cvData.id + '&sender=eq.practitioner', {
-          method:'PATCH', headers:Object.assign({}, headers, {'Prefer':'return=minimal'}),
-          body: JSON.stringify({read_by_client:true})
-        }).catch(function(){});
+  try {
+    var r = await fetch(SUPA_URL + '/rest/v1/messages?client_id=eq.' + cvData.id + '&order=created_at.asc&limit=50', {
+      headers: { 'Content-Type':'application/json', 'apikey':SUPA_KEY, 'Authorization':'Bearer '+(localStorage.getItem('bep_token')||SUPA_KEY) }
+    });
+    if (r.ok) {
+      chatMessages = await r.json();
+      cvRenderChat();
+      // Mark client messages as read
+      await fetch(SUPA_URL + '/rest/v1/messages?client_id=eq.' + cvData.id + '&sender=eq.practitioner', {
+        method:'PATCH', headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(localStorage.getItem('bep_token')||SUPA_KEY),'Prefer':'return=minimal'},
+        body: JSON.stringify({read_by_client:true})
       });
-    }).catch(function(e) { console.warn('Chat load error:', e); });
+    }
+  } catch(e) { console.warn('Chat load error:', e); }
 }
 
 function cvRenderChat() {
@@ -9851,15 +9847,19 @@ function cvRenderChat() {
   el.scrollTop = el.scrollHeight;
 }
 
-function cvSendMessage() {
+async function cvSendMessage() {
   var inp = document.getElementById('cvChatInput');
   if (!inp || !inp.value.trim() || !cvData) return;
-  var text = inp.value.trim(); inp.value = '';
-  fetch(SUPA_URL + '/rest/v1/messages', {
-    method:'POST',
-    headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(localStorage.getItem('bep_token')||SUPA_KEY),'Prefer':'return=minimal'},
-    body: JSON.stringify({client_id:cvData.id, sender:'client', text:text, read_by_practitioner:false, read_by_client:true})
-  }).then(function() { cvLoadMessages(); }).catch(function() { toast('Could not send message', 'err'); });
+  var text = inp.value.trim();
+  inp.value = '';
+  try {
+    await fetch(SUPA_URL + '/rest/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(localStorage.getItem('bep_token')||SUPA_KEY),'Prefer':'return=minimal'},
+      body: JSON.stringify({client_id:cvData.id, sender:'client', text:text, read_by_practitioner:false, read_by_client:true})
+    });
+    await cvLoadMessages();
+  } catch(e) { toast('Could not send message', 'err'); }
 }
 
 function cvInitChat() {
@@ -9873,106 +9873,117 @@ var practChatClientId = null;
 var practChatMessages = [];
 var practChatInterval = null;
 
-function openMessagesModal(clientId) {
+async function openMessagesModal(clientId) {
   openM('messagesM');
-  loadAllClientMessages().then(function() {
-    if (clientId) selectMsgClient(clientId);
-  });
+  await loadAllClientMessages();
+  // If a specific client was passed (e.g. from dashboard), open their thread
+  if (clientId) await selectMsgClient(clientId);
   if (practChatInterval) clearInterval(practChatInterval);
   practChatInterval = setInterval(loadAllClientMessages, 10000);
 }
 
-function loadAllClientMessages() {
-  return new Promise(function(resolve) {
-    fetch(SUPA_URL + '/rest/v1/messages?order=created_at.desc&limit=500', {
+async function loadAllClientMessages() {
+  // Fetch all messages grouped by client
+  try {
+    var r = await fetch(SUPA_URL + '/rest/v1/messages?order=created_at.desc&limit=500', {
       headers: {'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken())}
-    }).then(function(r) {
-      if (!r.ok) { resolve(); return; }
-      r.json().then(function(allMsgs) {
-        var byClient = {};
-        allMsgs.forEach(function(msg) {
-          if (!byClient[msg.client_id]) byClient[msg.client_id] = { msgs:[], unread:0, lastMsg:null };
-          byClient[msg.client_id].msgs.push(msg);
-          if (msg.sender === 'client' && !msg.read_by_practitioner) byClient[msg.client_id].unread++;
-          if (!byClient[msg.client_id].lastMsg || new Date(msg.created_at) > new Date(byClient[msg.client_id].lastMsg.created_at))
-            byClient[msg.client_id].lastMsg = msg;
-        });
+    });
+    if (!r.ok) return;
+    var allMsgs = await r.json();
 
-        var activeClients2 = clients.filter(function(c){ return !c.archived; });
-        var clientEntries = Object.keys(byClient).map(function(cid) {
-          var cl2 = clients.find(function(c){return c.id===cid;}) || {id:cid,first:'Unknown',last:'Client'};
-          return { cl:cl2, data:byClient[cid] };
-        });
-        clientEntries.sort(function(a,b) {
-          if (b.data.unread !== a.data.unread) return b.data.unread - a.data.unread;
-          return new Date(b.data.lastMsg.created_at) - new Date(a.data.lastMsg.created_at);
-        });
-        var noMsgClients = activeClients2.filter(function(cl2){ return !byClient[cl2.id]; });
+    // Group by client_id, count unread client messages
+    var byClient = {};
+    allMsgs.forEach(function(msg) {
+      if (!byClient[msg.client_id]) byClient[msg.client_id] = { msgs:[], unread:0, lastMsg:null };
+      byClient[msg.client_id].msgs.push(msg);
+      if (msg.sender === 'client' && !msg.read_by_practitioner) byClient[msg.client_id].unread++;
+      if (!byClient[msg.client_id].lastMsg || new Date(msg.created_at) > new Date(byClient[msg.client_id].lastMsg.created_at)) {
+        byClient[msg.client_id].lastMsg = msg;
+      }
+    });
 
-        var listEl = document.getElementById('msgClientList');
-        if (!listEl) { resolve(); return; }
+    // Also include clients who have never messaged (show all active clients)
+    var activeClients2 = clients.filter(function(c){ return !c.archived; });
+    
+    // Build client list sorted: unread first, then by last message date
+    var clientEntries = Object.keys(byClient).map(function(cid) {
+      var cl2 = clients.find(function(c){return c.id===cid;}) || {id:cid,first:'Unknown',last:'Client'};
+      return { cl:cl2, data:byClient[cid] };
+    });
+    clientEntries.sort(function(a,b) {
+      if (b.data.unread !== a.data.unread) return b.data.unread - a.data.unread;
+      return new Date(b.data.lastMsg.created_at) - new Date(a.data.lastMsg.created_at);
+    });
 
-        var totalUnread = clientEntries.reduce(function(s,e){return s+e.data.unread;},0);
-        var badge = document.getElementById('msgUnreadBadge');
-        if (badge) { badge.textContent=totalUnread; badge.style.display=totalUnread?'inline-flex':'none'; }
+    // Clients with no messages at bottom
+    var noMsgClients = activeClients2.filter(function(cl2){
+      return !byClient[cl2.id];
+    });
 
-        var listHTML = clientEntries.map(function(entry) {
-          var cl2 = entry.cl; var data = entry.data;
-          var lastText = data.lastMsg ? (data.lastMsg.text||'').slice(0,30)+(data.lastMsg.text&&data.lastMsg.text.length>30?'\u2026':'') : '';
-          var isSel = practChatClientId === cl2.id;
-          return '<div onclick="selectMsgClient(\'' + cl2.id + '\')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid #0D1217;background:' + (isSel?'#12181D':'transparent') + '">' +
-            '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">' +
-              '<div style="font-size:13px;font-weight:' + (data.unread?'700':'600') + ';color:' + (data.unread?'#FFFFFF':'#C9D1D9') + ';flex:1;overflow:hidden;text-overflow:ellipsis">' + cl2.first + ' ' + cl2.last + '</div>' +
-              (data.unread ? '<span style="background:#2FD4F5;color:#0B0F12;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">' + data.unread + '</span>' : '') +
-            '</div>' +
-            '<div style="font-size:11px;color:#8B949E;overflow:hidden;text-overflow:ellipsis">' + (data.lastMsg&&data.lastMsg.sender==='client'?'Client: ':'You: ') + lastText + '</div>' +
-          '</div>';
-        }).join('');
+    var listEl = document.getElementById('msgClientList');
+    if (!listEl) return;
 
-        if (noMsgClients.length) {
-          listHTML += '<div style="padding:8px 12px;font-size:10px;color:#8B949E;border-top:1px solid #1F2A33">No messages yet</div>';
-          listHTML += noMsgClients.map(function(cl2) {
-            var isSel = practChatClientId === cl2.id;
-            return '<div onclick="selectMsgClient(\'' + cl2.id + '\')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid #0D1217;opacity:.6">' +
-              '<div style="font-size:13px;font-weight:600;color:#C9D1D9">' + cl2.first + ' ' + cl2.last + '</div>' +
-              '<div style="font-size:11px;color:#8B949E">No messages</div></div>';
-          }).join('');
-        }
+    var totalUnread = clientEntries.reduce(function(s,e){return s+e.data.unread;},0);
+    var badge = document.getElementById('msgUnreadBadge');
+    if (badge) { badge.textContent=totalUnread; badge.style.display=totalUnread?'inline-flex':'none'; }
 
-        listEl.innerHTML = listHTML || '<div style="padding:20px;text-align:center;color:#8B949E;font-size:12px">No conversations yet</div>';
-        resolve();
-      });
-    }).catch(function(e) { console.warn('loadAllClientMessages error:', e); resolve(); });
-  });
+    var listHTML = clientEntries.map(function(entry) {
+      var cl2 = entry.cl;
+      var data = entry.data;
+      var lastText = data.lastMsg ? (data.lastMsg.text||'').slice(0,30)+(data.lastMsg.text&&data.lastMsg.text.length>30?'…':'') : '';
+      var isSelected = practChatClientId === cl2.id;
+      return '<div onclick="selectMsgClient(\'' + cl2.id + '\')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid #0D1217;background:' + (isSelected?'#12181D':'transparent') + ';transition:background .1s" onmouseover="this.style.background=\'' + (isSelected?'#12181D':'#0D1A24') + '\'" onmouseout="this.style.background=\'' + (isSelected?'#12181D':'transparent') + '\'">' +
+        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">' +
+          '<div style="font-size:13px;font-weight:' + (data.unread?'700':'600') + ';color:' + (data.unread?'#FFFFFF':'#C9D1D9') + ';flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + cl2.first + ' ' + cl2.last + '</div>' +
+          (data.unread ? '<span style="background:#2FD4F5;color:#0B0F12;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + data.unread + '</span>' : '') +
+        '</div>' +
+        '<div style="font-size:11px;color:#8B949E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (data.lastMsg&&data.lastMsg.sender==='client'?'Client: ':'You: ') + lastText + '</div>' +
+      '</div>';
+    }).join('');
+
+    // Add clients with no messages
+    if (noMsgClients.length) {
+      listHTML += '<div style="padding:8px 12px;font-size:10px;color:#8B949E;border-top:1px solid #1F2A33;margin-top:4px">No messages yet</div>';
+      listHTML += noMsgClients.map(function(cl2) {
+        var isSelected = practChatClientId === cl2.id;
+        return '<div onclick="selectMsgClient(\'' + cl2.id + '\')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid #0D1217;background:' + (isSelected?'#12181D':'transparent') + ';opacity:.6">' +
+          '<div style="font-size:13px;font-weight:600;color:#C9D1D9">' + cl2.first + ' ' + cl2.last + '</div>' +
+          '<div style="font-size:11px;color:#8B949E">No messages</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    listEl.innerHTML = listHTML || '<div style="padding:20px;text-align:center;color:#8B949E;font-size:12px">No conversations yet</div>';
+  } catch(e) { console.warn('loadAllClientMessages error:', e); }
 }
 
-
-function selectMsgClient(clientId) {
+async function selectMsgClient(clientId) {
   practChatClientId = clientId;
   var cl2 = clients.find(function(c){return c.id===clientId;});
   var hdr = document.getElementById('msgThreadHeader');
   if (hdr && cl2) hdr.textContent = cl2.first + ' ' + cl2.last;
-  loadPractMessages();
+  await loadPractMessages();
+  // Refresh client list to update selection highlight
   loadAllClientMessages();
 }
 
-function loadPractMessages() {
+async function loadPractMessages() {
   if (!practChatClientId) return;
-  fetch(SUPA_URL + '/rest/v1/messages?client_id=eq.' + practChatClientId + '&order=created_at.asc&limit=100', {
-    headers: { 'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken()) }
-  }).then(function(r) {
-    if (!r.ok) return;
-    r.json().then(function(msgs) {
-      practChatMessages = msgs;
-      renderPractChat();
-      fetch(SUPA_URL + '/rest/v1/messages?client_id=eq.' + practChatClientId + '&sender=eq.client', {
-        method:'PATCH',
-        headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken()),'Prefer':'return=minimal'},
-        body: JSON.stringify({read_by_practitioner:true})
-      }).catch(function(){});
-      updateMessageBadges();
+  try {
+    var r = await fetch(SUPA_URL + '/rest/v1/messages?client_id=eq.' + practChatClientId + '&order=created_at.asc&limit=100', {
+      headers: { 'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken()) }
     });
-  }).catch(function() {});
+    if (r.ok) {
+      practChatMessages = await r.json();
+      renderPractChat();
+      // Mark as read by practitioner
+      await fetch(SUPA_URL + '/rest/v1/messages?client_id=eq.' + practChatClientId + '&sender=eq.client', {
+        method:'PATCH', headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken()),'Prefer':'return=minimal'},
+        body: JSON.stringify({read_by_practitioner:true})
+      });
+      updateMessageBadges();
+    }
+  } catch(e) {}
 }
 
 function renderPractChat() {
@@ -9993,30 +10004,34 @@ function renderPractChat() {
   el.scrollTop = el.scrollHeight;
 }
 
-function practSendMessage() {
+async function practSendMessage() {
   var inp = document.getElementById('practChatInput');
   if (!inp || !inp.value.trim() || !practChatClientId) return;
   var text = inp.value.trim(); inp.value = '';
-  fetch(SUPA_URL + '/rest/v1/messages', {
-    method:'POST',
-    headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken()),'Prefer':'return=minimal'},
-    body: JSON.stringify({client_id:practChatClientId, sender:'practitioner', text:text, read_by_practitioner:true, read_by_client:false})
-  }).then(function() { loadPractMessages(); }).catch(function() { toast('Could not send', 'err'); });
+  try {
+    await fetch(SUPA_URL + '/rest/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken()),'Prefer':'return=minimal'},
+      body: JSON.stringify({client_id:practChatClientId, sender:'practitioner', text:text, read_by_practitioner:true, read_by_client:false})
+    });
+    await loadPractMessages();
+  } catch(e) { toast('Could not send', 'err'); }
 }
 
-function updateMessageBadges() {
-  fetch(SUPA_URL + '/rest/v1/messages?sender=eq.client&read_by_practitioner=eq.false&select=client_id', {
-    headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken())}
-  }).then(function(r) {
-    if (!r.ok) return;
-    r.json().then(function(unread) {
+async function updateMessageBadges() {
+  try {
+    var r = await fetch(SUPA_URL + '/rest/v1/messages?sender=eq.client&read_by_practitioner=eq.false&select=client_id', {
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken())}
+    });
+    if (r.ok) {
+      var unread = await r.json();
       var badge = document.getElementById('msgUnreadBadge');
       if (badge) {
         badge.textContent = unread.length;
         badge.style.display = unread.length ? 'inline-flex' : 'none';
       }
-    });
-  }).catch(function() {});
+    }
+  } catch(e) {}
 }
 
 // Poll for new messages every 30s when practitioner is logged in
@@ -10028,34 +10043,6 @@ function closeMessagesModal() {
   if (practChatInterval) clearInterval(practChatInterval);
   closeM('messagesM');
 }
-
-
-// ════════════════════════════════════════════════════
-// WAKE LOCK — Keep screen on during workouts
-// ════════════════════════════════════════════════════
-var _wakeLock = null;
-
-function requestWakeLock() {
-  if (!('wakeLock' in navigator)) return;
-  navigator.wakeLock.request('screen').then(function(lock) {
-    _wakeLock = lock;
-    _wakeLock.addEventListener('release', function() { _wakeLock = null; });
-  }).catch(function(e) { console.warn('Wake lock failed:', e); });
-}
-
-function releaseWakeLock() {
-  if (_wakeLock) {
-    _wakeLock.release();
-    _wakeLock = null;
-  }
-}
-
-// Re-acquire wake lock when page becomes visible again
-document.addEventListener('visibilitychange', function() {
-  if (document.visibilityState === 'visible' && _wakeLock === null) {
-    requestWakeLock();
-  }
-});
 
 </script>
 
@@ -10101,7 +10088,7 @@ document.addEventListener('visibilitychange', function() {
     </div>
     <div class="cv-onboard-icon" id="ob_icon">🏠</div>
     <div class="cv-onboard-title" id="ob_title">Welcome to your Exercise Program</div>
-    <div class="cv-onboard-desc" id="ob_desc">Your personalised program has been set up by your Exercise Physiologist. Let\'s take a quick tour so you know how everything works.</div>
+    <div class="cv-onboard-desc" id="ob_desc">Your personalised program has been set up by your Exercise Physiologist. Let’s take a quick tour so you know how everything works.</div>
     <button class="cv-onboard-btn" id="ob_btn" onclick="cvOnboardNext()">Get Started →</button>
     <span class="cv-onboard-skip" onclick="cvOnboardDone()">Skip tutorial</span>
   </div>
