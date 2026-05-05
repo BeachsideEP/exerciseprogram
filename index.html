@@ -4470,6 +4470,7 @@ async function loadClientView(user) {
     // Cache client ID for faster future loads (bypasses RLS)
     localStorage.setItem('bep_cid_' + email, match.id);
     cvData = match; cvState = {}; cvFeeling = ''; cvProgIdx = 0; cvSafetyDone = false; cvComment = '';
+    releaseWakeLock(); // Done working out
     setTimeout(function(){cvCheckMilestones();},2000);
     cvStartSync(user); // Begin live sync
     loadAnnouncements().then(function() { if (cvActiveTab === 'home') renderCVHome(); }); // Load announcements
@@ -4652,7 +4653,7 @@ function renderCV() {
         const setReps = (st.setReps && st.setReps[s] != null) ? st.setReps[s] : (ex.lastReps || '');
         const setLoad = (st.setLoads && st.setLoads[s] != null) ? st.setLoads[s] : (ex.lastLoad || '');
         const repsPlaceholder = (ex.reps || '—').toString().replace(/ ?each ?/gi,'').replace(/ ?each side ?/gi,'');
-        const loadPlaceholder = ex.load || 'kg';
+        const loadPlaceholder = isCardioEx ? 'min' : (ex.load || 'kg');
         // Previous session values
         var prevLoad = ex.lastLoad || '—';
         var prevReps = String(ex.lastReps || ex.reps || '—').replace(/ ?each ?side ?/gi,'').replace(/ ?each ?/gi,'');
@@ -4663,7 +4664,7 @@ function renderCV() {
         // Previous
         h += '<div style="font-size:12px;color:#8B949E">' + prevText + '</div>';
         // Weight input
-        h += '<input data-ex="' + i + '" data-field="load" data-set="' + s + '" style="background:#1F2A33;border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="decimal" placeholder="' + loadPlaceholder + '" value="' + setLoad + '" onfocus="this.select()" oninput="cvSetRow(' + i + ',' + s + ',\'load\',this.value)">';
+        if (!isCardioEx) h += '<input data-ex="' + i + '" data-field="load" data-set="' + s + '" style="background:#1F2A33;border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="decimal" placeholder="' + loadPlaceholder + '" value="' + setLoad + '" onfocus="this.select()" oninput="cvSetRow(' + i + ',' + s + ',\'load\',this.value)">';
         // Reps input
         h += '<input data-ex="' + i + '" data-field="reps" data-set="' + s + '" style="background:#1F2A33;border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="' + repsPlaceholder + '" value="' + setReps + '" onfocus="this.select()" oninput="cvSetRow(' + i + ',' + s + ',\'reps\',this.value)">';
         // Tick button
@@ -6622,6 +6623,9 @@ var cvOwnWorkouts = []; // [{date, type, duration, note}]
 
 function cvSwitchTab(tab) {
   cvActiveTab = tab;
+  if (tab !== 'workouts') {
+    releaseWakeLock(); // Release when not in workout
+  }
   if (tab === 'messages') {
     setTimeout(function() { if (typeof cvInitChat === 'function') cvInitChat(); }, 100);
   }
@@ -6641,7 +6645,8 @@ function cvSwitchTab(tab) {
   // Light sync on tab switch if data is stale (>60s)
   if (cvSyncUser && Date.now() - cvLastSync > 60000) cvSilentSync();
   if (tab === 'home') { renderCVHome(); if (_cvTimerStart) cvStopTimer(); }
-  if (tab === 'workouts') { renderCV(); cvStartTimer(); }
+  if (tab === 'workouts') {
+    requestWakeLock(); // Keep screen on during workouts renderCV(); cvStartTimer(); }
   if (tab === 'calendar') renderCVCalendar();
   if (tab === 'ai') renderAnnaTab();
 }
@@ -10018,20 +10023,19 @@ async function practSendMessage() {
   } catch(e) { toast('Could not send', 'err'); }
 }
 
-async function updateMessageBadges() {
-  try {
-    var r = await fetch(SUPA_URL + '/rest/v1/messages?sender=eq.client&read_by_practitioner=eq.false&select=client_id', {
-      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken())}
-    });
-    if (r.ok) {
-      var unread = await r.json();
+function updateMessageBadges() {
+  fetch(SUPA_URL + '/rest/v1/messages?sender=eq.client&read_by_practitioner=eq.false&select=client_id', {
+    headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken())}
+  }).then(function(r) {
+    if (!r.ok) return;
+    r.json().then(function(unread) {
       var badge = document.getElementById('msgUnreadBadge');
       if (badge) {
         badge.textContent = unread.length;
         badge.style.display = unread.length ? 'inline-flex' : 'none';
       }
-    }
-  } catch(e) {}
+    });
+  }).catch(function() {});
 }
 
 // Poll for new messages every 30s when practitioner is logged in
@@ -10043,6 +10047,34 @@ function closeMessagesModal() {
   if (practChatInterval) clearInterval(practChatInterval);
   closeM('messagesM');
 }
+
+
+// ════════════════════════════════════════════════════
+// WAKE LOCK — Keep screen on during workouts
+// ════════════════════════════════════════════════════
+var _wakeLock = null;
+
+function requestWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  navigator.wakeLock.request('screen').then(function(lock) {
+    _wakeLock = lock;
+    _wakeLock.addEventListener('release', function() { _wakeLock = null; });
+  }).catch(function(e) { console.warn('Wake lock failed:', e); });
+}
+
+function releaseWakeLock() {
+  if (_wakeLock) {
+    _wakeLock.release();
+    _wakeLock = null;
+  }
+}
+
+// Re-acquire wake lock when page becomes visible again
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible' && _wakeLock === null) {
+    requestWakeLock();
+  }
+});
 
 </script>
 
