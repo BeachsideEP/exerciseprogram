@@ -6643,7 +6643,9 @@ function cvSwitchTab(tab) {
   if (cvSyncUser && Date.now() - cvLastSync > 60000) cvSilentSync();
   if (tab === 'home') { renderCVHome(); if (_cvTimerStart) cvStopTimer(); }
   if (tab === 'workouts') {
-    requestWakeLock(); renderCV(); cvStartTimer(); }
+    requestWakeLock();
+    if (!cvState || !Object.keys(cvState).length) { renderCV(); cvStartTimer(); }
+  }
   if (tab === 'calendar') renderCVCalendar();
   if (tab === 'ai') renderAnnaTab();
 }
