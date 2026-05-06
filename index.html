@@ -3556,6 +3556,9 @@ function addEx(id) {
   const ex = getAllExercises().find(e => String(e.id) === String(id)); if (!ex) return;
   const p = getProg(); if (!p) return;
   p.exercises.push({...ex, uid: Date.now()+Math.random(), load:'', notes:''});
+  // Stamp timestamp so sync keeps this version over cloud
+  const clStamp = getClient();
+  if (clStamp) clStamp._localUpdatedAt = new Date().toISOString();
   saveDB(); renderDropZone(); updatePreview();
   toast(`${ex.name} added`, 'ok');
   // Scroll to the newly added exercise
@@ -3575,7 +3578,16 @@ function moveEx(uid, dir) {
   saveDB(); renderDropZone(); updatePreview();
 }
 
-function updEx(uid, field, val) { const p = getProg(); if (!p) return; const ex = p.exercises.find(e => e.uid === uid); if (ex) { ex[field] = val; saveDB(); updatePreview(); } }
+function updEx(uid, field, val) {
+  const p = getProg(); if (!p) return;
+  const ex = p.exercises.find(e => e.uid === uid);
+  if (ex) {
+    ex[field] = val;
+    // Stamp so sync keeps local version
+    const clU = getClient(); if (clU) clU._localUpdatedAt = new Date().toISOString();
+    saveDB(); updatePreview();
+  }
+}
 
 function renderDropZone() {
   const p = getProg(); const exs = p ? p.exercises : [];
@@ -4262,6 +4274,26 @@ function onAuthSuccess(user) {
     syncClients();
     syncTemplates();
     setInterval(syncClients, 30000);
+    // Refresh Supabase session every 5 minutes to prevent logout
+    setInterval(async function() {
+      try {
+        var token = localStorage.getItem('bep_refresh');
+        if (token) {
+          var resp = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
+            body: JSON.stringify({ refresh_token: token })
+          });
+          if (resp.ok) {
+            var data = await resp.json();
+            if (data.access_token) {
+              localStorage.setItem('bep_token', data.access_token);
+              if (data.refresh_token) localStorage.setItem('bep_refresh', data.refresh_token);
+            }
+          }
+        }
+      } catch(e) {}
+    }, 300000);
   } else {
     showView('client');
     loadClientView(user);
@@ -5086,7 +5118,7 @@ document.addEventListener('DOMContentLoaded', function() {
       }).then(function(r) {
         return r.ok ? r.json() : null;
       }).then(function(user) {
-        if (user) { onAuthSuccess(user); } else { showView('auth'); }
+        if (user) { if (!currentUser) onAuthSuccess(user); } else { if (!currentUser) showView('auth'); }
       }).catch(function() { showView('auth'); });
       return;
     }
