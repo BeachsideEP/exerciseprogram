@@ -1360,14 +1360,14 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     </div>
     <div class="auth-title">Welcome back</div>
     <p class="auth-sub">Sign in with your Beachside EP account</p>
-    <div id="panelLogin" class="auth-panel active">
+    <div id="panelLogin" class="auth-panel">
       <div class="auth-field"><label>Email</label><input id="authEmail" type="email" placeholder="you@beachsideep.com.au" onkeydown="if(event.key==='Enter')signIn()"></div>
-      <div class="auth-field"><label>Password</label><input id="authPass" type="password" placeholder="Your password" onkeydown="if(event.key==='Enter')signIn()"></div>
+      <div class="auth-field"><label>Password</label><input id="authPass" type="password" autocomplete="current-password" placeholder="Your password" onkeydown="if(event.key==='Enter')signIn()"></div>
       <button class="auth-btn" onclick="signIn()">Sign In</button>
       <div class="auth-divider">or</div>
-      <button class="auth-btn auth-btn-ghost" onclick="showPanel('magic')">Client? Sign in &rarr;</button>
+      <button class="auth-btn auth-btn-ghost" onclick="showPanel('magic')">&larr; Back to client sign in</button>
     </div>
-    <div id="panelMagic" class="auth-panel">
+    <div id="panelMagic" class="auth-panel active">
       <div id="otpStep1">
         <p style="font-size:11px;color:var(--text-mid);margin-bottom:12px">Enter your email and we'll send you a 6-digit sign-in code.</p><p style="font-size:10px;color:var(--text-light);margin-bottom:10px">Check your inbox and spam folder for an email with a 6-digit code.</p>
         <div class="auth-field"><label>Your Email</label><input id="magicEmail" type="email" placeholder="client@email.com" onkeydown="if(event.key==='Enter')sendOTP()"></div>
@@ -1389,7 +1389,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
         </div>
       </div>
       <div class="auth-divider">or</div>
-      <button class="auth-btn auth-btn-ghost" onclick="showPanel('login')">&larr; Practitioner sign in</button>
+      <button class="auth-btn auth-btn-ghost" onclick="showPanel('login')">Clinician? Sign in &rarr;</button>
     </div>
     <div id="authMsg" class="auth-msg"></div>
   </div>
@@ -3498,7 +3498,7 @@ function renderLib(list) {
       <div class="ex-acts">
         <button class="ico-btn ico-info" onclick="openDrawer('${ex.id}')" title="Info">ℹ</button>
         ${custom}
-        <button class="ico-btn ico-add" onclick="addEx('${ex.id}')" title="Add">+</button>
+        <button class="ico-btn ico-add" data-exid="${ex.id}" onclick="addEx(this.dataset.exid)" title="Add">+</button>
       </div>
     </div>`;
   }).join('');
@@ -3553,7 +3553,9 @@ function onDrop(e) { e.preventDefault(); document.getElementById('dropZone').cla
 // ══════════════════════════════════════
 function addEx(id) {
   const cl = getClient(); if (!cl) { toast('Select a client first','err'); return; }
-  const ex = getAllExercises().find(e => String(e.id) === String(id)); if (!ex) return;
+  // Match by id first, then by name if id doesn't match (handles integer/string mismatch)
+  let ex = getAllExercises().find(e => String(e.id) === String(id));
+  if (!ex) { toast('Exercise not found', 'err'); return; }
   const p = getProg(); if (!p) return;
   p.exercises.push({...ex, uid: Date.now()+Math.random(), load:'', notes:''});
   // Stamp timestamp so sync keeps this version over cloud
@@ -3613,7 +3615,7 @@ function renderDropZone() {
         <div class="pp"><label>Sets</label><input type="number" value="${ex.sets}" min="1" max="20" onchange="updEx(${ex.uid},'sets',this.value)"></div>
         <div class="pp"><label>${ex.cat === 'Cardio' ? 'Duration' : 'Reps'}</label><input type="text" value="${ex.reps}" placeholder="${ex.cat === 'Cardio' ? '20 min' : '10-12'}" onchange="updEx(${ex.uid},'reps',this.value)"></div>
         <div class="pp"><label>Hold</label><input type="text" value="${ex.hold}" placeholder="30s" onchange="updEx(${ex.uid},'hold',this.value)"></div>
-        <div class="pp"><label>Load</label><input type="text" value="${ex.load}" placeholder="kg/band" onchange="updEx(${ex.uid},'load',this.value)"></div>
+        <div class="pp"><label>Load</label><input autocomplete="off" type="text" value="${ex.load}" placeholder="kg/band" onchange="updEx(${ex.uid},'load',this.value)"></div>
         <div class="pp"><label>Rest</label><input type="text" value="${ex.rest}" placeholder="60s" onchange="updEx(${ex.uid},'rest',this.value)"></div>
       </div>
       <div class="pe-notes"><label>Technique Notes</label>
@@ -4249,7 +4251,7 @@ async function signOut() {
   localStorage.removeItem('bep_token');
   localStorage.removeItem('bep_refresh');
   currentUser = null; userRole = null;
-  showView('auth'); showPanel('login');
+  showView('auth'); showPanel('magic');
 }
 
 // ── ON AUTH SUCCESS ──
@@ -5102,6 +5104,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // HOSTED — always show auth first as default fallback
   showView('auth');
+  showPanel('magic'); // Show client OTP panel by default
 
   // HOSTED — check for magic link hash
   var hash = window.location.hash || '';
@@ -5144,11 +5147,11 @@ document.addEventListener('DOMContentLoaded', function() {
             onAuthSuccess(d.user);
           });
           localStorage.removeItem('bep_token'); localStorage.removeItem('bep_refresh');
-          showView('auth');
+          showView('auth'); showPanel('magic');
         });
       }
       localStorage.removeItem('bep_token');
-      showView('auth');
+      showView('auth'); showPanel('magic');
     }).catch(function() { showView('auth'); });
     return;
   }
@@ -5614,78 +5617,83 @@ async function generatePDF(cl, p) {
       const descLines = (showDesc && ex.desc) ? doc.splitTextToSize(ex.desc, CW - (showPhotos ? 26 : 0) - 4).length : 0;
       const notesLines = (showNotes && ex.notes) ? doc.splitTextToSize(ex.notes, CW - (showPhotos ? 26 : 0) - 4).length : 0;
       const progLines = (showProg && ex.progression) ? 1 : 0;
-      const cardH = 10 + descLines * 4.5 + notesLines * 4.5 + progLines * 5 + 16;
+      const cardH = Math.max(showPhotos ? 50 : 20, 12 + descLines * 4.5 + notesLines * 4.5 + progLines * 5 + 16);
       checkY(Math.max(cardH, showPhotos ? 22 : 14));
 
       const startY = y;
-      const ILLUS_W = 18, ILLUS_H = 18;
-      const textX = ML + (showPhotos ? ILLUS_W + 4 : 0);
-      const textW = CW - (showPhotos ? ILLUS_W + 4 : 0);
-
-      // Card background
-      doc.setFillColor(250, 252, 255);
-      doc.setDrawColor(220, 230, 240);
-      doc.setLineWidth(0.3);
-      doc.roundedRect(ML, y, CW, cardH, 2, 2, 'FD');
-
-      // Number circle
+      // ── NEW LAYOUT: 2 photos side by side, text on right ──
+      // Left col: 2 square photos stacked side by side
+      // Right col: name, params, description
+      const PHOTO_SIZE = showPhotos ? 42 : 0;  // each photo cell is 42x42mm
+      const PHOTO_GAP = showPhotos ? 2 : 0;
+      const PHOTOS_W = showPhotos ? (PHOTO_SIZE * 2 + PHOTO_GAP + 2) : 0;
+      const TEXT_X = ML + PHOTOS_W + (showPhotos ? 5 : 0);
+      const TEXT_W = CW - PHOTOS_W - (showPhotos ? 5 : 0);
       const catColor = CAT_RGB[ex.cat] || OCEAN;
-      doc.setFillColor(...catColor);
-      doc.circle(ML + 5, y + 5, 4, 'F');
-      setFont(8, 'bold', WHITE);
-      text(String(i + 1), ML + 5, y + 6.5, {align: 'center'});
 
-      // SVG illustration - render to canvas then embed
+      // Separator line above exercise
+      doc.setDrawColor(220, 230, 240);
+      doc.setLineWidth(0.4);
+      doc.line(ML, y, ML + CW, y);
+      y += 4;
+
+      // Exercise number + name
+      setFont(10, 'bold', DEEP);
+      text(String(i + 1) + '. ' + ex.name, TEXT_X, y + 5);
+
+      // Photos: 2 side by side
       if (showPhotos) {
+        const ph1x = ML + 1;
+        const ph2x = ML + PHOTO_SIZE + PHOTO_GAP + 1;
+        const phY = y;
+        // Photo box 1
         doc.setFillColor(...SAND);
-        doc.roundedRect(ML, y + 1, ILLUS_W, ILLUS_H, 2, 2, 'F');
-        await renderSVGtoPDF(doc, ex, ML + 1, y + 2, ILLUS_W - 2, ILLUS_H - 2);
+        doc.roundedRect(ph1x, phY, PHOTO_SIZE, PHOTO_SIZE, 2, 2, 'F');
+        await renderSVGtoPDF(doc, ex, ph1x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
+        // Photo box 2 (same image - shows exercise from different angle / duplicate for now)
+        doc.setFillColor(...SAND);
+        doc.roundedRect(ph2x, phY, PHOTO_SIZE, PHOTO_SIZE, 2, 2, 'F');
+        await renderSVGtoPDF(doc, ex, ph2x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
+        // Small number labels under photos
+        setFont(7, 'normal', [150,150,150]);
+        text('1', ph1x + PHOTO_SIZE/2, phY + PHOTO_SIZE + 3.5, {align:'center'});
+        text('2', ph2x + PHOTO_SIZE/2, phY + PHOTO_SIZE + 3.5, {align:'center'});
       }
 
-      // Exercise name
-      const nameY = y + 6;
-      setFont(11, 'bold', DEEP);
-      text(ex.name, textX + 8, nameY);
+      // Text column
+      let paramY = y + 10;
 
-      // Category badge
-      setFont(7, 'normal', WHITE);
-      const catW = doc.getTextWidth(ex.cat) + 4;
-      doc.setFillColor(...catColor);
-      doc.roundedRect(textX + 8, nameY + 2, catW, 4.5, 1, 1, 'F');
-      text(ex.cat, textX + 10, nameY + 5.5);
-
-      // Parameters row
-      let paramY = nameY + 11;
+      // Parameters
       const params = [
-        ex.sets ? ' ' + ex.sets + ' sets' : null,
-        ex.reps ? ex.reps + ' reps' : null,
+        ex.sets ? ex.sets + ' sets' : null,
+        ex.reps ? ex.reps : null,
         ex.hold ? 'Hold ' + ex.hold : null,
         ex.load ? ex.load : null,
         ex.rest ? 'Rest ' + ex.rest : null,
       ].filter(Boolean);
-
       if (params.length) {
         setFont(8.5, 'bold', OCEAN);
-        text(params.join('   '), textX + 8, paramY);
-        paramY += 7;
+        text(params.join('   '), TEXT_X, paramY);
+        paramY += 6;
       }
 
       // Description
       if (showDesc && ex.desc) {
         setFont(8, 'normal', TEXT);
-        const descWrapped = doc.splitTextToSize(ex.desc, textW - 8);
+        const descWrapped = doc.splitTextToSize(ex.desc, TEXT_W);
         descWrapped.forEach(function(line) {
-          text(line, textX + 8, paramY);
-          paramY += 4.2;
+          text(line, TEXT_X, paramY);
+          paramY += 4.5;
         });
       }
 
       // Notes
       if (showNotes && ex.notes) {
+        paramY += 1;
         setFont(7.5, 'italic', [100, 130, 150]);
-        const nWrapped = doc.splitTextToSize(' ' + ex.notes, textW - 8);
+        const nWrapped = doc.splitTextToSize(ex.notes, TEXT_W);
         nWrapped.forEach(function(line) {
-          text(line, textX + 8, paramY);
+          text(line, TEXT_X, paramY);
           paramY += 4.2;
         });
       }
@@ -5693,11 +5701,16 @@ async function generatePDF(cl, p) {
       // Progression
       if (showProg && ex.progression) {
         setFont(7.5, 'bold', TEAL);
-        text('> Next: ' + ex.progression, textX + 8, paramY);
+        text('> ' + ex.progression, TEXT_X, paramY);
         paramY += 4.5;
       }
 
-      y = startY + cardH + 5;
+      // Card height is max of photo height and text height
+      const photoBlockH = showPhotos ? (PHOTO_SIZE + 6) : 0;
+      const textBlockH = paramY - y;
+      const blockH = Math.max(photoBlockH, textBlockH) + 6;
+
+      y = startY + blockH;
     }
 
     // ── PROGRESS LOG ──
@@ -7839,7 +7852,7 @@ function renderCVCustomWorkout() {
   h += '<input id="cvCustomSrch" type="text" placeholder="Search exercises..." oninput="cvFilterCustomEx(this.value)" '
      + 'style="width:100%;padding:10px 12px;border:1.5px solid #26323A;border-radius:8px;font-size:14px;'
      + 'font-family:-apple-system,sans-serif;outline:none;background:#1F2A33;color:#FFFFFF;box-sizing:border-box">';
-  h += '<div id="cvCustomExResults" style="margin-top:8px;max-height:220px;overflow-y:auto;border-radius:8px;overflow:hidden"></div>';
+  h += '<div id="cvCustomExResults" style="margin-top:8px;max-height:220px;overflow-y:auto;border-radius:8px;position:relative;z-index:10"></div>';
   h += '</div>';
 
   // Added exercises
@@ -7935,7 +7948,7 @@ function cvFilterCustomEx(q) {
   window._cvExMatches = matches;
   res.innerHTML = matches.map(function(ex, idx) {
     var thumb = getExIllusStr(ex);
-    return '<div onclick="cvAddCustomExByIdx(' + idx + ')" '
+    return '<div onmousedown="event.preventDefault();cvAddCustomExByIdx(' + idx + ')" '
       + 'style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer;border-bottom:1px solid var(--sand-dark)">'
       + '<div style="width:36px;height:36px;border-radius:6px;overflow:hidden;flex-shrink:0;background:var(--sand)">' + thumb + '</div>'
       + '<div><div style="font-size:13px;font-weight:600;color:var(--text)">' + ex.name + '</div>'
@@ -7948,14 +7961,20 @@ function cvAddCustomExByIdx(idx) {
   var matches = window._cvExMatches || [];
   var ex = matches[idx];
   if (!ex) return;
-  if (cvCustomExercises.find(function(e) { return e.name === ex.name; })) return;
+  if (cvCustomExercises.find(function(e) { return e.name === ex.name; })) { toast(ex.name + ' already added', 'err'); return; }
   cvCustomExercises.push(Object.assign({}, ex, { uid: 'custom_' + Date.now() }));
   var srch = document.getElementById('cvCustomSrch');
   var res = document.getElementById('cvCustomExResults');
   if (srch) srch.value = '';
   if (res) res.innerHTML = '';
   window._cvExMatches = [];
+  toast(ex.name + ' added', 'ok');
   renderCV();
+  // Scroll to bottom to show added exercise
+  setTimeout(function() {
+    var tab = document.getElementById('cvTabWorkouts');
+    if (tab) tab.scrollTop = tab.scrollHeight;
+  }, 100);
 }
 
 function cvAddCustomEx(exId) {
@@ -10124,7 +10143,15 @@ function releaseWakeLock() {
   if (_wakeLock) { _wakeLock.release(); _wakeLock = null; }
 }
 document.addEventListener('visibilitychange', function() {
-  if (document.visibilityState === 'visible' && _wakeLock === null) requestWakeLock();
+  if (document.visibilityState === 'visible') {
+    // Re-acquire wake lock
+    if (_wakeLock === null) requestWakeLock();
+    // Resume workout without restarting if client was mid-session
+    if (typeof cvActiveTab !== 'undefined' && cvActiveTab === 'workouts' && cvData) {
+      // Just re-render current state - don't reset cvState
+      if (typeof renderCV === 'function') renderCV();
+    }
+  }
 });
 </script>
 
