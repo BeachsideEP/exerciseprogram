@@ -1847,6 +1847,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
       </div>
       <div class="fg" style="grid-column:1/-1"><label>Clinical Description</label><textarea id="em_desc" placeholder="Starting position, movement cues, safety tips…" rows="3"></textarea></div>
       <div class="fg" style="grid-column:1/-1"><label>YouTube Video URL <span style="font-weight:400;color:var(--text-l)">(optional — paste full URL e.g. https://youtube.com/watch?v=…)</span></label><input id="em_video" type="text" class="yt-input" placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ"></div>
+
       <div class="fg" style="grid-column:1/-1">
         <label>Primary Muscles <span style="font-weight:400;color:var(--text-l)">(hold Ctrl/Cmd to select multiple)</span></label>
         <select id="em_muscles" multiple style="height:120px;padding:4px">
@@ -1910,6 +1911,19 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
       <input type="file" id="emPhotoFile" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleEmPhoto(event,'emPhotoPreview','emPhotoData')">
     </div>
     <input type="hidden" id="emPhotoData" value="">
+    <!-- Photo 2 for add modal -->
+    <div style="margin-top:10px">
+      <label style="font-size:12px;font-weight:600;color:#8B949E">Photo 2 (end position, for PDF)</label>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+        <div id="emPhoto2Preview" style="width:56px;height:56px;border-radius:8px;background:#1F2A33;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📷</div>
+        <div>
+          <input type="file" id="emPhoto2File" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleEmPhoto(event,'emPhoto2Preview','emPhoto2Data')">
+          <button type="button" onclick="document.getElementById('emPhoto2File').click()" style="padding:6px 12px;background:#1F2A33;border:1.5px solid #26323A;border-radius:8px;color:#C9D1D9;font-size:12px;cursor:pointer;font-family:inherit">📷 Upload Photo 2</button>
+          <button type="button" onclick="document.getElementById('emPhoto2Data').value='';document.getElementById('emPhoto2Preview').innerHTML='📷';this.style.display='none'" style="display:none;margin-left:6px;padding:5px 8px;background:none;border:1px solid #ef4444;border-radius:6px;color:#ef4444;font-size:11px;cursor:pointer">✕</button>
+        </div>
+      </div>
+      <input type="hidden" id="emPhoto2Data" value="">
+    </div>
     <div class="modal-footer" style="margin-top:8px">
       <button class="btn btn-outline" onclick="closeM('exMgrM')">Cancel</button>
       <button class="btn btn-primary" onclick="addCustomExercise()">Add to Library</button>
@@ -2012,6 +2026,19 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   </div>
   <input type="hidden" id="eePhotoData" value="">
   <input type="hidden" id="eeEditId" value="">
+  <!-- Photo 2 for edit modal -->
+  <div style="padding:8px 16px 0">
+    <label style="font-size:12px;font-weight:600;color:#8B949E">Photo 2 (end position, for PDF)</label>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+      <div id="eePhoto2Preview" style="width:56px;height:56px;border-radius:8px;background:#1F2A33;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📷</div>
+      <div>
+        <input type="file" id="eePhoto2File" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleEmPhoto(event,'eePhoto2Preview','eePhoto2Data')">
+        <button type="button" onclick="document.getElementById('eePhoto2File').click()" style="padding:6px 12px;background:#1F2A33;border:1.5px solid #26323A;border-radius:8px;color:#C9D1D9;font-size:12px;cursor:pointer;font-family:inherit">📷 Upload Photo 2</button>
+        <button type="button" id="eePhoto2Clear" onclick="document.getElementById('eePhoto2Data').value='';document.getElementById('eePhoto2Preview').innerHTML='📷';this.style.display='none'" style="display:none;margin-left:6px;padding:5px 8px;background:none;border:1px solid #ef4444;border-radius:6px;color:#ef4444;font-size:11px;cursor:pointer">✕</button>
+      </div>
+    </div>
+    <input type="hidden" id="eePhoto2Data" value="">
+  </div>
   <div class="modal-footer">
     <button class="btn btn-danger btn-sm" onclick="deleteCustomEx()">Delete</button>
     <button class="btn btn-outline" onclick="closeM('editExM')">Cancel</button>
@@ -3701,6 +3728,8 @@ function addCustomExercise() {
   const photo = v('emPhotoData');
   const id = 'custom_' + Date.now();
   const ex = { id, name, cat, desc:v('em_desc'), muscles:Array.from(document.getElementById('em_muscles').selectedOptions||[]).map(function(o){return o.value;}).join(',') || v('em_muscles'), sets:parseInt(v('em_sets'))||3, reps:v('em_reps'), hold:v('em_hold'), rest:v('em_rest'), load:'', videoUrl:v('em_video')||'' };
+  const photo2 = v('emPhoto2Data');
+  ex.photo2 = photo2 || '';
   customExercises.push(ex);
   if (photo) { customPhotos[name] = photo; saveCustomPhotos(); }
   saveCustomEx();
@@ -3714,6 +3743,8 @@ function addCustomExercise() {
   sv('em_cat',''); sv('em_sets','3');
   document.getElementById('emPhotoData').value = '';
   document.getElementById('emPhotoPreview').innerHTML = `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="60" fill="#EEF0F5" rx="6"/><text x="22" y="34" font-size="18" fill="#aaa">📷</text></svg>`;
+  var p2d = document.getElementById('emPhoto2Data'); if (p2d) p2d.value = '';
+  var p2p = document.getElementById('emPhoto2Preview'); if (p2p) p2p.innerHTML = '📷';
   closeM('exMgrM');
   toast(`${name} added to library`,'ok');
 }
@@ -3766,6 +3797,9 @@ function saveExEdit() {
     delete customPhotos[oldName];
     saveCustomPhotos();
   }
+  // Handle photo 2
+  const photo2 = v('eePhoto2Data');
+  if (photo2) ex.photo2 = photo2;
   // If it's a built-in exercise, update or create an override in customExercises
   const isCustom = customExercises.some(e => String(e.id) === String(id));
   if (!isCustom) {
@@ -5649,11 +5683,14 @@ async function generatePDF(cl, p) {
         // Photo box 1
         doc.setFillColor(...SAND);
         doc.roundedRect(ph1x, phY, PHOTO_SIZE, PHOTO_SIZE, 2, 2, 'F');
-        await renderSVGtoPDF(doc, ex, ph1x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
-        // Photo box 2 (same image - shows exercise from different angle / duplicate for now)
+        // Use photo field (base64) if available, else SVG illustration
+        var ex1 = ex.photo ? ex : ex;
+        await renderSVGtoPDF(doc, ex1, ph1x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
+        // Photo box 2 - use photo2 if available, else same as photo1
         doc.setFillColor(...SAND);
         doc.roundedRect(ph2x, phY, PHOTO_SIZE, PHOTO_SIZE, 2, 2, 'F');
-        await renderSVGtoPDF(doc, ex, ph2x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
+        var ex2 = ex.photo2 ? Object.assign({}, ex, {photo: ex.photo2}) : ex;
+        await renderSVGtoPDF(doc, ex2, ph2x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
         // Small number labels under photos
         setFont(7, 'normal', [150,150,150]);
         text('1', ph1x + PHOTO_SIZE/2, phY + PHOTO_SIZE + 3.5, {align:'center'});
@@ -7845,16 +7882,6 @@ function renderCVCustomWorkout() {
   h += '<button onclick="cvExitCustomWorkout()" style="background:none;border:1.5px solid #26323A;color:#8B949E;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:-apple-system,sans-serif">&#8592; Back to Program</button>';
   h += '</div>';
 
-  // Search card
-  h += '<div style="background:#12181D;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #1F2A33">';
-  h += '<div style="font-size:14px;font-weight:700;color:#FFFFFF;margin-bottom:4px">&#127947; Build Your Own Workout</div>';
-  h += '<div style="font-size:11px;color:#8B949E;margin-bottom:12px">Search and add exercises to your session</div>';
-  h += '<input id="cvCustomSrch" type="text" placeholder="Search exercises..." oninput="cvFilterCustomEx(this.value)" '
-     + 'style="width:100%;padding:10px 12px;border:1.5px solid #26323A;border-radius:8px;font-size:14px;'
-     + 'font-family:-apple-system,sans-serif;outline:none;background:#1F2A33;color:#FFFFFF;box-sizing:border-box">';
-  h += '<div id="cvCustomExResults" style="margin-top:8px;max-height:220px;overflow-y:auto;border-radius:8px;position:relative;z-index:10"></div>';
-  h += '</div>';
-
   // Added exercises
   if (cvCustomExercises.length > 0) {
     h += '<div style="font-size:11px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Your exercises (' + cvCustomExercises.length + ')</div>';
@@ -7916,6 +7943,16 @@ function renderCVCustomWorkout() {
     });
   }
 
+  // Search card
+  h += '<div style="background:#12181D;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #1F2A33">';
+  h += '<div style="font-size:14px;font-weight:700;color:#FFFFFF;margin-bottom:4px">&#127947; Build Your Own Workout</div>';
+  h += '<div style="font-size:11px;color:#8B949E;margin-bottom:12px">Search and add exercises to your session</div>';
+  h += '<input id="cvCustomSrch" type="text" placeholder="Search exercises..." oninput="cvFilterCustomEx(this.value)" '
+     + 'style="width:100%;padding:10px 12px;border:1.5px solid #26323A;border-radius:8px;font-size:14px;'
+     + 'font-family:-apple-system,sans-serif;outline:none;background:#1F2A33;color:#FFFFFF;box-sizing:border-box">';
+  h += '<div id="cvCustomExResults" style="margin-top:8px;max-height:220px;overflow-y:auto;border-radius:8px;position:relative;z-index:10"></div>';
+  h += '</div>';
+
   // Submit section
   if (cvCustomExercises.length > 0) {
     h += '<div class="cv-session" style="margin-top:4px">';
@@ -7972,9 +8009,16 @@ function cvAddCustomExByIdx(idx) {
   renderCV();
   // Scroll to bottom to show added exercise
   setTimeout(function() {
-    var tab = document.getElementById('cvTabWorkouts');
-    if (tab) tab.scrollTop = tab.scrollHeight;
-  }, 100);
+    // Scroll to show added exercises
+    var body = document.getElementById('cvBody');
+    if (body) {
+      body.scrollIntoView(false);
+      window.scrollTo(0, document.body.scrollHeight);
+    }
+    // Also try scrolling the workout top bar area
+    var topBar = document.getElementById('cvWorkoutTopBar');
+    if (topBar) topBar.scrollIntoView(false);
+  }, 150);
 }
 
 function cvAddCustomEx(exId) {
@@ -10097,6 +10141,32 @@ function startMessagePolling() {
 function closeMessagesModal() {
   if (practChatInterval) clearInterval(practChatInterval);
   closeM('messagesM');
+}
+
+
+// Exercise Manager photo upload
+function emLoadPhoto(input, hiddenId, prevId) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var data = e.target.result;
+    document.getElementById(hiddenId).value = data;
+    var prev = document.getElementById(prevId);
+    prev.innerHTML = '<img src="' + data + '" style="width:100%;height:100%;object-fit:cover">';
+    // Show clear button
+    var clearBtn = document.getElementById(hiddenId + '_clear');
+    if (clearBtn) clearBtn.style.display = 'inline-block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function emClearPhoto(hiddenId, prevId, fileId) {
+  document.getElementById(hiddenId).value = '';
+  document.getElementById(prevId).innerHTML = 'No photo';
+  document.getElementById(fileId).value = '';
+  var clearBtn = document.getElementById(hiddenId + '_clear');
+  if (clearBtn) clearBtn.style.display = 'none';
 }
 
 </script>
