@@ -7955,6 +7955,7 @@ function renderCVCustomWorkout() {
     h += '<div style="font-size:11px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Your exercises (' + cvCustomExercises.length + ')</div>';
 
     cvCustomExercises.forEach(function(ex, i) {
+      var isCardioEx = (ex.cat === 'Cardio');
       var st = cvState[i] || {};
       var setsDone = (st.sets || []).filter(Boolean).length;
       var totalSets = parseInt(ex.sets) || 3;
