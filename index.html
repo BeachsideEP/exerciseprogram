@@ -1349,6 +1349,13 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://dashboard.bookedsolid.co.uk/widget.js" defer></script>
+  <style>
+    /* Hide Booked Solid floating button - we use our own Anna tab button */
+    #booked-solid-widget-button, .bs-widget-button, .chat-widget-button,
+    [id*="booked-solid"] > button, [class*="booked-solid"] > button { 
+      display: none !important; 
+    }
+  </style>
 </head>
 <body>
 
@@ -5170,9 +5177,19 @@ document.addEventListener('DOMContentLoaded', function() {
         position: 'bottom-right',
         autoOpen: false,
         captureLeadInfo: false,
+        hideButton: true,
+        showButton: false,
+        buttonVisible: false,
         title: 'Anna',
         welcomeMessage: 'Hi there! How can I help you today?'
       });
+      // Also hide the button after init in case the widget renders it
+      setTimeout(function() {
+        var btns = document.querySelectorAll('[id*="booked"], [class*="booked"], [id*="chat-widget"], [class*="chat-widget"]');
+        btns.forEach(function(el) {
+          if (el.tagName === 'BUTTON' || el.style) el.style.display = 'none';
+        });
+      }, 500);
     }
   }, 2000);
 
@@ -7639,14 +7656,44 @@ function renderAnnaTab() {
 function cvOpenAnnaWidget() {
   if (typeof ChatWidget !== 'undefined') {
     ChatWidget.open();
+    // Hide the floating button again if widget re-shows it on open
+    setTimeout(function() { cvHideWidgetBtn(); }, 100);
   } else {
-    // Widget might still be loading
     toast('Anna is loading, please try again in a moment', 'ok');
     setTimeout(function() {
-      if (typeof ChatWidget !== 'undefined') ChatWidget.open();
+      if (typeof ChatWidget !== 'undefined') {
+        ChatWidget.open();
+        setTimeout(cvHideWidgetBtn, 100);
+      }
     }, 1000);
   }
 }
+
+function cvHideWidgetBtn() {
+  // Hide any floating chat buttons from Booked Solid widget
+  var selectors = [
+    '[id*="booked-solid"]', '[class*="booked-solid"]',
+    '[id*="chat-widget-btn"]', '[class*="chat-widget-btn"]',
+    '[id*="bs-widget"]', '[class*="bs-widget-btn"]'
+  ];
+  selectors.forEach(function(sel) {
+    try {
+      document.querySelectorAll(sel).forEach(function(el) {
+        if (el.tagName === 'BUTTON' || el.getAttribute('role') === 'button') {
+          el.style.cssText = 'display:none!important;visibility:hidden!important';
+        }
+      });
+    } catch(e) {}
+  });
+}
+
+// Watch for widget button appearing and hide it
+(function() {
+  var obs = new MutationObserver(function() {
+    cvHideWidgetBtn();
+  });
+  obs.observe(document.body || document.documentElement, { childList: true, subtree: true });
+})();
 function annaAppendMsg(role, text) {
   var msgEl = document.getElementById('annaMessages');
   if (!msgEl) return;
