@@ -4567,6 +4567,13 @@ function getExIllusStr(ex) {
 function renderCV() {
   // Auto-clear safety if not required for this client
   if (cvData && cvData.requireSafetyCheck === false) cvSafetyDone = true;
+  // Check custom workout mode FIRST before any cvData checks
+  if (cvCustomWorkout) {
+    document.getElementById('cvBody').innerHTML = renderCVCustomWorkout();
+    var _progSel = document.getElementById('cvProgSel');
+    if (_progSel) _progSel.value = 'custom';
+    return;
+  }
   if (!cvData || !cvData.programs || !cvData.programs.length) {
     document.getElementById('cvBody').innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#127945;</div><p>No programs found.</p></div>';
     return;
@@ -4579,15 +4586,7 @@ function renderCV() {
   const lastSafety = (cvData.safetyLog || []).slice(-1)[0];
   const showSafety = cvData.requireSafetyCheck !== false;
 
-  // Custom workout mode
-  if (cvCustomWorkout) {
-    h += renderCVCustomWorkout();
-    document.getElementById('cvBody').innerHTML = h;
-    // Force select to show 'custom' selected
-    var _sel = document.getElementById('cvProgSel');
-    if (_sel) _sel.value = 'custom';
-    return;
-  }
+
 
   // ── Pre-session safety check ──
   if (showSafety) { h += '<div class="cv-session" id="cvSafetyPanel" style="margin-bottom:10px">';
