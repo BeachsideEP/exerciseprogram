@@ -7627,12 +7627,10 @@ function renderAnnaTab() {
   var el = document.getElementById('cvTabAi');
   if (!el) return;
   el.style.display = 'flex';
-  if (!_annaReady) {
-    _annaReady = true;
-    _annaSessionId = 'bs_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-    var name = (cvData && cvData.first) ? cvData.first : 'there';
-    annaAddMsg('Hi ' + name + '! I\'m Anna, your Beachside EP health assistant 😊 I\'m here to help with general health questions, nutrition ideas, or if you\'re feeling any aches or niggles. What\'s on your mind today?', false);
-  }
+}
+
+function cvOpenClasses() {
+  window.open('https://beachsideep.com.au/about/group-classes/', '_blank');
 }
 
 function annaAddMsg(text, isUser) {
@@ -8056,7 +8054,7 @@ function cvFilterCustomEx(q) {
   window._cvExMatches = matches;
   res.innerHTML = matches.map(function(ex, idx) {
     var thumb = getExIllusStr(ex);
-    return '<div ontouchstart="event.preventDefault();cvAddCustomExByIdx(' + idx + ')" onclick="cvAddCustomExByIdx(' + idx + ')" '
+    return '<div onpointerdown="event.preventDefault();cvAddCustomExByIdx(' + idx + ')" '
       + 'style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer;border-bottom:1px solid var(--sand-dark)">'
       + '<div style="width:36px;height:36px;border-radius:6px;overflow:hidden;flex-shrink:0;background:var(--sand)">' + thumb + '</div>'
       + '<div><div style="font-size:13px;font-weight:600;color:var(--text)">' + ex.name + '</div>'
