@@ -1348,6 +1348,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://dashboard.bookedsolid.co.uk/widget.js" defer></script>
 </head>
 <body>
 
@@ -1459,30 +1460,14 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     </div>
   </div>
 
-  <div id="cvTabAi"  style="display:none;flex-direction:column;height:calc(100vh - 60px);padding-bottom:70px">
-    <div class="anna-header">
-      <div class="anna-avatar">&#129302;</div>
-      <div class="anna-intro">
-        <div class="anna-name">Anna</div>
-        <div class="anna-role">Beachside EP Health Assistant &middot; Here to help with health questions, nutrition &amp; general wellbeing</div>
-      </div>
-    </div>
-    <div class="anna-chips" id="annaChips">
-      <div class="anna-chip" onclick="annaSendChip(this)">I have knee pain</div>
-      <div class="anna-chip" onclick="annaSendChip(this)">What should I eat before exercise?</div>
-      <div class="anna-chip" onclick="annaSendChip(this)">My shoulder feels sore</div>
-      <div class="anna-chip" onclick="annaSendChip(this)">High protein meal ideas</div>
-      <div class="anna-chip" onclick="annaSendChip(this)">My back is tight</div>
-    </div>
-    <div class="anna-messages" id="annaMessages"></div>
-    <div class="anna-input-row">
-      <textarea class="anna-input" id="annaInput" placeholder="Ask Anna a health question…" rows="1"
-        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();annaSend()}"></textarea>
-      <button class="anna-send" onclick="annaSend()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-      </button>
-    </div>
+  <div id="cvTabAi" style="display:none;flex-direction:column;align-items:center;justify-content:center;height:calc(100vh - 130px);padding:30px 20px;text-align:center">
+    <div style="font-size:56px;margin-bottom:16px">🤖</div>
+    <div style="font-size:20px;font-weight:800;color:#FFFFFF;margin-bottom:8px">Anna</div>
+    <div style="font-size:14px;color:#8B949E;margin-bottom:28px;line-height:1.6;max-width:280px">Your Beachside EP health assistant. Ask about general health, nutrition, or how you're feeling.</div>
+    <button onclick="cvOpenAnnaWidget()" style="background:#2FD4F5;color:#0B0F12;border:none;border-radius:14px;padding:14px 32px;font-size:16px;font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;display:flex;align-items:center;gap:8px;margin:0 auto">
+      <span style="font-size:20px">💬</span> Chat with Anna
+    </button>
+    <div style="font-size:11px;color:#8B949E;margin-top:20px">Powered by Beachside Exercise Physiology</div>
   </div>
   <!-- BOTTOM TABS -->
   <div class="cv-tabs">
@@ -4329,7 +4314,7 @@ function onAuthSuccess(user) {
           }
         }
       } catch(e) {}
-    }, 300000);
+    }, 180000);
   } else {
     showView('client');
     loadClientView(user);
@@ -4419,6 +4404,18 @@ async function syncClients() {
         if (!cloudCl.email && localCl.email) cloudCl.email = localCl.email;
         if (!cloudCl.phone && localCl.phone) cloudCl.phone = localCl.phone;
         if (cloudCl.requireSafetyCheck === undefined) cloudCl.requireSafetyCheck = localCl.requireSafetyCheck;
+        // CRITICAL: Never let cloud overwrite programs edited in the last 60 seconds
+        // (protects against sync firing during the 2s debounce push window)
+        var localEditAge = Date.now() - localTime;
+        if (localEditAge < 60000 && localCl.programs && localCl.programs.length) {
+          // Local was edited very recently - keep local programs, push to cloud
+          cloudCl.programs = localCl.programs;
+          pushClientToCloud(cloudCl);
+        }
+        // If cloud has no programs but local does, always keep local programs
+        if ((!cloudCl.programs || !cloudCl.programs.length) && localCl.programs && localCl.programs.length) {
+          cloudCl.programs = localCl.programs;
+        }
         return cloudCl; // cloud is newer or equal
       }).filter(Boolean);
 
@@ -5006,6 +5003,24 @@ async function cvSubmit() {
 
   const today = new Date().toLocaleString('en-AU', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
 
+  // IMMEDIATELY update in-memory cvData with lastReps/lastLoad
+  // so next renderCV shows correct weights even before cloud sync completes
+  exs.forEach(function(ex, i) {
+    const st = cvState[i] || {};
+    const totalSets = parseInt(ex.sets) || 3;
+    const lastRepsArr = [], lastLoadsArr = [];
+    for (var s = 0; s < totalSets; s++) {
+      if (st.sets && st.sets[s]) {
+        var r = (st.setReps && st.setReps[s]) || '';
+        var l = (st.setLoads && st.setLoads[s]) || '';
+        if (r) lastRepsArr.push(r);
+        if (l) lastLoadsArr.push(l);
+      }
+    }
+    if (lastRepsArr.length) ex.lastReps = lastRepsArr[lastRepsArr.length - 1];
+    if (lastLoadsArr.length) ex.lastLoad = lastLoadsArr[lastLoadsArr.length - 1];
+  });
+
   // Build rich per-exercise detail AND update prescribed values
   const exLines = [];
   exs.forEach(function(ex, i) {
@@ -5082,14 +5097,20 @@ async function cvSubmit() {
             if (!exists) freshProg.log.push(entry);
           });
           // Copy exercise progress (lastReps, lastLoad, substitutions)
+          // Match by uid or name to handle reordering
           (myProg.exercises || []).forEach(function(ex, ei) {
-            if (freshProg.exercises && freshProg.exercises[ei]) {
-              if (ex.lastReps) freshProg.exercises[ei].lastReps = ex.lastReps;
-              if (ex.lastLoad) freshProg.exercises[ei].lastLoad = ex.lastLoad;
+            // Try to find matching exercise by uid first, then name
+            var freshEx = null;
+            if (ex.uid) freshEx = (freshProg.exercises || []).find(function(fe) { return fe.uid === ex.uid; });
+            if (!freshEx && ex.name) freshEx = (freshProg.exercises || []).find(function(fe) { return fe.name === ex.name; });
+            if (!freshEx && freshProg.exercises && freshProg.exercises[ei]) freshEx = freshProg.exercises[ei]; // fallback to index
+            if (freshEx) {
+              if (ex.lastReps) freshEx.lastReps = ex.lastReps;
+              if (ex.lastLoad) freshEx.lastLoad = ex.lastLoad;
               if (ex.substitutedFor) {
-                freshProg.exercises[ei].name = ex.name;
-                freshProg.exercises[ei].substitutedFor = ex.substitutedFor;
-                freshProg.exercises[ei].substitutedAt = ex.substitutedAt;
+                freshEx.name = ex.name;
+                freshEx.substitutedFor = ex.substitutedFor;
+                freshEx.substitutedAt = ex.substitutedAt;
               }
             }
           });
@@ -5140,6 +5161,21 @@ document.addEventListener('DOMContentLoaded', function() {
   showView('auth');
   showPanel('magic'); // Show client OTP panel by default
 
+  // Initialise Booked Solid Anna widget
+  setTimeout(function() {
+    if (typeof ChatWidget !== 'undefined') {
+      ChatWidget.init({
+        clientId: '698513c32b7cbb7224d3ce0f',
+        theme: 'dark',
+        position: 'bottom-right',
+        autoOpen: false,
+        captureLeadInfo: false,
+        title: 'Anna',
+        welcomeMessage: 'Hi there! How can I help you today?'
+      });
+    }
+  }, 2000);
+
   // HOSTED — check for magic link hash
   var hash = window.location.hash || '';
   if (hash.indexOf('access_token=') !== -1) {
@@ -5155,7 +5191,13 @@ document.addEventListener('DOMContentLoaded', function() {
       }).then(function(r) {
         return r.ok ? r.json() : null;
       }).then(function(user) {
-        if (user) { if (!currentUser) onAuthSuccess(user); } else { if (!currentUser) showView('auth'); }
+        if (user) {
+        // Only trigger auth success if we don't already have a valid session
+        if (!currentUser || currentUser.id !== user.id) onAuthSuccess(user);
+      } else {
+        // Only sign out if we're not actively using the app
+        if (!currentUser && !document.hidden) showView('auth'); showPanel('magic');
+      }
       }).catch(function() { showView('auth'); });
       return;
     }
@@ -6703,6 +6745,11 @@ var cvHealthData = {}; // {weight:[], bp:[], bg:[], sleep:[], hr:[]}
 var cvOwnWorkouts = []; // [{date, type, duration, note}]
 
 function cvSwitchTab(tab) {
+  // Don't switch to anna accidentally if user is typing in an input
+  var focusedEl = document.activeElement;
+  if (tab === 'ai' && focusedEl && (focusedEl.tagName === 'INPUT' || focusedEl.tagName === 'TEXTAREA') && focusedEl.id !== 'annaInput') {
+    return; // Ignore accidental anna tab trigger while typing
+  }
   cvActiveTab = tab;
   if (tab !== 'workouts') releaseWakeLock();
   if (tab === 'messages') {
@@ -7504,12 +7551,31 @@ async function cvSilentSync() {
     if (!match) return;
     cvLastSync = Date.now();
 
-    // Update cvData but preserve session state
-    // Only update programs/outcomes/safetyLog from server
-    // Don't wipe cvState (mid-session ticks) or cvFeeling
+    // Update cvData but preserve session state and exercise progress
     var wasProgIdx = cvProgIdx;
+    var oldCvData = cvData;
     cvData = match;
     cvProgIdx = wasProgIdx;
+
+    // Re-apply lastReps/lastLoad from old cvData if cloud doesn't have them
+    // (happens when sync fires before submit push completes)
+    if (oldCvData && oldCvData.programs && cvData.programs) {
+      oldCvData.programs.forEach(function(oldProg, pi) {
+        var newProg = cvData.programs[pi];
+        if (!newProg || !oldProg.exercises) return;
+        oldProg.exercises.forEach(function(oldEx) {
+          if (!oldEx.lastLoad && !oldEx.lastReps) return;
+          // Find matching exercise in new program by uid or name
+          var newEx = null;
+          if (oldEx.uid) newEx = (newProg.exercises || []).find(function(e) { return e.uid === oldEx.uid; });
+          if (!newEx && oldEx.name) newEx = (newProg.exercises || []).find(function(e) { return e.name === oldEx.name; });
+          if (newEx) {
+            if (oldEx.lastReps && !newEx.lastReps) newEx.lastReps = oldEx.lastReps;
+            if (oldEx.lastLoad && !newEx.lastLoad) newEx.lastLoad = oldEx.lastLoad;
+          }
+        });
+      });
+    }
 
     // Also sync to local clients[] so practitioner view stays fresh
     if (typeof clients !== 'undefined' && Array.isArray(clients)) {
@@ -7563,43 +7629,24 @@ function cvStopSync() {
 }
 
 
-// ════════════════════════════════════════════════════
-// ANNA — AI Health Assistant
-// ════════════════════════════════════════════════════
-var annaHistory = [];
-var annaReady = false;
-
-var ANNA_SYSTEM = `You are Anna, a friendly health assistant for Beachside Exercise Physiology clinic.
-Your role is to support clients with general health questions between their appointments.
-
-STRICT RULES — never break these:
-1. BOOKINGS: You cannot make, reschedule or cancel appointments. Always say: "To book, reschedule or cancel, please call us on 0409 051 260 — we'd love to hear from you!"
-2. EXERCISE ADVICE: You do not prescribe, modify or recommend specific exercises or training programs. That is your clinician's job. Refer clients to their clinician for any exercise questions.
-3. DIET ADVICE: You do not provide personalised diet plans or tell clients what to eat. You can discuss what macronutrients (protein, carbohydrates, fats) are typically found in certain foods, and share general meal ideas or simple recipes.
-4. MEDICAL DIAGNOSIS: You do not diagnose conditions. Always recommend clients see their clinician or a GP for anything clinical.
-
-WHAT YOU DO WELL:
-- Listen warmly to pain, soreness or niggles and suggest which general movement areas to be cautious with (e.g. "with knee pain, avoid high-impact loading until you've spoken to your clinician")
-- Explain macronutrients in foods and share healthy meal ideas or simple recipes on request
-- Provide general wellbeing support, sleep hygiene, stress management and lifestyle tips
-- Answer general health questions in a warm, encouraging, non-clinical tone
-
-Always be warm, concise and encouraging. You represent Beachside Exercise Physiology — a professional, caring clinic. Sign off warmly when appropriate. If unsure, recommend the client speak to their clinician.`;
 
 function renderAnnaTab() {
   var el = document.getElementById('cvTabAi');
   if (!el) return;
   el.style.display = 'flex';
-  // Initialise with welcome message if first visit
-  var msgEl = document.getElementById('annaMessages');
-  if (msgEl && !annaReady) {
-    annaReady = true;
-    var clientName = (cvData && cvData.first) ? cvData.first : 'there';
-    annaHistory = [];
-    annaAppendMsg('assistant', 'Hi ' + clientName + '! I\u2019m Anna, your Beachside EP health assistant \ud83d\ude0a I\u2019m here to help with general health questions, nutrition ideas, or if you\u2019re feeling any aches or niggles. What\u2019s on your mind today?');
-  }
 }
 
+function cvOpenAnnaWidget() {
+  if (typeof ChatWidget !== 'undefined') {
+    ChatWidget.open();
+  } else {
+    // Widget might still be loading
+    toast('Anna is loading, please try again in a moment', 'ok');
+    setTimeout(function() {
+      if (typeof ChatWidget !== 'undefined') ChatWidget.open();
+    }, 1000);
+  }
+}
 function annaAppendMsg(role, text) {
   var msgEl = document.getElementById('annaMessages');
   if (!msgEl) return;
