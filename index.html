@@ -3570,9 +3570,13 @@ function addEx(id) {
   if (!ex) { toast('Exercise not found', 'err'); return; }
   const p = getProg(); if (!p) return;
   p.exercises.push({...ex, uid: Date.now()+Math.random(), load:'', notes:''});
-  // Stamp timestamp so sync keeps this version over cloud
+  // Stamp timestamp so sync ALWAYS keeps this version
   const clStamp = getClient();
-  if (clStamp) clStamp._localUpdatedAt = new Date().toISOString();
+  if (clStamp) {
+    clStamp._localUpdatedAt = new Date().toISOString();
+    // Also save to localStorage immediately before async push
+    localStorage.setItem(DB_KEY, JSON.stringify(clients));
+  }
   saveDB(); renderDropZone(); updatePreview();
   toast(`${ex.name} added`, 'ok');
   // Scroll to the newly added exercise
@@ -4294,7 +4298,7 @@ function onAuthSuccess(user) {
     });
     syncClients();
     syncTemplates();
-    setInterval(syncClients, 30000);
+    setInterval(syncClients, 180000); // 3 min - less aggressive to prevent overwriting edits
     // Refresh Supabase session every 5 minutes to prevent logout
     setInterval(async function() {
       try {
@@ -4407,10 +4411,10 @@ async function syncClients() {
         // CRITICAL: Never let cloud overwrite programs edited in the last 60 seconds
         // (protects against sync firing during the 2s debounce push window)
         var localEditAge = Date.now() - localTime;
-        if (localEditAge < 60000 && localCl.programs && localCl.programs.length) {
-          // Local was edited very recently - keep local programs, push to cloud
-          cloudCl.programs = localCl.programs;
-          pushClientToCloud(cloudCl);
+        if (localEditAge < 300000 && localCl.programs && localCl.programs.length) {
+          // Local was edited very recently - keep ALL local data, push to cloud
+          pushClientToCloud(localCl);
+          return localCl; // Keep local - it was just edited
         }
         // If cloud has no programs but local does, always keep local programs
         if ((!cloudCl.programs || !cloudCl.programs.length) && localCl.programs && localCl.programs.length) {
