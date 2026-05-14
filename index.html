@@ -1467,14 +1467,15 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     </div>
   </div>
 
-  <div id="cvTabAi" style="display:none;flex-direction:column;align-items:center;justify-content:center;height:calc(100vh - 130px);padding:30px 20px;text-align:center">
-    <div style="font-size:56px;margin-bottom:16px">🤖</div>
-    <div style="font-size:20px;font-weight:800;color:#FFFFFF;margin-bottom:8px">Anna</div>
-    <div style="font-size:14px;color:#8B949E;margin-bottom:28px;line-height:1.6;max-width:280px">Your Beachside EP health assistant. Ask about general health, nutrition, or how you're feeling.</div>
-    <button onclick="cvOpenAnnaWidget()" style="background:#2FD4F5;color:#0B0F12;border:none;border-radius:14px;padding:14px 32px;font-size:16px;font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;display:flex;align-items:center;gap:8px;margin:0 auto">
-      <span style="font-size:20px">💬</span> Chat with Anna
-    </button>
-    <div style="font-size:11px;color:#8B949E;margin-top:20px">Powered by Beachside Exercise Physiology</div>
+  <div id="cvTabAi" style="display:none;flex-direction:column;height:calc(100vh - 60px)">
+    <iframe 
+      id="annaIframe"
+      src="about:blank"
+      data-src="https://dashboard.bookedsolid.co.uk/chat-widget/698513c32b7cbb7224d3ce0f"
+      style="width:100%;flex:1;border:none;background:#0B0F12"
+      allow="microphone; camera"
+      title="Anna - Beachside EP Health Assistant">
+    </iframe>
   </div>
   <!-- BOTTOM TABS -->
   <div class="cv-tabs">
@@ -7651,6 +7652,11 @@ function renderAnnaTab() {
   var el = document.getElementById('cvTabAi');
   if (!el) return;
   el.style.display = 'flex';
+  // Lazy load the iframe on first open
+  var iframe = document.getElementById('annaIframe');
+  if (iframe && iframe.src === 'about:blank') {
+    iframe.src = iframe.getAttribute('data-src');
+  }
 }
 
 function cvOpenAnnaWidget() {
