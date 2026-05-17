@@ -4397,7 +4397,7 @@ async function syncClients() {
     if (!r.ok) { setSyncStatus('err'); return; }
     const rows = await r.json();
     if (rows && rows.length) {
-      const local = JSON.parse(localStorage.getItem('bep_v6') || '[]');
+      const local = JSON.parse(localStorage.getItem(DB_KEY) || localStorage.getItem('bep_v6') || '[]');
       const localMap = {};
       local.forEach(function(c) { localMap[c.id] = c; });
 
@@ -4439,6 +4439,21 @@ async function syncClients() {
         if (!cloudCl.email && localCl.email) cloudCl.email = localCl.email;
         if (!cloudCl.phone && localCl.phone) cloudCl.phone = localCl.phone;
         if (cloudCl.requireSafetyCheck === undefined) cloudCl.requireSafetyCheck = localCl.requireSafetyCheck;
+        // CRITICAL: Never let cloud have fewer programs than local - merge programs
+        if (localCl.programs && localCl.programs.length > (cloudCl.programs || []).length) {
+          // Local has more programs - keep all local programs, local wins
+          pushClientToCloud(localCl);
+          return localCl;
+        }
+        // Merge: keep any local programs not in cloud
+        if (localCl.programs) {
+          localCl.programs.forEach(function(lp) {
+            if (!(cloudCl.programs || []).find(function(cp) { return cp.id === lp.id; })) {
+              if (!cloudCl.programs) cloudCl.programs = [];
+              cloudCl.programs.push(lp);
+            }
+          });
+        }
         // CRITICAL: Never let cloud overwrite programs edited in the last 60 seconds
         // (protects against sync firing during the 2s debounce push window)
         var localEditAge = Date.now() - localTime;
@@ -4474,7 +4489,7 @@ async function syncClients() {
       var mergedIds = new Set(merged.map(function(c) { return c.id; }));
       var localOnlyClients = clients.filter(function(c) { return !mergedIds.has(c.id); });
       var finalClients = merged.concat(localOnlyClients);
-      localStorage.setItem('bep_v6', JSON.stringify(finalClients));
+      localStorage.setItem(DB_KEY, JSON.stringify(finalClients));
       clients = finalClients;
       renderClientDropdown();
       // Only re-render current client if cloud gave us a NEWER version
