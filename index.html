@@ -3270,9 +3270,13 @@ function saveDB() {
   if (cl) cl._localUpdatedAt = new Date().toISOString();
   localStorage.setItem(DB_KEY, JSON.stringify(clients));
   showAutosave();
-  // Push immediately - no debounce - prevents any race with syncClients
+  // Debounce push by 5s - take deep snapshot NOW to avoid race conditions
   if (cl && userRole === 'practitioner') {
-    pushClientToCloud(JSON.parse(JSON.stringify(cl)));
+    var snapCl = JSON.parse(JSON.stringify(cl));
+    if (saveDB._timer) clearTimeout(saveDB._timer);
+    saveDB._timer = setTimeout(function() {
+      safePushClientToCloud(snapCl);
+    }, 5000);
   }
 }
 function showAutosave() { const el=document.getElementById('autosave'); if(!el)return; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),1800); }
@@ -3409,8 +3413,7 @@ function newProgram() {
   cl.programs.push(p); currentProgId = p.id;
   cl._localUpdatedAt = new Date().toISOString();
   localStorage.setItem(DB_KEY, JSON.stringify(clients));
-  pushClientToCloud(cl); // Push immediately, don't wait for debounce
-  saveDB();
+  saveDB(); // saveDB will handle the push via safePushClientToCloud
   renderProgTabs(); loadProg(); updatePreview();
 }
 
@@ -4329,23 +4332,50 @@ function onAuthSuccess(user) {
 // ── SUPABASE SYNC ──
 async function pushClientToCloud(cl) {
   if (userRole !== 'practitioner' && document.getElementById('viewApp').style.display === 'none') return;
-  // Safety check: never push a record with blank email if local has one
   var localCopy = clients.find(function(c){ return c.id === cl.id; });
-  if (!cl.email && localCopy && localCopy.email) {
-    cl.email = localCopy.email;
-  }
+  if (!cl.email && localCopy && localCopy.email) cl.email = localCopy.email;
   setSyncStatus('busy');
   try {
     const now = new Date().toISOString();
-    cl._localUpdatedAt = now; // stamp so syncClients knows this version was pushed
+    cl._localUpdatedAt = now;
     const r = await fetch(SUPA_URL + '/rest/v1/clients', {
       method: 'POST',
       headers: supaHeaders(),
       body: JSON.stringify({ id: cl.id, data: cl, updated_at: now })
     });
     setSyncStatus(r.ok ? 'ok' : 'err');
-    if (r.ok) { cl._localUpdatedAt = now; localStorage.setItem(DB_KEY, JSON.stringify(clients)); }
+    if (r.ok) localStorage.setItem(DB_KEY, JSON.stringify(clients));
   } catch (e) { setSyncStatus('err'); }
+}
+
+async function safePushClientToCloud(snapCl) {
+  // Before pushing, fetch current cloud version and merge programs
+  // so we never lose programs that exist in cloud but not in our snapshot
+  try {
+    var r = await fetch(SUPA_URL + '/rest/v1/clients?id=eq.' + snapCl.id + '&select=data,updated_at', {
+      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + (authToken() || SUPA_KEY), 'Content-Type': 'application/json'}
+    });
+    if (r.ok) {
+      var rows = await r.json();
+      if (rows.length > 0 && rows[0].data && rows[0].data.programs) {
+        var cloudProgs = rows[0].data.programs;
+        var localProgs = snapCl.programs || [];
+        // Merge: keep all cloud programs, update ones that exist in local
+        var mergedProgs = cloudProgs.map(function(cp) {
+          var lp = localProgs.find(function(p) { return p.id === cp.id; });
+          return lp || cp; // prefer local version if it exists
+        });
+        // Add any local programs not in cloud
+        localProgs.forEach(function(lp) {
+          if (!cloudProgs.find(function(cp) { return cp.id === lp.id; })) {
+            mergedProgs.push(lp);
+          }
+        });
+        snapCl.programs = mergedProgs;
+      }
+    }
+  } catch(e) { /* use snapCl as-is if fetch fails */ }
+  pushClientToCloud(snapCl);
 }
 
 async function deleteClientFromCloud(id) {
