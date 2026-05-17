@@ -1348,15 +1348,6 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://dashboard.bookedsolid.co.uk/widget.js" defer></script>
-  <style>
-    /* Hide Booked Solid floating button - we use our own Anna tab button */
-    #booked-solid-widget-button, .bs-widget-button, .chat-widget-button,
-    [id*="booked-solid"] > button, [class*="booked-solid"] > button { 
-      display: none !important; 
-    }
-  
-</style>
 </head>
 <body>
 
@@ -1369,14 +1360,14 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     </div>
     <div class="auth-title">Welcome back</div>
     <p class="auth-sub">Sign in with your Beachside EP account</p>
-    <div id="panelLogin" class="auth-panel">
+    <div id="panelLogin" class="auth-panel active">
       <div class="auth-field"><label>Email</label><input id="authEmail" type="email" placeholder="you@beachsideep.com.au" onkeydown="if(event.key==='Enter')signIn()"></div>
-      <div class="auth-field"><label>Password</label><input id="authPass" type="password" autocomplete="current-password" placeholder="Your password" onkeydown="if(event.key==='Enter')signIn()"></div>
+      <div class="auth-field"><label>Password</label><input id="authPass" type="password" placeholder="Your password" onkeydown="if(event.key==='Enter')signIn()"></div>
       <button class="auth-btn" onclick="signIn()">Sign In</button>
       <div class="auth-divider">or</div>
-      <button class="auth-btn auth-btn-ghost" onclick="showPanel('magic')">&larr; Back to client sign in</button>
+      <button class="auth-btn auth-btn-ghost" onclick="showPanel('magic')">Client? Sign in &rarr;</button>
     </div>
-    <div id="panelMagic" class="auth-panel active">
+    <div id="panelMagic" class="auth-panel">
       <div id="otpStep1">
         <p style="font-size:11px;color:var(--text-mid);margin-bottom:12px">Enter your email and we'll send you a 6-digit sign-in code.</p><p style="font-size:10px;color:var(--text-light);margin-bottom:10px">Check your inbox and spam folder for an email with a 6-digit code.</p>
         <div class="auth-field"><label>Your Email</label><input id="magicEmail" type="email" placeholder="client@email.com" onkeydown="if(event.key==='Enter')sendOTP()"></div>
@@ -1398,7 +1389,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
         </div>
       </div>
       <div class="auth-divider">or</div>
-      <button class="auth-btn auth-btn-ghost" onclick="showPanel('login')">Clinician? Sign in &rarr;</button>
+      <button class="auth-btn auth-btn-ghost" onclick="showPanel('login')">&larr; Practitioner sign in</button>
     </div>
     <div id="authMsg" class="auth-msg"></div>
   </div>
@@ -1468,7 +1459,31 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     </div>
   </div>
 
-  <div id="cvTabAi" style="display:none"></div>
+  <div id="cvTabAi"  style="display:none;flex-direction:column;height:calc(100vh - 60px);padding-bottom:70px">
+    <div class="anna-header">
+      <div class="anna-avatar">&#129302;</div>
+      <div class="anna-intro">
+        <div class="anna-name">Anna</div>
+        <div class="anna-role">Beachside EP Health Assistant &middot; Here to help with health questions, nutrition &amp; general wellbeing</div>
+      </div>
+    </div>
+    <div class="anna-chips" id="annaChips">
+      <div class="anna-chip" onclick="annaSendChip(this)">I have knee pain</div>
+      <div class="anna-chip" onclick="annaSendChip(this)">What should I eat before exercise?</div>
+      <div class="anna-chip" onclick="annaSendChip(this)">My shoulder feels sore</div>
+      <div class="anna-chip" onclick="annaSendChip(this)">High protein meal ideas</div>
+      <div class="anna-chip" onclick="annaSendChip(this)">My back is tight</div>
+    </div>
+    <div class="anna-messages" id="annaMessages"></div>
+    <div class="anna-input-row">
+      <textarea class="anna-input" id="annaInput" placeholder="Ask Anna a health question…" rows="1"
+        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();annaSend()}"></textarea>
+      <button class="anna-send" onclick="annaSend()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>
   <!-- BOTTOM TABS -->
   <div class="cv-tabs">
     <div class="cv-tabs-inner">
@@ -1490,9 +1505,9 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
       <span style="font-size:10px;margin-top:2px">Chat</span>
     </button>
 
-    <button class="cv-tab" id="cvTabBtnAi" onclick="cvOpenClasses()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg>
-      <span class="cv-tab-label">CLASSES</span>
+    <button class="cv-tab" id="cvTabBtnAi" onclick="cvSwitchTab('ai')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M12 8v4l3 3"/></svg>
+      Anna
     </button>
     </div>
   </div>
@@ -1832,7 +1847,6 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
       </div>
       <div class="fg" style="grid-column:1/-1"><label>Clinical Description</label><textarea id="em_desc" placeholder="Starting position, movement cues, safety tips…" rows="3"></textarea></div>
       <div class="fg" style="grid-column:1/-1"><label>YouTube Video URL <span style="font-weight:400;color:var(--text-l)">(optional — paste full URL e.g. https://youtube.com/watch?v=…)</span></label><input id="em_video" type="text" class="yt-input" placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ"></div>
-
       <div class="fg" style="grid-column:1/-1">
         <label>Primary Muscles <span style="font-weight:400;color:var(--text-l)">(hold Ctrl/Cmd to select multiple)</span></label>
         <select id="em_muscles" multiple style="height:120px;padding:4px">
@@ -1896,19 +1910,6 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
       <input type="file" id="emPhotoFile" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleEmPhoto(event,'emPhotoPreview','emPhotoData')">
     </div>
     <input type="hidden" id="emPhotoData" value="">
-    <!-- Photo 2 for add modal -->
-    <div style="margin-top:10px">
-      <label style="font-size:12px;font-weight:600;color:#8B949E">Photo 2 (end position, for PDF)</label>
-      <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
-        <div id="emPhoto2Preview" style="width:56px;height:56px;border-radius:8px;background:#1F2A33;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📷</div>
-        <div>
-          <input type="file" id="emPhoto2File" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleEmPhoto(event,'emPhoto2Preview','emPhoto2Data')">
-          <button type="button" onclick="document.getElementById('emPhoto2File').click()" style="padding:6px 12px;background:#1F2A33;border:1.5px solid #26323A;border-radius:8px;color:#C9D1D9;font-size:12px;cursor:pointer;font-family:inherit">📷 Upload Photo 2</button>
-          <button type="button" onclick="document.getElementById('emPhoto2Data').value='';document.getElementById('emPhoto2Preview').innerHTML='📷';this.style.display='none'" style="display:none;margin-left:6px;padding:5px 8px;background:none;border:1px solid #ef4444;border-radius:6px;color:#ef4444;font-size:11px;cursor:pointer">✕</button>
-        </div>
-      </div>
-      <input type="hidden" id="emPhoto2Data" value="">
-    </div>
     <div class="modal-footer" style="margin-top:8px">
       <button class="btn btn-outline" onclick="closeM('exMgrM')">Cancel</button>
       <button class="btn btn-primary" onclick="addCustomExercise()">Add to Library</button>
@@ -2011,19 +2012,6 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   </div>
   <input type="hidden" id="eePhotoData" value="">
   <input type="hidden" id="eeEditId" value="">
-  <!-- Photo 2 for edit modal -->
-  <div style="padding:8px 16px 0">
-    <label style="font-size:12px;font-weight:600;color:#8B949E">Photo 2 (end position, for PDF)</label>
-    <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
-      <div id="eePhoto2Preview" style="width:56px;height:56px;border-radius:8px;background:#1F2A33;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📷</div>
-      <div>
-        <input type="file" id="eePhoto2File" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleEmPhoto(event,'eePhoto2Preview','eePhoto2Data')">
-        <button type="button" onclick="document.getElementById('eePhoto2File').click()" style="padding:6px 12px;background:#1F2A33;border:1.5px solid #26323A;border-radius:8px;color:#C9D1D9;font-size:12px;cursor:pointer;font-family:inherit">📷 Upload Photo 2</button>
-        <button type="button" id="eePhoto2Clear" onclick="document.getElementById('eePhoto2Data').value='';document.getElementById('eePhoto2Preview').innerHTML='📷';this.style.display='none'" style="display:none;margin-left:6px;padding:5px 8px;background:none;border:1px solid #ef4444;border-radius:6px;color:#ef4444;font-size:11px;cursor:pointer">✕</button>
-      </div>
-    </div>
-    <input type="hidden" id="eePhoto2Data" value="">
-  </div>
   <div class="modal-footer">
     <button class="btn btn-danger btn-sm" onclick="deleteCustomEx()">Delete</button>
     <button class="btn btn-outline" onclick="closeM('editExM')">Cancel</button>
@@ -3193,7 +3181,6 @@ const DB_KEY = 'bep_v6_clients';
 const CUSTOM_EX_KEY = 'bep_v6_custom_ex';
 const CUSTOM_PHOTOS_KEY = 'bep_v6_photos';
 let clients = [], customExercises = [], customPhotos = {};
-try { clients = JSON.parse(localStorage.getItem('bep_v6_clients') || localStorage.getItem('bep_v6') || '[]'); } catch(e) { clients = []; } try { clients = JSON.parse(localStorage.getItem(DB_KEY) || localStorage.getItem('bep_v6') || '[]'); } catch(e) { clients = []; }
 let currentClientId = null, currentProgId = null;
 let dragging = null, clkTimer = null, activeCat = 'All';
 
@@ -3271,7 +3258,7 @@ function saveDB() {
   if (cl) cl._localUpdatedAt = new Date().toISOString();
   localStorage.setItem(DB_KEY, JSON.stringify(clients));
   showAutosave();
-  // Debounce push by 5s - take deep snapshot NOW to avoid race conditions
+  // Deep snapshot NOW into closure - immune to sync replacing clients array
   if (cl && userRole === 'practitioner') {
     var snapCl = JSON.parse(JSON.stringify(cl));
     if (saveDB._timer) clearTimeout(saveDB._timer);
@@ -3414,7 +3401,8 @@ function newProgram() {
   cl.programs.push(p); currentProgId = p.id;
   cl._localUpdatedAt = new Date().toISOString();
   localStorage.setItem(DB_KEY, JSON.stringify(clients));
-  saveDB(); // saveDB will handle the push via safePushClientToCloud
+  safePushClientToCloud(JSON.parse(JSON.stringify(cl)));
+  saveDB();
   renderProgTabs(); loadProg(); updatePreview();
 }
 
@@ -3515,7 +3503,7 @@ function renderLib(list) {
       <div class="ex-acts">
         <button class="ico-btn ico-info" onclick="openDrawer('${ex.id}')" title="Info">ℹ</button>
         ${custom}
-        <button class="ico-btn ico-add" data-exid="${ex.id}" onclick="addEx(this.dataset.exid)" title="Add">+</button>
+        <button class="ico-btn ico-add" onclick="addEx('${ex.id}')" title="Add">+</button>
       </div>
     </div>`;
   }).join('');
@@ -3570,18 +3558,9 @@ function onDrop(e) { e.preventDefault(); document.getElementById('dropZone').cla
 // ══════════════════════════════════════
 function addEx(id) {
   const cl = getClient(); if (!cl) { toast('Select a client first','err'); return; }
-  // Match by id first, then by name if id doesn't match (handles integer/string mismatch)
-  let ex = getAllExercises().find(e => String(e.id) === String(id));
-  if (!ex) { toast('Exercise not found', 'err'); return; }
+  const ex = getAllExercises().find(e => String(e.id) === String(id)); if (!ex) return;
   const p = getProg(); if (!p) return;
   p.exercises.push({...ex, uid: Date.now()+Math.random(), load:'', notes:''});
-  // Stamp timestamp so sync ALWAYS keeps this version
-  const clStamp = getClient();
-  if (clStamp) {
-    clStamp._localUpdatedAt = new Date().toISOString();
-    // Also save to localStorage immediately before async push
-    localStorage.setItem(DB_KEY, JSON.stringify(clients));
-  }
   saveDB(); renderDropZone(); updatePreview();
   toast(`${ex.name} added`, 'ok');
   // Scroll to the newly added exercise
@@ -3601,16 +3580,7 @@ function moveEx(uid, dir) {
   saveDB(); renderDropZone(); updatePreview();
 }
 
-function updEx(uid, field, val) {
-  const p = getProg(); if (!p) return;
-  const ex = p.exercises.find(e => e.uid === uid);
-  if (ex) {
-    ex[field] = val;
-    // Stamp so sync keeps local version
-    const clU = getClient(); if (clU) clU._localUpdatedAt = new Date().toISOString();
-    saveDB(); updatePreview();
-  }
-}
+function updEx(uid, field, val) { const p = getProg(); if (!p) return; const ex = p.exercises.find(e => e.uid === uid); if (ex) { ex[field] = val; saveDB(); updatePreview(); } }
 
 function renderDropZone() {
   const p = getProg(); const exs = p ? p.exercises : [];
@@ -3636,7 +3606,7 @@ function renderDropZone() {
         <div class="pp"><label>Sets</label><input type="number" value="${ex.sets}" min="1" max="20" onchange="updEx(${ex.uid},'sets',this.value)"></div>
         <div class="pp"><label>${ex.cat === 'Cardio' ? 'Duration' : 'Reps'}</label><input type="text" value="${ex.reps}" placeholder="${ex.cat === 'Cardio' ? '20 min' : '10-12'}" onchange="updEx(${ex.uid},'reps',this.value)"></div>
         <div class="pp"><label>Hold</label><input type="text" value="${ex.hold}" placeholder="30s" onchange="updEx(${ex.uid},'hold',this.value)"></div>
-        <div class="pp"><label>Load</label><input autocomplete="off" type="text" value="${ex.load}" placeholder="kg/band" onchange="updEx(${ex.uid},'load',this.value)"></div>
+        <div class="pp"><label>Load</label><input type="text" value="${ex.load}" placeholder="kg/band" onchange="updEx(${ex.uid},'load',this.value)"></div>
         <div class="pp"><label>Rest</label><input type="text" value="${ex.rest}" placeholder="60s" onchange="updEx(${ex.uid},'rest',this.value)"></div>
       </div>
       <div class="pe-notes"><label>Technique Notes</label>
@@ -3722,8 +3692,6 @@ function addCustomExercise() {
   const photo = v('emPhotoData');
   const id = 'custom_' + Date.now();
   const ex = { id, name, cat, desc:v('em_desc'), muscles:Array.from(document.getElementById('em_muscles').selectedOptions||[]).map(function(o){return o.value;}).join(',') || v('em_muscles'), sets:parseInt(v('em_sets'))||3, reps:v('em_reps'), hold:v('em_hold'), rest:v('em_rest'), load:'', videoUrl:v('em_video')||'' };
-  const photo2 = v('emPhoto2Data');
-  ex.photo2 = photo2 || '';
   customExercises.push(ex);
   if (photo) { customPhotos[name] = photo; saveCustomPhotos(); }
   saveCustomEx();
@@ -3737,8 +3705,6 @@ function addCustomExercise() {
   sv('em_cat',''); sv('em_sets','3');
   document.getElementById('emPhotoData').value = '';
   document.getElementById('emPhotoPreview').innerHTML = `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="60" fill="#EEF0F5" rx="6"/><text x="22" y="34" font-size="18" fill="#aaa">📷</text></svg>`;
-  var p2d = document.getElementById('emPhoto2Data'); if (p2d) p2d.value = '';
-  var p2p = document.getElementById('emPhoto2Preview'); if (p2p) p2p.innerHTML = '📷';
   closeM('exMgrM');
   toast(`${name} added to library`,'ok');
 }
@@ -3791,9 +3757,6 @@ function saveExEdit() {
     delete customPhotos[oldName];
     saveCustomPhotos();
   }
-  // Handle photo 2
-  const photo2 = v('eePhoto2Data');
-  if (photo2) ex.photo2 = photo2;
   // If it's a built-in exercise, update or create an override in customExercises
   const isCustom = customExercises.some(e => String(e.id) === String(id));
   if (!isCustom) {
@@ -4279,7 +4242,7 @@ async function signOut() {
   localStorage.removeItem('bep_token');
   localStorage.removeItem('bep_refresh');
   currentUser = null; userRole = null;
-  showView('auth'); showPanel('magic');
+  showView('auth'); showPanel('login');
 }
 
 // ── ON AUTH SUCCESS ──
@@ -4303,27 +4266,7 @@ function onAuthSuccess(user) {
     });
     syncClients();
     syncTemplates();
-    setInterval(syncClients, 180000); // 3 min - less aggressive to prevent overwriting edits
-    // Refresh Supabase session every 5 minutes to prevent logout
-    setInterval(async function() {
-      try {
-        var token = localStorage.getItem('bep_refresh');
-        if (token) {
-          var resp = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
-            body: JSON.stringify({ refresh_token: token })
-          });
-          if (resp.ok) {
-            var data = await resp.json();
-            if (data.access_token) {
-              localStorage.setItem('bep_token', data.access_token);
-              if (data.refresh_token) localStorage.setItem('bep_refresh', data.refresh_token);
-            }
-          }
-        }
-      } catch(e) {}
-    }, 180000);
+    setInterval(syncClients, 30000);
   } else {
     showView('client');
     loadClientView(user);
@@ -4331,27 +4274,7 @@ function onAuthSuccess(user) {
 }
 
 // ── SUPABASE SYNC ──
-async function pushClientToCloud(cl) {
-  if (userRole !== 'practitioner' && document.getElementById('viewApp').style.display === 'none') return;
-  var localCopy = clients.find(function(c){ return c.id === cl.id; });
-  if (!cl.email && localCopy && localCopy.email) cl.email = localCopy.email;
-  setSyncStatus('busy');
-  try {
-    const now = new Date().toISOString();
-    cl._localUpdatedAt = now;
-    const r = await fetch(SUPA_URL + '/rest/v1/clients', {
-      method: 'POST',
-      headers: supaHeaders(),
-      body: JSON.stringify({ id: cl.id, data: cl, updated_at: now })
-    });
-    setSyncStatus(r.ok ? 'ok' : 'err');
-    if (r.ok) localStorage.setItem(DB_KEY, JSON.stringify(clients));
-  } catch (e) { setSyncStatus('err'); }
-}
-
 async function safePushClientToCloud(snapCl) {
-  // Before pushing, fetch current cloud version and merge programs
-  // so we never lose programs that exist in cloud but not in our snapshot
   try {
     var r = await fetch(SUPA_URL + '/rest/v1/clients?id=eq.' + snapCl.id + '&select=data,updated_at', {
       headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + (authToken() || SUPA_KEY), 'Content-Type': 'application/json'}
@@ -4361,22 +4284,39 @@ async function safePushClientToCloud(snapCl) {
       if (rows.length > 0 && rows[0].data && rows[0].data.programs) {
         var cloudProgs = rows[0].data.programs;
         var localProgs = snapCl.programs || [];
-        // Merge: keep all cloud programs, update ones that exist in local
-        var mergedProgs = cloudProgs.map(function(cp) {
-          var lp = localProgs.find(function(p) { return p.id === cp.id; });
-          return lp || cp; // prefer local version if it exists
-        });
-        // Add any local programs not in cloud
-        localProgs.forEach(function(lp) {
-          if (!cloudProgs.find(function(cp) { return cp.id === lp.id; })) {
-            mergedProgs.push(lp);
-          }
-        });
-        snapCl.programs = mergedProgs;
+        if (cloudProgs.length > localProgs.length) {
+          // Cloud has more - merge local programs in
+          var merged = cloudProgs.slice();
+          localProgs.forEach(function(lp) {
+            if (!merged.find(function(cp) { return cp.id === lp.id; })) merged.push(lp);
+          });
+          snapCl.programs = merged;
+        }
       }
     }
-  } catch(e) { /* use snapCl as-is if fetch fails */ }
+  } catch(e) {}
   pushClientToCloud(snapCl);
+}
+
+async function pushClientToCloud(cl) {
+  if (userRole !== 'practitioner' && document.getElementById('viewApp').style.display === 'none') return;
+  // Safety check: never push a record with blank email if local has one
+  var localCopy = clients.find(function(c){ return c.id === cl.id; });
+  if (!cl.email && localCopy && localCopy.email) {
+    cl.email = localCopy.email;
+  }
+  setSyncStatus('busy');
+  try {
+    const now = new Date().toISOString();
+    cl._localUpdatedAt = now; // stamp so syncClients knows this version was pushed
+    const r = await fetch(SUPA_URL + '/rest/v1/clients', {
+      method: 'POST',
+      headers: supaHeaders(),
+      body: JSON.stringify({ id: cl.id, data: cl, updated_at: now })
+    });
+    setSyncStatus(r.ok ? 'ok' : 'err');
+    if (r.ok) localStorage.setItem(DB_KEY, JSON.stringify(clients));
+  } catch (e) { setSyncStatus('err'); }
 }
 
 async function deleteClientFromCloud(id) {
@@ -4399,28 +4339,25 @@ async function syncClients() {
     const rows = await r.json();
     if (!rows || !rows.length) { setSyncStatus('ok'); return; }
 
-    // Build map of current local clients (from memory - always most current)
+    // Build map from current in-memory clients (always most current)
     const localMap = {};
     clients.forEach(function(c) { if (c.id) localMap[c.id] = c; });
 
-    // Merge: for each cloud client, keep whichever version has more programs
-    // If equal programs, keep the one with newer timestamp
     const merged = rows.map(function(row) {
       var cloudCl = row.data;
       if (!cloudCl || !cloudCl.id) return null;
       var localCl = localMap[cloudCl.id];
-      if (!localCl) return cloudCl; // only in cloud, use cloud
+      if (!localCl) return cloudCl;
 
       var cloudProgCount = (cloudCl.programs || []).length;
       var localProgCount = (localCl.programs || []).length;
 
-      // Local has more programs - local wins, push to cloud
+      // Local has more programs → local wins
       if (localProgCount > cloudProgCount) {
         pushClientToCloud(JSON.parse(JSON.stringify(localCl)));
         return localCl;
       }
-
-      // Cloud has more programs - use cloud but add any local-only programs
+      // Cloud has more programs → cloud wins but keep any local-only programs
       if (cloudProgCount > localProgCount) {
         (localCl.programs || []).forEach(function(lp) {
           if (!cloudCl.programs.find(function(cp) { return cp.id === lp.id; })) {
@@ -4429,25 +4366,20 @@ async function syncClients() {
         });
         return cloudCl;
       }
-
-      // Same program count - use timestamps
+      // Same count → use timestamps
       var cloudTime = new Date(row.updated_at || 0).getTime();
       var localTime = new Date(localCl._localUpdatedAt || 0).getTime();
-
       if (localTime >= cloudTime) {
-        // Local is same age or newer - keep local, merge cloud session data
         if (cloudCl.outcomes && cloudCl.outcomes.length > (localCl.outcomes||[]).length) localCl.outcomes = cloudCl.outcomes;
         if (cloudCl.safetyLog && cloudCl.safetyLog.length > (localCl.safetyLog||[]).length) localCl.safetyLog = cloudCl.safetyLog;
         return localCl;
       }
-
-      // Cloud is newer - use cloud but preserve email/phone if missing
       if (!cloudCl.email && localCl.email) cloudCl.email = localCl.email;
       if (!cloudCl.phone && localCl.phone) cloudCl.phone = localCl.phone;
       return cloudCl;
     }).filter(Boolean);
 
-    // Add any local clients not in cloud
+    // Add local-only clients not in cloud
     clients.forEach(function(lc) {
       if (!merged.find(function(m) { return m.id === lc.id; })) {
         merged.push(lc);
@@ -4571,15 +4503,9 @@ function getExIllusStr(ex) {
 function renderCV() {
   // Auto-clear safety if not required for this client
   if (cvData && cvData.requireSafetyCheck === false) cvSafetyDone = true;
-  // Check custom workout mode FIRST before any cvData checks
-  if (cvCustomWorkout) {
-    document.getElementById('cvBody').innerHTML = renderCVCustomWorkout();
-    var _progSel = document.getElementById('cvProgSel');
-    if (_progSel) _progSel.value = 'custom';
-    return;
-  }
   if (!cvData || !cvData.programs || !cvData.programs.length) {
-    document.getElementById('cvBody').innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#127945;</div><p>No programs found.</p></div>';
+    document.getElementById('cvBody').innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#9201;</div><p>Loading your program...</p></div>';
+    setTimeout(function() { if (cvData && cvData.programs && cvData.programs.length) renderCV(); }, 1000);
     return;
   }
   const progs = cvData.programs;
@@ -4590,7 +4516,15 @@ function renderCV() {
   const lastSafety = (cvData.safetyLog || []).slice(-1)[0];
   const showSafety = cvData.requireSafetyCheck !== false;
 
-
+  // Custom workout mode
+  if (cvCustomWorkout) {
+    h += renderCVCustomWorkout();
+    document.getElementById('cvBody').innerHTML = h;
+    // Force select to show 'custom' selected
+    var _sel = document.getElementById('cvProgSel');
+    if (_sel) _sel.value = 'custom';
+    return;
+  }
 
   // ── Pre-session safety check ──
   if (showSafety) { h += '<div class="cv-session" id="cvSafetyPanel" style="margin-bottom:10px">';
@@ -4720,7 +4654,7 @@ function renderCV() {
         const setReps = (st.setReps && st.setReps[s] != null) ? st.setReps[s] : (ex.lastReps || '');
         const setLoad = (st.setLoads && st.setLoads[s] != null) ? st.setLoads[s] : (ex.lastLoad || '');
         const repsPlaceholder = (ex.reps || '—').toString().replace(/ ?each ?/gi,'').replace(/ ?each side ?/gi,'');
-        const loadPlaceholder = (ex.cat === 'Cardio') ? 'min' : (ex.load || 'kg');
+        const loadPlaceholder = ex.load || 'kg';
         // Previous session values
         var prevLoad = ex.lastLoad || '—';
         var prevReps = String(ex.lastReps || ex.reps || '—').replace(/ ?each ?side ?/gi,'').replace(/ ?each ?/gi,'');
@@ -5006,24 +4940,6 @@ async function cvSubmit() {
 
   const today = new Date().toLocaleString('en-AU', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
 
-  // IMMEDIATELY update in-memory cvData with lastReps/lastLoad
-  // so next renderCV shows correct weights even before cloud sync completes
-  exs.forEach(function(ex, i) {
-    const st = cvState[i] || {};
-    const totalSets = parseInt(ex.sets) || 3;
-    const lastRepsArr = [], lastLoadsArr = [];
-    for (var s = 0; s < totalSets; s++) {
-      if (st.sets && st.sets[s]) {
-        var r = (st.setReps && st.setReps[s]) || '';
-        var l = (st.setLoads && st.setLoads[s]) || '';
-        if (r) lastRepsArr.push(r);
-        if (l) lastLoadsArr.push(l);
-      }
-    }
-    if (lastRepsArr.length) ex.lastReps = lastRepsArr[lastRepsArr.length - 1];
-    if (lastLoadsArr.length) ex.lastLoad = lastLoadsArr[lastLoadsArr.length - 1];
-  });
-
   // Build rich per-exercise detail AND update prescribed values
   const exLines = [];
   exs.forEach(function(ex, i) {
@@ -5100,20 +5016,14 @@ async function cvSubmit() {
             if (!exists) freshProg.log.push(entry);
           });
           // Copy exercise progress (lastReps, lastLoad, substitutions)
-          // Match by uid or name to handle reordering
           (myProg.exercises || []).forEach(function(ex, ei) {
-            // Try to find matching exercise by uid first, then name
-            var freshEx = null;
-            if (ex.uid) freshEx = (freshProg.exercises || []).find(function(fe) { return fe.uid === ex.uid; });
-            if (!freshEx && ex.name) freshEx = (freshProg.exercises || []).find(function(fe) { return fe.name === ex.name; });
-            if (!freshEx && freshProg.exercises && freshProg.exercises[ei]) freshEx = freshProg.exercises[ei]; // fallback to index
-            if (freshEx) {
-              if (ex.lastReps) freshEx.lastReps = ex.lastReps;
-              if (ex.lastLoad) freshEx.lastLoad = ex.lastLoad;
+            if (freshProg.exercises && freshProg.exercises[ei]) {
+              if (ex.lastReps) freshProg.exercises[ei].lastReps = ex.lastReps;
+              if (ex.lastLoad) freshProg.exercises[ei].lastLoad = ex.lastLoad;
               if (ex.substitutedFor) {
-                freshEx.name = ex.name;
-                freshEx.substitutedFor = ex.substitutedFor;
-                freshEx.substitutedAt = ex.substitutedAt;
+                freshProg.exercises[ei].name = ex.name;
+                freshProg.exercises[ei].substitutedFor = ex.substitutedFor;
+                freshProg.exercises[ei].substitutedAt = ex.substitutedAt;
               }
             }
           });
@@ -5162,8 +5072,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // HOSTED — always show auth first as default fallback
   showView('auth');
-  showPanel('magic'); // Show client OTP panel by default
-
 
   // HOSTED — check for magic link hash
   var hash = window.location.hash || '';
@@ -5180,13 +5088,7 @@ document.addEventListener('DOMContentLoaded', function() {
       }).then(function(r) {
         return r.ok ? r.json() : null;
       }).then(function(user) {
-        if (user) {
-        // Only trigger auth success if we don't already have a valid session
-        if (!currentUser || currentUser.id !== user.id) onAuthSuccess(user);
-      } else {
-        // Only sign out if we're not actively using the app
-        if (!currentUser && !document.hidden) showView('auth'); showPanel('magic');
-      }
+        if (user) { onAuthSuccess(user); } else { showView('auth'); }
       }).catch(function() { showView('auth'); });
       return;
     }
@@ -5212,11 +5114,11 @@ document.addEventListener('DOMContentLoaded', function() {
             onAuthSuccess(d.user);
           });
           localStorage.removeItem('bep_token'); localStorage.removeItem('bep_refresh');
-          showView('auth'); showPanel('magic');
+          showView('auth');
         });
       }
       localStorage.removeItem('bep_token');
-      showView('auth'); showPanel('magic');
+      showView('auth');
     }).catch(function() { showView('auth'); });
     return;
   }
@@ -5682,86 +5584,78 @@ async function generatePDF(cl, p) {
       const descLines = (showDesc && ex.desc) ? doc.splitTextToSize(ex.desc, CW - (showPhotos ? 26 : 0) - 4).length : 0;
       const notesLines = (showNotes && ex.notes) ? doc.splitTextToSize(ex.notes, CW - (showPhotos ? 26 : 0) - 4).length : 0;
       const progLines = (showProg && ex.progression) ? 1 : 0;
-      const cardH = Math.max(showPhotos ? 50 : 20, 12 + descLines * 4.5 + notesLines * 4.5 + progLines * 5 + 16);
+      const cardH = 10 + descLines * 4.5 + notesLines * 4.5 + progLines * 5 + 16;
       checkY(Math.max(cardH, showPhotos ? 22 : 14));
 
       const startY = y;
-      // ── NEW LAYOUT: 2 photos side by side, text on right ──
-      // Left col: 2 square photos stacked side by side
-      // Right col: name, params, description
-      const PHOTO_SIZE = showPhotos ? 42 : 0;  // each photo cell is 42x42mm
-      const PHOTO_GAP = showPhotos ? 2 : 0;
-      const PHOTOS_W = showPhotos ? (PHOTO_SIZE * 2 + PHOTO_GAP + 2) : 0;
-      const TEXT_X = ML + PHOTOS_W + (showPhotos ? 5 : 0);
-      const TEXT_W = CW - PHOTOS_W - (showPhotos ? 5 : 0);
-      const catColor = CAT_RGB[ex.cat] || OCEAN;
+      const ILLUS_W = 18, ILLUS_H = 18;
+      const textX = ML + (showPhotos ? ILLUS_W + 4 : 0);
+      const textW = CW - (showPhotos ? ILLUS_W + 4 : 0);
 
-      // Separator line above exercise
+      // Card background
+      doc.setFillColor(250, 252, 255);
       doc.setDrawColor(220, 230, 240);
-      doc.setLineWidth(0.4);
-      doc.line(ML, y, ML + CW, y);
-      y += 4;
+      doc.setLineWidth(0.3);
+      doc.roundedRect(ML, y, CW, cardH, 2, 2, 'FD');
 
-      // Exercise number + name
-      setFont(10, 'bold', DEEP);
-      text(String(i + 1) + '. ' + ex.name, TEXT_X, y + 5);
+      // Number circle
+      const catColor = CAT_RGB[ex.cat] || OCEAN;
+      doc.setFillColor(...catColor);
+      doc.circle(ML + 5, y + 5, 4, 'F');
+      setFont(8, 'bold', WHITE);
+      text(String(i + 1), ML + 5, y + 6.5, {align: 'center'});
 
-      // Photos: 2 side by side
+      // SVG illustration - render to canvas then embed
       if (showPhotos) {
-        const ph1x = ML + 1;
-        const ph2x = ML + PHOTO_SIZE + PHOTO_GAP + 1;
-        const phY = y;
-        // Photo box 1
         doc.setFillColor(...SAND);
-        doc.roundedRect(ph1x, phY, PHOTO_SIZE, PHOTO_SIZE, 2, 2, 'F');
-        // Use photo field (base64) if available, else SVG illustration
-        var ex1 = ex.photo ? ex : ex;
-        await renderSVGtoPDF(doc, ex1, ph1x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
-        // Photo box 2 - use photo2 if available, else same as photo1
-        doc.setFillColor(...SAND);
-        doc.roundedRect(ph2x, phY, PHOTO_SIZE, PHOTO_SIZE, 2, 2, 'F');
-        var ex2 = ex.photo2 ? Object.assign({}, ex, {photo: ex.photo2}) : ex;
-        await renderSVGtoPDF(doc, ex2, ph2x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
-        // Small number labels under photos
-        setFont(7, 'normal', [150,150,150]);
-        text('1', ph1x + PHOTO_SIZE/2, phY + PHOTO_SIZE + 3.5, {align:'center'});
-        text('2', ph2x + PHOTO_SIZE/2, phY + PHOTO_SIZE + 3.5, {align:'center'});
+        doc.roundedRect(ML, y + 1, ILLUS_W, ILLUS_H, 2, 2, 'F');
+        await renderSVGtoPDF(doc, ex, ML + 1, y + 2, ILLUS_W - 2, ILLUS_H - 2);
       }
 
-      // Text column
-      let paramY = y + 10;
+      // Exercise name
+      const nameY = y + 6;
+      setFont(11, 'bold', DEEP);
+      text(ex.name, textX + 8, nameY);
 
-      // Parameters
+      // Category badge
+      setFont(7, 'normal', WHITE);
+      const catW = doc.getTextWidth(ex.cat) + 4;
+      doc.setFillColor(...catColor);
+      doc.roundedRect(textX + 8, nameY + 2, catW, 4.5, 1, 1, 'F');
+      text(ex.cat, textX + 10, nameY + 5.5);
+
+      // Parameters row
+      let paramY = nameY + 11;
       const params = [
-        ex.sets ? ex.sets + ' sets' : null,
-        ex.reps ? ex.reps : null,
+        ex.sets ? ' ' + ex.sets + ' sets' : null,
+        ex.reps ? ex.reps + ' reps' : null,
         ex.hold ? 'Hold ' + ex.hold : null,
         ex.load ? ex.load : null,
         ex.rest ? 'Rest ' + ex.rest : null,
       ].filter(Boolean);
+
       if (params.length) {
         setFont(8.5, 'bold', OCEAN);
-        text(params.join('   '), TEXT_X, paramY);
-        paramY += 6;
+        text(params.join('   '), textX + 8, paramY);
+        paramY += 7;
       }
 
       // Description
       if (showDesc && ex.desc) {
         setFont(8, 'normal', TEXT);
-        const descWrapped = doc.splitTextToSize(ex.desc, TEXT_W);
+        const descWrapped = doc.splitTextToSize(ex.desc, textW - 8);
         descWrapped.forEach(function(line) {
-          text(line, TEXT_X, paramY);
-          paramY += 4.5;
+          text(line, textX + 8, paramY);
+          paramY += 4.2;
         });
       }
 
       // Notes
       if (showNotes && ex.notes) {
-        paramY += 1;
         setFont(7.5, 'italic', [100, 130, 150]);
-        const nWrapped = doc.splitTextToSize(ex.notes, TEXT_W);
+        const nWrapped = doc.splitTextToSize(' ' + ex.notes, textW - 8);
         nWrapped.forEach(function(line) {
-          text(line, TEXT_X, paramY);
+          text(line, textX + 8, paramY);
           paramY += 4.2;
         });
       }
@@ -5769,16 +5663,11 @@ async function generatePDF(cl, p) {
       // Progression
       if (showProg && ex.progression) {
         setFont(7.5, 'bold', TEAL);
-        text('> ' + ex.progression, TEXT_X, paramY);
+        text('> Next: ' + ex.progression, textX + 8, paramY);
         paramY += 4.5;
       }
 
-      // Card height is max of photo height and text height
-      const photoBlockH = showPhotos ? (PHOTO_SIZE + 6) : 0;
-      const textBlockH = paramY - y;
-      const blockH = Math.max(photoBlockH, textBlockH) + 6;
-
-      y = startY + blockH;
+      y = startY + cardH + 5;
     }
 
     // ── PROGRESS LOG ──
@@ -6734,13 +6623,7 @@ var cvHealthData = {}; // {weight:[], bp:[], bg:[], sleep:[], hr:[]}
 var cvOwnWorkouts = []; // [{date, type, duration, note}]
 
 function cvSwitchTab(tab) {
-  // Don't switch to anna accidentally if user is typing in an input
-  var focusedEl = document.activeElement;
-  if (tab === 'ai' && focusedEl && (focusedEl.tagName === 'INPUT' || focusedEl.tagName === 'TEXTAREA') && focusedEl.id !== 'annaInput') {
-    return; // Ignore accidental anna tab trigger while typing
-  }
   cvActiveTab = tab;
-  if (tab !== 'workouts') releaseWakeLock();
   if (tab === 'messages') {
     setTimeout(function() { if (typeof cvInitChat === 'function') cvInitChat(); }, 100);
   }
@@ -6760,10 +6643,7 @@ function cvSwitchTab(tab) {
   // Light sync on tab switch if data is stale (>60s)
   if (cvSyncUser && Date.now() - cvLastSync > 60000) cvSilentSync();
   if (tab === 'home') { renderCVHome(); if (_cvTimerStart) cvStopTimer(); }
-  if (tab === 'workouts') {
-    requestWakeLock();
-    if (!cvState || !Object.keys(cvState).length) { renderCV(); cvStartTimer(); }
-  }
+  if (tab === 'workouts') { renderCV(); cvStartTimer(); }
   if (tab === 'calendar') renderCVCalendar();
   if (tab === 'ai') renderAnnaTab();
 }
@@ -7540,31 +7420,12 @@ async function cvSilentSync() {
     if (!match) return;
     cvLastSync = Date.now();
 
-    // Update cvData but preserve session state and exercise progress
+    // Update cvData but preserve session state
+    // Only update programs/outcomes/safetyLog from server
+    // Don't wipe cvState (mid-session ticks) or cvFeeling
     var wasProgIdx = cvProgIdx;
-    var oldCvData = cvData;
     cvData = match;
     cvProgIdx = wasProgIdx;
-
-    // Re-apply lastReps/lastLoad from old cvData if cloud doesn't have them
-    // (happens when sync fires before submit push completes)
-    if (oldCvData && oldCvData.programs && cvData.programs) {
-      oldCvData.programs.forEach(function(oldProg, pi) {
-        var newProg = cvData.programs[pi];
-        if (!newProg || !oldProg.exercises) return;
-        oldProg.exercises.forEach(function(oldEx) {
-          if (!oldEx.lastLoad && !oldEx.lastReps) return;
-          // Find matching exercise in new program by uid or name
-          var newEx = null;
-          if (oldEx.uid) newEx = (newProg.exercises || []).find(function(e) { return e.uid === oldEx.uid; });
-          if (!newEx && oldEx.name) newEx = (newProg.exercises || []).find(function(e) { return e.name === oldEx.name; });
-          if (newEx) {
-            if (oldEx.lastReps && !newEx.lastReps) newEx.lastReps = oldEx.lastReps;
-            if (oldEx.lastLoad && !newEx.lastLoad) newEx.lastLoad = oldEx.lastLoad;
-          }
-        });
-      });
-    }
 
     // Also sync to local clients[] so practitioner view stays fresh
     if (typeof clients !== 'undefined' && Array.isArray(clients)) {
@@ -7618,99 +7479,42 @@ function cvStopSync() {
 }
 
 
+// ════════════════════════════════════════════════════
+// ANNA — AI Health Assistant
+// ════════════════════════════════════════════════════
+var annaHistory = [];
+var annaReady = false;
 
-// ════════════════════════════════════
-// ANNA — Booked Solid AI Chat
-// ════════════════════════════════════
-var _annaSessionId = null;
-var _annaReady = false;
-var _annaHistory = [];
+var ANNA_SYSTEM = `You are Anna, a friendly health assistant for Beachside Exercise Physiology clinic.
+Your role is to support clients with general health questions between their appointments.
+
+STRICT RULES — never break these:
+1. BOOKINGS: You cannot make, reschedule or cancel appointments. Always say: "To book, reschedule or cancel, please call us on 0409 051 260 — we'd love to hear from you!"
+2. EXERCISE ADVICE: You do not prescribe, modify or recommend specific exercises or training programs. That is your clinician's job. Refer clients to their clinician for any exercise questions.
+3. DIET ADVICE: You do not provide personalised diet plans or tell clients what to eat. You can discuss what macronutrients (protein, carbohydrates, fats) are typically found in certain foods, and share general meal ideas or simple recipes.
+4. MEDICAL DIAGNOSIS: You do not diagnose conditions. Always recommend clients see their clinician or a GP for anything clinical.
+
+WHAT YOU DO WELL:
+- Listen warmly to pain, soreness or niggles and suggest which general movement areas to be cautious with (e.g. "with knee pain, avoid high-impact loading until you've spoken to your clinician")
+- Explain macronutrients in foods and share healthy meal ideas or simple recipes on request
+- Provide general wellbeing support, sleep hygiene, stress management and lifestyle tips
+- Answer general health questions in a warm, encouraging, non-clinical tone
+
+Always be warm, concise and encouraging. You represent Beachside Exercise Physiology — a professional, caring clinic. Sign off warmly when appropriate. If unsure, recommend the client speak to their clinician.`;
 
 function renderAnnaTab() {
   var el = document.getElementById('cvTabAi');
   if (!el) return;
   el.style.display = 'flex';
-}
-
-function cvOpenClasses() {
-  window.open('https://beachsideep.com.au/about/group-classes/', '_blank');
-}
-
-function annaAddMsg(text, isUser) {
-  var el = document.getElementById('annaMessages');
-  if (!el) return;
-  var div = document.createElement('div');
-  div.style.cssText = 'display:flex;' + (isUser ? 'justify-content:flex-end' : 'justify-content:flex-start');
-  var bubble = document.createElement('div');
-  bubble.style.cssText = 'max-width:80%;padding:10px 14px;border-radius:' + 
-    (isUser ? '18px 18px 4px 18px;background:#2FD4F5;color:#0B0F12' : '18px 18px 18px 4px;background:#1F2A33;color:#C9D1D9') +
-    ';font-size:13px;line-height:1.5;font-family:-apple-system,sans-serif';
-  bubble.innerHTML = text.replace(/\n/g,'<br>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-  div.appendChild(bubble);
-  el.appendChild(div);
-  el.scrollTop = el.scrollHeight;
-}
-
-function annaShowTyping() {
-  var el = document.getElementById('annaMessages');
-  if (!el) return;
-  var div = document.createElement('div');
-  div.id = 'annaTypingBubble';
-  div.style.cssText = 'display:flex;justify-content:flex-start';
-  div.innerHTML = '<div style="padding:10px 14px;border-radius:18px 18px 18px 4px;background:#1F2A33;display:flex;gap:4px;align-items:center">' +
-    '<span style="width:7px;height:7px;border-radius:50%;background:#8B949E;animation:bep-dot 1.2s infinite 0s"></span>' +
-    '<span style="width:7px;height:7px;border-radius:50%;background:#8B949E;animation:bep-dot 1.2s infinite .2s"></span>' +
-    '<span style="width:7px;height:7px;border-radius:50%;background:#8B949E;animation:bep-dot 1.2s infinite .4s"></span></div>';
-  el.appendChild(div);
-  el.scrollTop = el.scrollHeight;
-  var status = document.getElementById('annaStatus');
-  if (status) status.textContent = 'Typing…';
-}
-
-function annaHideTyping() {
-  var t = document.getElementById('annaTypingBubble');
-  if (t) t.remove();
-  var status = document.getElementById('annaStatus');
-  if (status) status.textContent = 'Online';
-}
-
-async function annaSend() {
-  var inp = document.getElementById('annaInput');
-  if (!inp || !inp.value.trim()) return;
-  var msg = inp.value.trim();
-  inp.value = '';
-  annaAddMsg(msg, true);
-  _annaHistory.push({role:'user', content: msg});
-  annaShowTyping();
-  try {
-    var resp = await fetch('https://v2.api.bookedsolid.co.uk/ai/webhook/widget', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        clientId: '698513c32b7cbb7224d3ce0f',
-        sessionId: _annaSessionId,
-        message: msg,
-        timestamp: new Date().toISOString()
-      })
-    });
-    annaHideTyping();
-    if (resp.ok) {
-      var data = await resp.json();
-      if (data.success && data.response) {
-        annaAddMsg(data.response, false);
-        _annaHistory.push({role:'assistant', content: data.response});
-      } else {
-        annaAddMsg('Sorry, I couldn\'t get a response. Please try again.', false);
-      }
-    } else {
-      annaAddMsg('Sorry, something went wrong. Please try again in a moment.', false);
-    }
-  } catch(e) {
-    annaHideTyping();
-    annaAddMsg('Connection error. Please check your internet and try again.', false);
+  // Initialise with welcome message if first visit
+  var msgEl = document.getElementById('annaMessages');
+  if (msgEl && !annaReady) {
+    annaReady = true;
+    var clientName = (cvData && cvData.first) ? cvData.first : 'there';
+    annaHistory = [];
+    annaAppendMsg('assistant', 'Hi ' + clientName + '! I\u2019m Anna, your Beachside EP health assistant \ud83d\ude0a I\u2019m here to help with general health questions, nutrition ideas, or if you\u2019re feeling any aches or niggles. What\u2019s on your mind today?');
   }
 }
-
 
 function annaAppendMsg(role, text) {
   var msgEl = document.getElementById('annaMessages');
@@ -7728,6 +7532,46 @@ function annaAppendMsg(role, text) {
   div.innerHTML = avatarHtml + '<div class="anna-bubble">' + formatted + '</div>';
   msgEl.appendChild(div);
   msgEl.scrollTop = msgEl.scrollHeight;
+}
+
+function annaShowTyping() {
+  var msgEl = document.getElementById('annaMessages');
+  if (!msgEl) return;
+  var div = document.createElement('div');
+  div.className = 'anna-msg assistant';
+  div.id = 'annaTyping';
+  div.innerHTML = '<div class="anna-avatar-sm">\ud83e\uddb9</div>' +
+    '<div class="anna-typing"><span></span><span></span><span></span></div>';
+  msgEl.appendChild(div);
+  msgEl.scrollTop = msgEl.scrollHeight;
+}
+
+function annaHideTyping() {
+  var el = document.getElementById('annaTyping');
+  if (el) el.remove();
+}
+
+async function annaSend() {
+  var input = document.getElementById('annaInput');
+  var text = (input ? input.value : '').trim();
+  if (!text) return;
+  input.value = '';
+  input.style.height = 'auto';
+
+  // Hide suggestion chips after first message
+  var chips = document.getElementById('annaChips');
+  if (chips) chips.style.display = 'none';
+
+  annaAppendMsg('user', text);
+  annaHistory.push({ role: 'user', content: text });
+  annaShowTyping();
+
+  // Use XMLHttpRequest for better CORS compatibility with Supabase Edge Functions
+  annaXHR(annaHistory, function(reply) {
+    annaHistory.push({ role: 'assistant', content: reply });
+    annaHideTyping();
+    annaAppendMsg('assistant', reply);
+  });
 }
 
 function annaSendChip(btn) {
@@ -7954,12 +7798,21 @@ function renderCVCustomWorkout() {
   h += '<button onclick="cvExitCustomWorkout()" style="background:none;border:1.5px solid #26323A;color:#8B949E;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:-apple-system,sans-serif">&#8592; Back to Program</button>';
   h += '</div>';
 
+  // Search card
+  h += '<div style="background:#12181D;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #1F2A33">';
+  h += '<div style="font-size:14px;font-weight:700;color:#FFFFFF;margin-bottom:4px">&#127947; Build Your Own Workout</div>';
+  h += '<div style="font-size:11px;color:#8B949E;margin-bottom:12px">Search and add exercises to your session</div>';
+  h += '<input id="cvCustomSrch" type="text" placeholder="Search exercises..." oninput="cvFilterCustomEx(this.value)" '
+     + 'style="width:100%;padding:10px 12px;border:1.5px solid #26323A;border-radius:8px;font-size:14px;'
+     + 'font-family:-apple-system,sans-serif;outline:none;background:#1F2A33;color:#FFFFFF;box-sizing:border-box">';
+  h += '<div id="cvCustomExResults" style="margin-top:8px;max-height:220px;overflow-y:auto;border-radius:8px;overflow:hidden"></div>';
+  h += '</div>';
+
   // Added exercises
   if (cvCustomExercises.length > 0) {
     h += '<div style="font-size:11px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Your exercises (' + cvCustomExercises.length + ')</div>';
 
     cvCustomExercises.forEach(function(ex, i) {
-      var isCardioEx = (ex.cat === 'Cardio');
       var st = cvState[i] || {};
       var setsDone = (st.sets || []).filter(Boolean).length;
       var totalSets = parseInt(ex.sets) || 3;
@@ -8016,16 +7869,6 @@ function renderCVCustomWorkout() {
     });
   }
 
-  // Search card
-  h += '<div style="background:#12181D;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #1F2A33">';
-  h += '<div style="font-size:14px;font-weight:700;color:#FFFFFF;margin-bottom:4px">&#127947; Build Your Own Workout</div>';
-  h += '<div style="font-size:11px;color:#8B949E;margin-bottom:12px">Search and add exercises to your session</div>';
-  h += '<input id="cvCustomSrch" type="text" placeholder="Search exercises..." oninput="cvFilterCustomEx(this.value)" '
-     + 'style="width:100%;padding:10px 12px;border:1.5px solid #26323A;border-radius:8px;font-size:14px;'
-     + 'font-family:-apple-system,sans-serif;outline:none;background:#1F2A33;color:#FFFFFF;box-sizing:border-box">';
-  h += '<div id="cvCustomExResults" style="margin-top:8px;max-height:220px;overflow-y:auto;border-radius:8px;position:relative;z-index:10"></div>';
-  h += '</div>';
-
   // Submit section
   if (cvCustomExercises.length > 0) {
     h += '<div class="cv-session" style="margin-top:4px">';
@@ -8058,7 +7901,7 @@ function cvFilterCustomEx(q) {
   window._cvExMatches = matches;
   res.innerHTML = matches.map(function(ex, idx) {
     var thumb = getExIllusStr(ex);
-    return '<div onpointerdown="event.preventDefault();cvAddCustomExByIdx(' + idx + ')" '
+    return '<div onclick="cvAddCustomExByIdx(' + idx + ')" '
       + 'style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer;border-bottom:1px solid var(--sand-dark)">'
       + '<div style="width:36px;height:36px;border-radius:6px;overflow:hidden;flex-shrink:0;background:var(--sand)">' + thumb + '</div>'
       + '<div><div style="font-size:13px;font-weight:600;color:var(--text)">' + ex.name + '</div>'
@@ -8071,28 +7914,14 @@ function cvAddCustomExByIdx(idx) {
   var matches = window._cvExMatches || [];
   var ex = matches[idx];
   if (!ex) return;
-  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-  if (cvCustomExercises.find(function(e) { return e.name === ex.name; })) { toast(ex.name + ' already added', 'err'); return; }
+  if (cvCustomExercises.find(function(e) { return e.name === ex.name; })) return;
   cvCustomExercises.push(Object.assign({}, ex, { uid: 'custom_' + Date.now() }));
   var srch = document.getElementById('cvCustomSrch');
   var res = document.getElementById('cvCustomExResults');
   if (srch) srch.value = '';
   if (res) res.innerHTML = '';
   window._cvExMatches = [];
-  toast(ex.name + ' added', 'ok');
   renderCV();
-  // Scroll to bottom to show added exercise
-  setTimeout(function() {
-    // Scroll to show added exercises
-    var body = document.getElementById('cvBody');
-    if (body) {
-      body.scrollIntoView(false);
-      window.scrollTo(0, document.body.scrollHeight);
-    }
-    // Also try scrolling the workout top bar area
-    var topBar = document.getElementById('cvWorkoutTopBar');
-    if (topBar) topBar.scrollIntoView(false);
-  }, 150);
 }
 
 function cvAddCustomEx(exId) {
@@ -10217,32 +10046,6 @@ function closeMessagesModal() {
   closeM('messagesM');
 }
 
-
-// Exercise Manager photo upload
-function emLoadPhoto(input, hiddenId, prevId) {
-  var file = input.files[0];
-  if (!file) return;
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    var data = e.target.result;
-    document.getElementById(hiddenId).value = data;
-    var prev = document.getElementById(prevId);
-    prev.innerHTML = '<img src="' + data + '" style="width:100%;height:100%;object-fit:cover">';
-    // Show clear button
-    var clearBtn = document.getElementById(hiddenId + '_clear');
-    if (clearBtn) clearBtn.style.display = 'inline-block';
-  };
-  reader.readAsDataURL(file);
-}
-
-function emClearPhoto(hiddenId, prevId, fileId) {
-  document.getElementById(hiddenId).value = '';
-  document.getElementById(prevId).innerHTML = 'No photo';
-  document.getElementById(fileId).value = '';
-  var clearBtn = document.getElementById(hiddenId + '_clear');
-  if (clearBtn) clearBtn.style.display = 'none';
-}
-
 </script>
 
 
@@ -10273,31 +10076,7 @@ function emClearPhoto(hiddenId, prevId, fileId) {
 </div>
 </div>
 
-<script>if("serviceWorker"in navigator){navigator.serviceWorker.register("./sw.js").catch(function(){});}
-// WAKE LOCK — Keep screen on during workouts
-var _wakeLock = null;
-function requestWakeLock() {
-  if (!('wakeLock' in navigator)) return;
-  navigator.wakeLock.request('screen').then(function(lock) {
-    _wakeLock = lock;
-    _wakeLock.addEventListener('release', function() { _wakeLock = null; });
-  }).catch(function() {});
-}
-function releaseWakeLock() {
-  if (_wakeLock) { _wakeLock.release(); _wakeLock = null; }
-}
-document.addEventListener('visibilitychange', function() {
-  if (document.visibilityState === 'visible') {
-    // Re-acquire wake lock
-    if (_wakeLock === null) requestWakeLock();
-    // Resume workout without restarting if client was mid-session
-    if (typeof cvActiveTab !== 'undefined' && cvActiveTab === 'workouts' && cvData) {
-      // Just re-render current state - don't reset cvState
-      if (typeof renderCV === 'function') renderCV();
-    }
-  }
-});
-</script>
+<script>if("serviceWorker"in navigator){navigator.serviceWorker.register("./sw.js").catch(function(){});}</script>
 
 <!-- ── CLIENT ONBOARDING TUTORIAL ── -->
 <div id="cvOnboarding" style="display:none" class="cv-onboard-overlay">
