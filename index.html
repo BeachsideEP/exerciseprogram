@@ -3192,7 +3192,7 @@ function getIllus(name, cat) {
 const DB_KEY = 'bep_v6_clients';
 const CUSTOM_EX_KEY = 'bep_v6_custom_ex';
 const CUSTOM_PHOTOS_KEY = 'bep_v6_photos';
-let clients = JSON.parse(localStorage.getItem('bep_v6') || '[]'), customExercises = [], customPhotos = {};
+let clients = [], customExercises = [], customPhotos = {}; try { clients = JSON.parse(localStorage.getItem(DB_KEY) || localStorage.getItem('bep_v6') || '[]'); } catch(e) { clients = []; }
 let currentClientId = null, currentProgId = null;
 let dragging = null, clkTimer = null, activeCat = 'All';
 
@@ -4360,7 +4360,7 @@ async function pushClientToCloud(cl) {
       body: JSON.stringify({ id: cl.id, data: cl, updated_at: now })
     });
     setSyncStatus(r.ok ? 'ok' : 'err');
-    if (r.ok) localStorage.setItem(DB_KEY, JSON.stringify(clients));
+    if (r.ok) { cl._localUpdatedAt = now; localStorage.setItem(DB_KEY, JSON.stringify(clients)); }
   } catch (e) { setSyncStatus('err'); }
 }
 
