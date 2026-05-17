@@ -1459,31 +1459,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     </div>
   </div>
 
-  <div id="cvTabAi"  style="display:none;flex-direction:column;height:calc(100vh - 60px);padding-bottom:70px">
-    <div class="anna-header">
-      <div class="anna-avatar">&#129302;</div>
-      <div class="anna-intro">
-        <div class="anna-name">Anna</div>
-        <div class="anna-role">Beachside EP Health Assistant &middot; Here to help with health questions, nutrition &amp; general wellbeing</div>
-      </div>
-    </div>
-    <div class="anna-chips" id="annaChips">
-      <div class="anna-chip" onclick="annaSendChip(this)">I have knee pain</div>
-      <div class="anna-chip" onclick="annaSendChip(this)">What should I eat before exercise?</div>
-      <div class="anna-chip" onclick="annaSendChip(this)">My shoulder feels sore</div>
-      <div class="anna-chip" onclick="annaSendChip(this)">High protein meal ideas</div>
-      <div class="anna-chip" onclick="annaSendChip(this)">My back is tight</div>
-    </div>
-    <div class="anna-messages" id="annaMessages"></div>
-    <div class="anna-input-row">
-      <textarea class="anna-input" id="annaInput" placeholder="Ask Anna a health question…" rows="1"
-        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();annaSend()}"></textarea>
-      <button class="anna-send" onclick="annaSend()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-      </button>
-    </div>
-  </div>
+  <div id="cvTabAi" style="display:none"></div>
   <!-- BOTTOM TABS -->
   <div class="cv-tabs">
     <div class="cv-tabs-inner">
@@ -1505,9 +1481,9 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
       <span style="font-size:10px;margin-top:2px">Chat</span>
     </button>
 
-    <button class="cv-tab" id="cvTabBtnAi" onclick="cvSwitchTab('ai')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M12 8v4l3 3"/></svg>
-      Anna
+    <button class="cv-tab" id="cvTabBtnAi" onclick="cvOpenClasses()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <span class="cv-tab-label">CLASSES</span>
     </button>
     </div>
   </div>
@@ -7471,6 +7447,12 @@ function cvStartSync(user) {
   document.addEventListener('visibilitychange', function() {
     if (!document.hidden && cvSyncUser) cvSilentSync();
   });
+  // Self-healing: if cvData is still null after 4s, retry loadClientView
+  setTimeout(function() {
+    if (!cvData && cvSyncUser) {
+      loadClientView(cvSyncUser);
+    }
+  }, 4000);
 }
 
 function cvStopSync() {
@@ -7504,16 +7486,11 @@ Always be warm, concise and encouraging. You represent Beachside Exercise Physio
 
 function renderAnnaTab() {
   var el = document.getElementById('cvTabAi');
-  if (!el) return;
-  el.style.display = 'flex';
-  // Initialise with welcome message if first visit
-  var msgEl = document.getElementById('annaMessages');
-  if (msgEl && !annaReady) {
-    annaReady = true;
-    var clientName = (cvData && cvData.first) ? cvData.first : 'there';
-    annaHistory = [];
-    annaAppendMsg('assistant', 'Hi ' + clientName + '! I\u2019m Anna, your Beachside EP health assistant \ud83d\ude0a I\u2019m here to help with general health questions, nutrition ideas, or if you\u2019re feeling any aches or niggles. What\u2019s on your mind today?');
-  }
+  if (el) el.style.display = 'flex';
+}
+
+function cvOpenClasses() {
+  window.open('https://beachsideep.com.au/about/group-classes/', '_blank');
 }
 
 function annaAppendMsg(role, text) {

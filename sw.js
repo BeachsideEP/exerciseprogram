@@ -1,5 +1,5 @@
-// Beachside EP — Service Worker v3
-const CACHE = "bep-v7";
+// Beachside EP — Service Worker v8 — force cache bust
+const CACHE = "bep-v8";
 
 // Only cache static assets, NOT index.html itself
 const STATIC = [
@@ -15,7 +15,7 @@ self.addEventListener("install", function(e) {
       return cache.addAll(STATIC);
     })
   );
-  self.skipWaiting();
+  self.skipWaiting(); // activate immediately
 });
 
 self.addEventListener("activate", function(e) {
@@ -25,16 +25,17 @@ self.addEventListener("activate", function(e) {
         keys.filter(function(k) { return k !== CACHE; })
             .map(function(k) { return caches.delete(k); })
       );
+    }).then(function() {
+      return self.clients.claim(); // take control of all open pages immediately
     })
   );
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", function(e) {
   if (e.request.method !== "GET") return;
   var url = new URL(e.request.url);
-  
-  // ALWAYS fetch index.html fresh from network - never serve from cache
+
+  // ALWAYS fetch index.html fresh — never cache it
   if (url.pathname.endsWith("index.html") || url.pathname === "/" || url.pathname.endsWith("/")) {
     e.respondWith(
       fetch(e.request, { cache: "no-store" }).catch(function() {
@@ -43,10 +44,10 @@ self.addEventListener("fetch", function(e) {
     );
     return;
   }
-  
-  // Skip cross-origin (Supabase, Anthropic, fonts etc)
+
+  // Skip cross-origin (Supabase, etc)
   if (url.origin !== self.location.origin) return;
-  
+
   // Cache-first for static assets
   e.respondWith(
     caches.match(e.request).then(function(cached) {
