@@ -4459,10 +4459,11 @@ async function loadClientView(user) {
     var storedWorkouts = [];
     try { storedWorkouts = JSON.parse(localStorage.getItem('cv_own_workouts_' + match.id) || '[]'); } catch(e) {}
     cvOwnWorkouts = (match.ownWorkouts && match.ownWorkouts.length) ? match.ownWorkouts : storedWorkouts;
-    cvSwitchTab('home');
-    // If workouts tab was already open, re-render it now that cvData is ready
-    if (document.getElementById('cvTabWorkouts') && document.getElementById('cvTabWorkouts').style.display !== 'none') {
-      renderCV();
+    // Check cvActiveTab NOW (after data loaded) — user may have tapped Workouts while we were loading
+    if (cvActiveTab === 'workouts') {
+      renderCV(); // data is ready, render the workouts tab they are already on
+    } else {
+      cvSwitchTab('home');
     }
   } catch (e) {
     var errEl = document.getElementById('cvHomeContent') || document.getElementById('cvBody');
