@@ -3266,19 +3266,14 @@ async function pullLibraryFromCloud() {
   } catch(e) {}
 }
 function saveDB() {
-  // Stamp current client with local edit time BEFORE saving
   var cl = getClient();
   if (cl) cl._localUpdatedAt = new Date().toISOString();
   localStorage.setItem(DB_KEY, JSON.stringify(clients));
   showAutosave();
-  // Snapshot the client DATA NOW into the closure
-  // so even if sync replaces clients array, we push the correct version
-  var snapCl = cl ? JSON.parse(JSON.stringify(cl)) : null;
-  if (typeof saveDB._timer !== 'undefined') clearTimeout(saveDB._timer);
-  saveDB._timer = setTimeout(function() {
-    if (userRole !== 'practitioner' || !snapCl) return;
-    pushClientToCloud(snapCl);
-  }, 2000);
+  // Push immediately - no debounce - prevents any race with syncClients
+  if (cl && userRole === 'practitioner') {
+    pushClientToCloud(JSON.parse(JSON.stringify(cl)));
+  }
 }
 function showAutosave() { const el=document.getElementById('autosave'); if(!el)return; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),1800); }
 function saveCustomEx() {
