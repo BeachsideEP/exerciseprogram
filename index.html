@@ -5031,7 +5031,12 @@ async function cvSubmit() {
     cvLastSync = 0; // Force next sync to refresh
     cvState = {}; cvFeeling = ''; cvComment = ''; cvSafetyDone = false; cvRPE = 5;
     showCVCongrats(cvData.first, false, detectPBs(prog));
-    cvSwitchTab('home');
+    // Switch to home, but if user was already on workouts, re-render it properly
+    if (cvActiveTab === 'workouts') {
+      renderCV(); // re-render now that cvData is loaded
+    } else {
+      cvSwitchTab('home');
+    }
   } catch (e) {
     cvState = {}; cvFeeling = ''; cvComment = ''; cvSafetyDone = false;
     showCVCongrats(cvData.first, false);
