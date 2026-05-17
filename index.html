@@ -3269,26 +3269,15 @@ function saveDB() {
   // Stamp current client with local edit time BEFORE saving
   var cl = getClient();
   if (cl) cl._localUpdatedAt = new Date().toISOString();
-  // Snapshot the FULL clients array and current client ID NOW
-  // before any async sync can replace the clients array
-  var snapshot = JSON.stringify(clients);
-  var snapClientId = currentClientId;
-  localStorage.setItem(DB_KEY, snapshot);
+  localStorage.setItem(DB_KEY, JSON.stringify(clients));
   showAutosave();
-  // Debounced cloud push — reads from localStorage snapshot, not live clients array
-  // This prevents sync overwriting the clients array before the push fires
+  // Snapshot the client DATA NOW into the closure
+  // so even if sync replaces clients array, we push the correct version
+  var snapCl = cl ? JSON.parse(JSON.stringify(cl)) : null;
   if (typeof saveDB._timer !== 'undefined') clearTimeout(saveDB._timer);
   saveDB._timer = setTimeout(function() {
-    if (userRole !== 'practitioner' || !snapClientId) return;
-    // Read from localStorage (our snapshot) not the potentially-replaced clients array
-    try {
-      var saved = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
-      var clToPush = saved.find(function(c) { return c.id === snapClientId; });
-      if (clToPush) pushClientToCloud(clToPush);
-    } catch(e) {
-      var cl2 = getClient();
-      if (cl2) pushClientToCloud(cl2);
-    }
+    if (userRole !== 'practitioner' || !snapCl) return;
+    pushClientToCloud(snapCl);
   }, 2000);
 }
 function showAutosave() { const el=document.getElementById('autosave'); if(!el)return; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),1800); }
