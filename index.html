@@ -3222,7 +3222,15 @@ function init() {
 }
 
 function getAllExercises() {
-  return [...ALL_EXERCISES, ...customExercises];
+  // Get IDs of built-in exercises that have been overridden
+  var overriddenIds = new Set(
+    customExercises
+      .filter(function(e) { return String(e.id).startsWith('override_'); })
+      .map(function(e) { return String(e.id).replace('override_', ''); })
+  );
+  // Exclude built-ins that have an override, then add all custom exercises
+  var builtIns = ALL_EXERCISES.filter(function(e) { return !overriddenIds.has(String(e.id)); });
+  return [...builtIns, ...customExercises];
 }
 
 // ══════════════════════════════════════
