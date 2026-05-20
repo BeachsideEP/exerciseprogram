@@ -4456,7 +4456,7 @@ async function syncClients() {
     const rows = await r.json();
     if (!rows || !rows.length) { setSyncStatus('ok'); return; }
 
-    // Use in-memory clients array (always most current - includes unsaved edits)
+    // Use in-memory clients (most current — includes unsaved edits)
     const localMap = {};
     clients.forEach(function(c) { if (c.id) localMap[c.id] = c; });
 
@@ -4469,62 +4469,61 @@ async function syncClients() {
       var cloudProgCount = (cloudCl.programs || []).length;
       var localProgCount = (localCl.programs || []).length;
 
-      // PROGRAM COUNT WINS - never lose programs
-      if (localProgCount > cloudProgCount) {
-        pushClientToCloud(JSON.parse(JSON.stringify(localCl)));
-        return localCl;
-      }
+      // Local has more programs → keep local (push handled by saveDB)
+      if (localProgCount > cloudProgCount) return localCl;
+
+      // Cloud has more programs → use cloud but add local-only programs
       if (cloudProgCount > localProgCount) {
-        // Cloud has more - keep cloud but merge any local-only programs
         (localCl.programs || []).forEach(function(lp) {
           if (!cloudCl.programs.find(function(cp) { return cp.id === lp.id; })) {
             cloudCl.programs.push(lp);
           }
         });
-        // Merge exercises within same programs - keep whichever prog has more
-        cloudCl.programs.forEach(function(cp) {
+        return cloudCl;
+      }
+
+      // Same program count → compare total exercise counts
+      var localExCount = (localCl.programs || []).reduce(function(n,p) { return n+(p.exercises||[]).length; }, 0);
+      var cloudExCount = (cloudCl.programs || []).reduce(function(n,p) { return n+(p.exercises||[]).length; }, 0);
+
+      // Local has more exercises → keep local
+      if (localExCount > cloudExCount) return localCl;
+
+      // Compare per-program exercise counts — keep any program where local has more
+      if (cloudExCount > localExCount) {
+        // Cloud has more total — use cloud but check each program
+        (cloudCl.programs || []).forEach(function(cp) {
           var lp = (localCl.programs || []).find(function(p) { return p.id === cp.id; });
           if (lp && lp.exercises.length > cp.exercises.length) {
-            cp.exercises = lp.exercises;
+            cp.exercises = lp.exercises; // local prog has more — use it
           }
         });
         return cloudCl;
       }
 
-      // Same program count - compare exercise counts across all programs
-      var localExCount = (localCl.programs || []).reduce(function(n, p) { return n + (p.exercises || []).length; }, 0);
-      var cloudExCount = (cloudCl.programs || []).reduce(function(n, p) { return n + (p.exercises || []).length; }, 0);
-
-      if (localExCount > cloudExCount) {
-        // Local has more exercises - local wins
-        pushClientToCloud(JSON.parse(JSON.stringify(localCl)));
-        return localCl;
-      }
-
-      // Same or cloud has more exercises - use timestamps as tiebreaker
+      // Same exercise count — use timestamps
       var cloudTime = new Date(row.updated_at || 0).getTime();
       var localTime = new Date(localCl._localUpdatedAt || 0).getTime();
 
       if (localTime >= cloudTime) {
-        // Merge client session data from cloud into local
-        if (cloudCl.outcomes && cloudCl.outcomes.length > (localCl.outcomes || []).length) localCl.outcomes = cloudCl.outcomes;
-        if (cloudCl.safetyLog && cloudCl.safetyLog.length > (localCl.safetyLog || []).length) localCl.safetyLog = cloudCl.safetyLog;
-        if (cloudCl.ownWorkouts && cloudCl.ownWorkouts.length > (localCl.ownWorkouts || []).length) localCl.ownWorkouts = cloudCl.ownWorkouts;
+        // Local is same age or newer — merge client session data from cloud
+        if (cloudCl.outcomes && (cloudCl.outcomes||[]).length > (localCl.outcomes||[]).length) localCl.outcomes = cloudCl.outcomes;
+        if (cloudCl.safetyLog && (cloudCl.safetyLog||[]).length > (localCl.safetyLog||[]).length) localCl.safetyLog = cloudCl.safetyLog;
+        if (cloudCl.ownWorkouts && (cloudCl.ownWorkouts||[]).length > (localCl.ownWorkouts||[]).length) localCl.ownWorkouts = cloudCl.ownWorkouts;
         return localCl;
       }
 
-      // Cloud is newer - preserve fields
+      // Cloud is newer — preserve metadata
       if (!cloudCl.email && localCl.email) cloudCl.email = localCl.email;
       if (!cloudCl.phone && localCl.phone) cloudCl.phone = localCl.phone;
       if (cloudCl.requireSafetyCheck === undefined) cloudCl.requireSafetyCheck = localCl.requireSafetyCheck;
       return cloudCl;
     }).filter(Boolean);
 
-    // Add local-only clients not in cloud
+    // Add local-only clients not in cloud (new clients not yet pushed)
     clients.forEach(function(lc) {
       if (!merged.find(function(m) { return m.id === lc.id; })) {
         merged.push(lc);
-        pushClientToCloud(JSON.parse(JSON.stringify(lc)));
       }
     });
 
@@ -4532,7 +4531,7 @@ async function syncClients() {
     localStorage.setItem(DB_KEY, JSON.stringify(clients));
     renderClientDropdown();
 
-    // Re-render current client only if cloud won
+    // Re-render UI only if cloud gave newer data for current client
     if (currentClientId) {
       var cloudRow = rows.find(function(row) { return row.data && row.data.id === currentClientId; });
       var localCl2 = localMap[currentClientId];
