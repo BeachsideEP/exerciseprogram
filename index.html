@@ -3704,7 +3704,7 @@ function renderEmList() {
       <div class="em-card-thumb">${getIllus(ex.name, ex.cat)}</div>
       <div class="em-card-info"><div class="em-card-nm">${ex.name}</div><div class="em-card-cat">${ex.cat}${isCustom(ex.id)?' · Custom':''}</div></div>
       <div class="em-card-acts">
-        <button class="btn btn-outline btn-xs" onclick="openEditEx(${ex.id})">✏ Edit</button>
+        <button class="btn btn-outline btn-xs" data-eid="${ex.id}" onpointerdown="openEditEx(this.dataset.eid)">✏ Edit</button>
       </div>
     </div>`).join('');
 }
@@ -5742,14 +5742,16 @@ async function generatePDF(cl, p) {
         doc.setFillColor(...SAND);
         doc.roundedRect(ph1x, phY, PHOTO_SIZE, PHOTO_SIZE, 2, 2, 'F');
         // Set _photo from customPhotos or photo field for renderSVGtoPDF
+        // Look up fresh library data for latest photos
+        var libEx = getAllExercises().find(function(e) { return e.name === ex.name; }) || {};
         var ex1 = Object.assign({}, ex);
-        ex1._photo = ex.photo1 || customPhotos[ex.name] || ex.photo || null;
+        ex1._photo = libEx.photo1 || ex.photo1 || customPhotos[ex.name] || ex.photo || null;
         await renderSVGtoPDF(doc, ex1, ph1x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
         // Photo box 2 - use photo2 if available, else same as photo1
         doc.setFillColor(...SAND);
         doc.roundedRect(ph2x, phY, PHOTO_SIZE, PHOTO_SIZE, 2, 2, 'F');
         var ex2 = Object.assign({}, ex);
-        ex2._photo = ex.photo2 || customPhotos[ex.name] || ex.photo || null;
+        ex2._photo = libEx.photo2 || ex.photo2 || null;
         await renderSVGtoPDF(doc, ex2, ph2x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
         // Small number labels under photos
         setFont(7, 'normal', [150,150,150]);
