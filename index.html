@@ -3516,7 +3516,7 @@ function renderLib(list) {
   const isCustom = id => customExercises.some(e => e.id === id);
   el.innerHTML = list.map(ex => {
     const c = CAT_COLORS[ex.cat] || '#555';
-    const custom = isCustom(ex.id) ? `<button class="ico-btn ico-edit" onclick="event.stopPropagation();openEditEx('${ex.id}')" title="Edit">✏</button>` : '';
+    const custom = isCustom(ex.id) ? `<button class="ico-btn ico-edit" data-eid="${ex.id}" onpointerdown="event.stopPropagation();openEditEx(this.dataset.eid)" title="Edit">✏</button>` : '';
     return `<div class="ex-card" draggable="true" ondragstart="onDragStart(event,'${ex.id}')" ondragend="onDragEnd(event)">
       <div class="ex-thumb">${getIllus(ex.name, ex.cat)}</div>
       <div class="ex-info"><div class="ex-nm">${ex.name}</div><div class="ex-cat-t" style="color:${c}">${ex.cat}</div></div>
@@ -3795,16 +3795,20 @@ function saveExEdit() {
   ex.desc = v('ee_desc'); ex.muscles = Array.from(document.getElementById('ee_muscles').selectedOptions||[]).map(function(o){return o.value;}).join(',') || v('ee_muscles');
   ex.sets = parseInt(v('ee_sets')) || ex.sets;
   ex.reps = v('ee_reps'); ex.hold = v('ee_hold'); ex.rest = v('ee_rest'); ex.videoUrl = v('ee_video') || ex.videoUrl || '';
-  // Handle photo
+  // Handle photo - store on exercise object AND in customPhotos
   const photo = v('eePhotoData');
   if (photo) {
+    ex.photo1 = photo; // Store directly on exercise so it syncs via Supabase
     if (oldName !== newName) delete customPhotos[oldName];
     customPhotos[newName] = photo;
     saveCustomPhotos();
   } else if (oldName !== newName && customPhotos[oldName]) {
+    ex.photo1 = customPhotos[oldName];
     customPhotos[newName] = customPhotos[oldName];
     delete customPhotos[oldName];
     saveCustomPhotos();
+  } else if (customPhotos[ex.name]) {
+    ex.photo1 = customPhotos[ex.name]; // Carry existing photo forward
   }
   // Handle photo 2
   const photo2 = v('eePhoto2Data');
@@ -3814,7 +3818,7 @@ function saveExEdit() {
   if (!isCustom) {
     const overrideId = 'override_' + id;
     const existingIdx = customExercises.findIndex(e => e.id === overrideId);
-    const override = Object.assign({}, ex, { id: overrideId, videoUrl: ex.videoUrl || '' });
+    const override = Object.assign({}, ex, { id: overrideId, videoUrl: ex.videoUrl || '', photo1: ex.photo1 || customPhotos[ex.name] || '' });
     if (existingIdx !== -1) {
       customExercises[existingIdx] = override; // update existing, don't duplicate
     } else {
@@ -5498,7 +5502,11 @@ async function renderSVGtoPDF(doc, ex, x, y, w, h) {
   var svgStr = null;
   if (ex._photo) {
     // Custom photo - just add as image
-    try { doc.addImage(ex._photo, 'JPEG', x, y, w, h); } catch(e) {}
+    try {
+      // Detect image type from base64 header
+      var imgType = (ex._photo.indexOf('data:image/png') === 0) ? 'PNG' : 'JPEG';
+      doc.addImage(ex._photo, imgType, x, y, w, h, undefined, 'FAST');
+    } catch(e) {}
     return;
   }
   // Look up SVG from map
@@ -5735,7 +5743,7 @@ async function generatePDF(cl, p) {
         doc.roundedRect(ph1x, phY, PHOTO_SIZE, PHOTO_SIZE, 2, 2, 'F');
         // Set _photo from customPhotos or photo field for renderSVGtoPDF
         var ex1 = Object.assign({}, ex);
-        ex1._photo = customPhotos[ex.name] || ex.photo || ex.photo1 || null;
+        ex1._photo = ex.photo1 || customPhotos[ex.name] || ex.photo || null;
         await renderSVGtoPDF(doc, ex1, ph1x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
         // Photo box 2 - use photo2 if available, else same as photo1
         doc.setFillColor(...SAND);
