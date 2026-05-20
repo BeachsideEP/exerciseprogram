@@ -4545,6 +4545,9 @@ async function syncClients() {
 }
 
 
+// ── CLIENT VIEW STATE ──
+let cvData = null, cvProgIdx = 0, cvState = {}, cvFeeling = '', cvSafetyDone = false, cvComment = '', cvCustomWorkout = false, cvCustomExercises = [], cvRPE = 5;
+
 async function loadClientView(user) {
   // Show loading state in home tab only — never write to cvBody (workouts tab) here
   var homeEl = document.getElementById('cvHomeContent');
