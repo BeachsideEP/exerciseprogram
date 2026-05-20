@@ -3752,7 +3752,7 @@ function addCustomExercise() {
 }
 
 function openEditEx(id) {
-  const ex = getAllExercises().find(e => e.id === id); if (!ex) return;
+  const ex = getAllExercises().find(e => String(e.id) === String(id)); if (!ex) return;
   sv('ee_name', ex.name); sv('ee_cat', ex.cat); sv('ee_desc', ex.desc||''); sv('ee_video', ex.videoUrl||'');
   // Pre-select muscles in multi-select
   setTimeout(function() {
@@ -3772,6 +3772,13 @@ function openEditEx(id) {
   document.getElementById('eePhotoPreview').innerHTML = photo
     ? `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:5px">`
     : getIllus(ex.name, ex.cat);
+  // Load Photo 2
+  var p2d = document.getElementById('eePhoto2Data');
+  var p2p = document.getElementById('eePhoto2Preview');
+  if (p2d) p2d.value = ex.photo2 || '';
+  if (p2p) p2p.innerHTML = ex.photo2 
+    ? '<img src="' + ex.photo2 + '" style="width:100%;height:100%;object-fit:cover">' 
+    : '📷';
   closeM('exMgrM');
   openM('editExM');
 }
@@ -5726,13 +5733,15 @@ async function generatePDF(cl, p) {
         // Photo box 1
         doc.setFillColor(...SAND);
         doc.roundedRect(ph1x, phY, PHOTO_SIZE, PHOTO_SIZE, 2, 2, 'F');
-        // Use photo field (base64) if available, else SVG illustration
-        var ex1 = ex.photo ? ex : ex;
+        // Set _photo from customPhotos or photo field for renderSVGtoPDF
+        var ex1 = Object.assign({}, ex);
+        ex1._photo = customPhotos[ex.name] || ex.photo || ex.photo1 || null;
         await renderSVGtoPDF(doc, ex1, ph1x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
         // Photo box 2 - use photo2 if available, else same as photo1
         doc.setFillColor(...SAND);
         doc.roundedRect(ph2x, phY, PHOTO_SIZE, PHOTO_SIZE, 2, 2, 'F');
-        var ex2 = ex.photo2 ? Object.assign({}, ex, {photo: ex.photo2}) : ex;
+        var ex2 = Object.assign({}, ex);
+        ex2._photo = ex.photo2 || customPhotos[ex.name] || ex.photo || null;
         await renderSVGtoPDF(doc, ex2, ph2x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
         // Small number labels under photos
         setFont(7, 'normal', [150,150,150]);
