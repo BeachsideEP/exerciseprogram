@@ -3222,53 +3222,38 @@ function init() {
 }
 
 function getAllExercises() {
-  // Deduplicate customExercises - keep best version of each exercise by name
-  var seenNames = {};
-  var seenIds = {};
-  var dedupedCustom = [];
+  // Deduplicate all customExercises by name - keep best version (most photos/data)
+  var seen = {};
+  var deduped = [];
   customExercises.forEach(function(e) {
-    var nameKey = e.name.toLowerCase().trim();
-    var idKey = String(e.id);
-    // Skip exact duplicate IDs (keep first)
-    if (seenIds[idKey] && !idKey.startsWith('custom_')) { return; }
-    seenIds[idKey] = true;
-    // For overrides: deduplicate by name, keep the one with photos
-    if (idKey.startsWith('override_')) {
-      if (seenNames[nameKey]) {
-        var existing = seenNames[nameKey];
-        var existScore = (existing.photo1 ? 2 : 0) + (existing.photo2 ? 2 : 0);
-        var newScore = (e.photo1 ? 2 : 0) + (e.photo2 ? 2 : 0);
-        if (newScore > existScore) {
-          // Replace existing with better version
-          var idx = dedupedCustom.indexOf(existing);
-          if (idx > -1) dedupedCustom[idx] = e;
-          seenNames[nameKey] = e;
-        }
-        return; // skip adding again
-      }
-      seenNames[nameKey] = e;
+    var key = e.name.toLowerCase().trim();
+    if (!seen[key]) {
+      seen[key] = { ex: e, idx: deduped.length };
+      deduped.push(e);
+    } else {
+      var prev = seen[key].ex;
+      var ps = (prev.photo1?2:0)+(prev.photo2?2:0)+(prev.desc?1:0)+(prev.videoUrl?1:0);
+      var ns = (e.photo1?2:0)+(e.photo2?2:0)+(e.desc?1:0)+(e.videoUrl?1:0);
+      if (ns > ps) { deduped[seen[key].idx] = e; seen[key].ex = e; }
     }
-    dedupedCustom.push(e);
   });
 
-  // Get names overridden so we exclude built-in versions
-  var overriddenNames = new Set(
-    dedupedCustom
-      .filter(function(e) { return String(e.id).startsWith('override_'); })
-      .map(function(e) { return e.name.toLowerCase().trim(); })
-  );
-  // Also exclude by numeric ID from override_N pattern
-  var overriddenIds = new Set(
-    dedupedCustom
-      .filter(function(e) { return String(e.id).startsWith('override_'); })
-      .map(function(e) { return String(e.id).replace('override_', ''); })
-  );
+  // Names/IDs of built-ins that have been overridden
+  var overriddenNames = new Set();
+  var overriddenIds = new Set();
+  deduped.forEach(function(e) {
+    if (String(e.id).startsWith('override_')) {
+      overriddenNames.add(e.name.toLowerCase().trim());
+      overriddenIds.add(String(e.id).replace('override_', ''));
+    }
+  });
 
   var builtIns = ALL_EXERCISES.filter(function(e) {
     return !overriddenIds.has(String(e.id)) && !overriddenNames.has(e.name.toLowerCase().trim());
   });
-  return [...builtIns, ...dedupedCustom];
+  return [...builtIns, ...deduped];
 }
+
 
 // ══════════════════════════════════════
 // DB
@@ -3863,7 +3848,18 @@ function saveExEdit() {
     if (idx2 !== -1) customExercises[idx2] = Object.assign({}, customExercises[idx2], ex);
   }
   saveCustomEx();
-  renderLib(); renderCatChips();
+  // Update name in any programs that reference this exercise by old name
+  if (oldName !== newName) {
+    clients.forEach(function(cl) {
+      (cl.programs || []).forEach(function(p) {
+        (p.exercises || []).forEach(function(pex) {
+          if (pex.name === oldName) pex.name = newName;
+        });
+      });
+    });
+    localStorage.setItem(DB_KEY, JSON.stringify(clients));
+  }
+  renderLib(); renderCatChips(); renderDropZone(); updatePreview();
   closeM('editExM');
   toast(`${newName} updated`, 'ok');
 }
@@ -5812,8 +5808,9 @@ async function generatePDF(cl, p) {
         doc.setFillColor(...SAND);
         doc.roundedRect(ph1x, phY, PHOTO_SIZE, PHOTO_SIZE, 2, 2, 'F');
         // Set _photo from customPhotos or photo field for renderSVGtoPDF
-        // Look up fresh library data for latest photos
-        var libEx = getAllExercises().find(function(e) { return e.name === ex.name; }) || {};
+        // Look up fresh library data for latest photos - check name and original name
+        var libEx = getAllExercises().find(function(e) { return e.name === ex.name; }) ||
+                    getAllExercises().find(function(e) { return e.name === (ex.substitutedFor || ex.name); }) || {};
         var ex1 = Object.assign({}, ex);
         ex1._photo = libEx.photo1 || ex.photo1 || customPhotos[ex.name] || ex.photo || null;
         await renderSVGtoPDF(doc, ex1, ph1x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
