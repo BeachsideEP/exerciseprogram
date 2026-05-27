@@ -1086,12 +1086,12 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .hr-chart-title{font-size:12px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px}
 .hr-chart-svg{width:100%;display:block}
 .hr-latest{font-size:28px;font-weight:800;color:#2FD4F5;margin-bottom:4px}
-.hr-latest-label{font-size:11px;color:#8B949E}
+.hr-latest-label{font-size:13px;color:#FFFFFF}
 .hr-entries{margin-top:16px}
 .hr-entry{display:flex;justify-content:space-between;align-items:center;
   padding:10px 0;border-bottom:1px solid #1F2A33}
 .hr-entry-val{font-size:15px;font-weight:700;color:#FFFFFF}
-.hr-entry-date{font-size:11px;color:#8B949E}
+.hr-entry-date{font-size:13px;color:#FFFFFF}
 .hr-empty{text-align:center;padding:40px 20px;color:#8B949E;font-size:13px}
 
 
@@ -1189,7 +1189,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .cv-ex-card-thumb svg { width: 40px; height: 40px; }
 .cv-ex-card-info { flex: 1; min-width: 0; }
 .cv-ex-card-name { font-size: 15px; font-weight: 700; color: #FFFFFF; line-height: 1.3; }
-.cv-ex-card-params { font-size: 13px; color: #8B949E; margin-top: 2px; }
+.cv-ex-card-params { font-size: 15px; color: #FFFFFF; margin-top: 2px; font-weight: 500; }
 .cv-ex-card-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 .cv-ex-card-body { padding: 0 14px 14px; border-top: 1px solid #1F2A33; }
 
@@ -1356,6 +1356,26 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
       display: none !important; 
     }
   
+
+  /* Force white text and larger fonts throughout client workout tab */
+  #viewClient .cv-set-table th { font-size: 13px !important; color: #FFFFFF !important; font-weight: 700 !important; }
+  #viewClient .cv-set-table td { font-size: 15px !important; color: #FFFFFF !important; }
+  #viewClient .cv-set-input { font-size: 15px !important; color: #FFFFFF !important; }
+  #viewClient .cv-ex-card-params { font-size: 15px !important; color: #FFFFFF !important; }
+  #viewClient .cv-ex-card-nm { font-size: 17px !important; color: #FFFFFF !important; font-weight: 700 !important; }
+  #viewClient .cv-prev-val { font-size: 13px !important; color: #FFFFFF !important; }
+  #viewClient .cv-prev-label { font-size: 11px !important; color: #FFFFFF !important; }
+  #viewClient [style*="color:#8B949E"] { color: #FFFFFF !important; }
+  #viewClient [style*="color: #8B949E"] { color: #FFFFFF !important; }
+  #viewClient [style*="color:var(--text-light)"] { color: #FFFFFF !important; }
+  #viewClient [style*="color:var(--text-l)"] { color: #FFFFFF !important; }
+  #viewClient [style*="font-size:10px"] { font-size: 13px !important; }
+  #viewClient [style*="font-size:11px"] { font-size: 13px !important; }
+  #viewClient [style*="font-size:12px"] { font-size: 13px !important; }
+  #viewClient textarea { font-size: 14px !important; color: #FFFFFF !important; }
+  #viewClient textarea::placeholder { font-size: 13px !important; color: #8B949E !important; }
+  #viewClient input::placeholder { color: #8B949E !important; }
+
 </style>
 </head>
 <body>
@@ -1664,7 +1684,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <div style="background:#0B1820;padding:18px 22px;border-bottom:1px solid #1F2A33;display:flex;align-items:center;justify-content:space-between">
       <div>
         <div style="font-size:17px;font-weight:700;color:#FFFFFF">📊 Session Compliance</div>
-        <div style="font-size:11px;color:#8B949E;margin-top:2px">Client activity — last 30 days</div>
+        <div style="font-size:13px;color:#FFFFFF;margin-top:2px">Client activity — last 30 days</div>
       </div>
       <button onclick="closeM('complianceM')" style="background:none;border:none;color:#8B949E;font-size:20px;cursor:pointer;padding:4px 8px;border-radius:6px">✕</button>
     </div>
@@ -1679,7 +1699,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <div style="background:#0B1820;padding:16px 20px;border-bottom:1px solid #1F2A33;display:flex;align-items:center;justify-content:space-between">
       <div>
         <div style="font-size:16px;font-weight:700;color:#FFFFFF">📦 Archived Clients</div>
-        <div style="font-size:11px;color:#8B949E;margin-top:2px">Reactivate to restore access</div>
+        <div style="font-size:13px;color:#FFFFFF;margin-top:2px">Reactivate to restore access</div>
       </div>
       <button onclick="closeM('archiveM')" style="background:none;border:none;color:#8B949E;font-size:20px;cursor:pointer">✕</button>
     </div>
@@ -1716,7 +1736,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <div style="display:flex;flex:1;overflow:hidden">
       <!-- Left: Client list -->
       <div style="width:240px;border-right:1px solid #1F2A33;overflow-y:auto;flex-shrink:0;background:#0B1217">
-        <div style="padding:10px 12px;font-size:10px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid #1F2A33">Conversations</div>
+        <div style="padding:10px 12px;font-size:13px;font-weight:700;color:#FFFFFF;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid #1F2A33">Conversations</div>
         <div id="msgClientList">
           <div style="padding:20px;text-align:center;color:#8B949E;font-size:12px">Loading...</div>
         </div>
@@ -4810,11 +4830,11 @@ function renderCV() {
       // Set table header
       h += '<div style="margin:0 -4px">';
       h += '<div style="display:grid;grid-template-columns:36px 1fr 90px 80px 44px;gap:4px;padding:4px 4px 2px;margin-bottom:2px">';
-      h += '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">Set</div>';
-      h += '<div style="font-size:10px;font-weight:700;color:#8B949E">Previous</div>';
-      h += isCardioEx ? '' : '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">Weight</div>';
-      h += '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">' + (isCardioEx ? 'Duration' : 'Reps') + '</div>';
-      h += '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">✓</div>';
+      h += '<div style="font-size:13px;font-weight:700;color:#FFFFFF;text-align:center">Set</div>';
+      h += '<div style="font-size:13px;font-weight:700;color:#FFFFFF">Previous</div>';
+      h += isCardioEx ? '' : '<div style="font-size:13px;font-weight:700;color:#FFFFFF;text-align:center">Weight</div>';
+      h += '<div style="font-size:13px;font-weight:700;color:#FFFFFF;text-align:center">' + (isCardioEx ? 'Duration' : 'Reps') + '</div>';
+      h += '<div style="font-size:13px;font-weight:700;color:#FFFFFF;text-align:center">✓</div>';
       h += '</div>';
       for (let s = 0; s < sessionSets; s++) {
         const setDone = (st.sets && st.sets[s]) || false;
@@ -4830,7 +4850,7 @@ function renderCV() {
         // Set number badge
         h += '<div style="width:28px;height:28px;border-radius:8px;background:#1F2A33;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#C9D1D9;margin:0 auto">' + (s+1) + '</div>';
         // Previous
-        h += '<div style="font-size:12px;color:#8B949E">' + prevText + '</div>';
+        h += '<div style="font-size:13px;color:#FFFFFF">' + prevText + '</div>';
         // Weight input
         h += '<input data-ex="' + i + '" data-field="load" data-set="' + s + '" style="background:#1F2A33;border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="decimal" placeholder="' + loadPlaceholder + '" value="' + setLoad + '" onfocus="this.select()" oninput="cvSetRow(' + i + ',' + s + ',\'load\',this.value)">';
         // Reps input
@@ -6518,11 +6538,11 @@ function cvSubListHTML(idx, query) {
     if (!q) return ex.cat === currentEx.cat;
     return ex.name.toLowerCase().indexOf(q) !== -1 || ex.cat.toLowerCase().indexOf(q) !== -1;
   }).slice(0, 8);
-  if (!pool.length) return '<div style="padding:8px;font-size:11px;color:#8B949E">No matches found</div>';
+  if (!pool.length) return '<div style="padding:8px;font-size:13px;color:#FFFFFF">No matches found</div>';
   return pool.map(function(ex) {
     return '<div onclick="cvDoSub(' + idx + ',\'' + ex.id + '\')" style="padding:10px;border-bottom:1px solid #1F2A33;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:10px;background:#12181D;transition:background .1s" onmouseover="this.style.background=\'#1F2A33\'" onmouseout="this.style.background=\'#12181D\'">' +
       '<div style="width:36px;height:36px;border-radius:8px;overflow:hidden;flex-shrink:0;background:#1F2A33">' + getExIllusStr(ex.name, ex.cat) + '</div>' +
-      '<div><div style="font-weight:600;color:#FFFFFF">' + ex.name + '</div><div style="font-size:11px;color:#8B949E;margin-top:2px">' + ex.cat + '</div></div>' +
+      '<div><div style="font-weight:600;color:#FFFFFF">' + ex.name + '</div><div style="font-size:13px;color:#FFFFFF;margin-top:2px">' + ex.cat + '</div></div>' +
     '</div>';
   }).join('');
 }
@@ -7021,7 +7041,7 @@ function renderCVHome() {
     h += metricCard('&#128308;', 'Sleep', ls, 'hrs', 'sleep', '8', 'number');
     h += '<div onclick="openHealthReview()" style="background:#12181D;border-radius:12px;padding:16px 14px;border:1.5px solid #1F2A33;display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:10px">' +
       '<div><div style="font-size:13px;font-weight:700;color:#2FD4F5;margin-bottom:2px">&#128200; Review Health Data</div>' +
-      '<div style="font-size:10px;color:#8B949E">View trends over 1, 3 or 6 months</div></div>' +
+      '<div style="font-size:13px;color:#FFFFFF">View trends over 1, 3 or 6 months</div></div>' +
       '<div style="color:#2FD4F5;font-size:20px">&#8250;</div>' +
       '</div>';
     h += '</div>';
@@ -7370,7 +7390,7 @@ function renderCVCalendar() {
         h += '<div style="width:36px;height:36px;border-radius:50%;background:' + accent + '22;border:1.5px solid ' + accent + ';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">' + icon + '</div>';
         h += '<div style="flex:1;min-width:0">';
         h += '<div style="font-size:14px;font-weight:700;color:#FFFFFF">' + s.title + '</div>';
-        h += '<div style="font-size:11px;color:#8B949E;margin-top:2px">' + sub + '</div>';
+        h += '<div style="font-size:13px;color:#FFFFFF;margin-top:2px">' + sub + '</div>';
         h += '</div>';
         h += '<div id="' + uid + '_arr" style="color:#8B949E;font-size:20px;transition:transform .2s">&#8250;</div>';
         h += '</div>';
@@ -8116,7 +8136,7 @@ function renderCVCustomWorkout() {
       h += '<div style="width:52px;height:52px;border-radius:10px;background:#1F2A33;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center">' + getExIllusStr(ex) + '</div>';
       h += '<div style="flex:1;min-width:0">';
       h += '<div style="font-size:15px;font-weight:700;color:#FFFFFF">' + ex.name + '</div>';
-      h += '<div style="font-size:12px;color:#8B949E;margin-top:2px">' + totalSessionSets + ' sets' + (ex.reps ? ' × ' + ex.reps : '') + (setsDone > 0 ? ' <span style="color:#5BBFAA;font-weight:700">' + setsDone + '/' + totalSessionSets + ' done</span>' : '') + '</div>';
+      h += '<div style="font-size:13px;color:#FFFFFF;margin-top:2px">' + totalSessionSets + ' sets' + (ex.reps ? ' × ' + ex.reps : '') + (setsDone > 0 ? ' <span style="color:#5BBFAA;font-weight:700">' + setsDone + '/' + totalSessionSets + ' done</span>' : '') + '</div>';
       h += '</div>';
       h += '<button onclick="cvCustomExercises.splice(' + i + ',1);cvState={};renderCV()" style="background:none;border:none;color:#8B949E;font-size:20px;cursor:pointer;padding:4px">&#215;</button>';
       h += '</div>';
@@ -8125,11 +8145,11 @@ function renderCVCustomWorkout() {
       h += '<div style="padding:0 14px 14px">';
       // Column headers
       h += '<div style="display:grid;grid-template-columns:' + (isCardioEx ? '36px 1fr 1fr 44px' : '36px 1fr 90px 80px 44px') + ';gap:4px;padding:4px 4px 6px;margin-bottom:2px">';
-      h += '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">Set</div>';
-      h += '<div style="font-size:10px;font-weight:700;color:#8B949E">Previous</div>';
-      h += '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">Weight</div>';
-      h += '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">Reps</div>';
-      h += '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center">✓</div>';
+      h += '<div style="font-size:13px;font-weight:700;color:#FFFFFF;text-align:center">Set</div>';
+      h += '<div style="font-size:13px;font-weight:700;color:#FFFFFF">Previous</div>';
+      h += '<div style="font-size:13px;font-weight:700;color:#FFFFFF;text-align:center">Weight</div>';
+      h += '<div style="font-size:13px;font-weight:700;color:#FFFFFF;text-align:center">Reps</div>';
+      h += '<div style="font-size:13px;font-weight:700;color:#FFFFFF;text-align:center">✓</div>';
       h += '</div>';
 
       for (var s = 0; s < totalSessionSets; s++) {
@@ -8139,7 +8159,7 @@ function renderCVCustomWorkout() {
         var borderCol = setDone ? '#2FD4F5' : '#26323A';
         h += '<div style="display:grid;grid-template-columns:' + (isCardioEx ? '36px 1fr 1fr 44px' : '36px 1fr 90px 80px 44px') + ';gap:4px;align-items:center;padding:3px 4px;border-radius:8px;background:' + (setDone ? 'rgba(47,212,245,.08)' : 'transparent') + ';margin-bottom:4px">';
         h += '<div style="width:28px;height:28px;border-radius:8px;background:#1F2A33;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#C9D1D9;margin:0 auto">' + (s+1) + '</div>';
-        h += '<div style="font-size:12px;color:#8B949E">—</div>';
+        h += '<div style="font-size:13px;color:#FFFFFF">—</div>';
         h += '<input data-ex="' + i + '" data-field="load" data-set="' + s + '" style="background:#1F2A33;border:1.5px solid ' + borderCol + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="decimal" placeholder="' + (ex.load || 'kg') + '" value="' + setLoad + '" onfocus="this.select()" oninput="cvSetRow(' + i + ',' + s + ',\'load\',this.value)">';
         h += '<input data-ex="' + i + '" data-field="reps" data-set="' + s + '" style="background:#1F2A33;border:1.5px solid ' + borderCol + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="' + (ex.reps || '-') + '" value="' + setReps + '" onfocus="this.select()" oninput="cvSetRow(' + i + ',' + s + ',\'reps\',this.value)">';
         h += '<div onclick="cvTickSet(' + i + ',' + s + ')" style="width:36px;height:36px;border-radius:8px;background:' + (setDone ? '#2FD4F5' : '#1F2A33') + ';border:1.5px solid ' + borderCol + ';display:flex;align-items:center;justify-content:center;cursor:pointer;margin:0 auto">';
@@ -8163,7 +8183,7 @@ function renderCVCustomWorkout() {
   // Search card
   h += '<div style="background:#12181D;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #1F2A33">';
   h += '<div style="font-size:14px;font-weight:700;color:#FFFFFF;margin-bottom:4px">&#127947; Build Your Own Workout</div>';
-  h += '<div style="font-size:11px;color:#8B949E;margin-bottom:12px">Search and add exercises to your session</div>';
+  h += '<div style="font-size:13px;color:#FFFFFF;margin-bottom:12px">Search and add exercises to your session</div>';
   h += '<input id="cvCustomSrch" type="text" placeholder="Search exercises..." oninput="cvFilterCustomEx(this.value)" '
      + 'style="width:100%;padding:10px 12px;border:1.5px solid #26323A;border-radius:8px;font-size:14px;'
      + 'font-family:-apple-system,sans-serif;outline:none;background:#1F2A33;color:#FFFFFF;box-sizing:border-box">';
@@ -8206,7 +8226,7 @@ function cvFilterCustomEx(q) {
       + 'style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer;border-bottom:1px solid var(--sand-dark)">'
       + '<div style="width:36px;height:36px;border-radius:6px;overflow:hidden;flex-shrink:0;background:var(--sand)">' + thumb + '</div>'
       + '<div><div style="font-size:13px;font-weight:600;color:var(--text)">' + ex.name + '</div>'
-      + '<div style="font-size:10px;color:#8B949E">' + (ex.cat || '') + '</div></div>'
+      + '<div style="font-size:13px;color:#FFFFFF">' + (ex.cat || '') + '</div></div>'
       + '</div>';
   }).join('');
 }
@@ -8671,9 +8691,9 @@ function renderHealthChart() {
 
   // Entry list (newest first)
   if (list) {
-    list.innerHTML = '<div style="font-size:10px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">All readings</div>' +
+    list.innerHTML = '<div style="font-size:13px;font-weight:700;color:#FFFFFF;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">All readings</div>' +
       entries.slice().reverse().map(function(e) {
-        return '<div class="hr-entry"><div class="hr-entry-date">' + (e.date||'') + '</div><div class="hr-entry-val">' + (e.val||e.value||'') + ' <span style="font-size:11px;color:#8B949E">' + units[metric] + '</span></div></div>';
+        return '<div class="hr-entry"><div class="hr-entry-date">' + (e.date||'') + '</div><div class="hr-entry-val">' + (e.val||e.value||'') + ' <span style="font-size:13px;color:#FFFFFF">' + units[metric] + '</span></div></div>';
       }).join('');
   }
 }
@@ -8814,7 +8834,7 @@ function openLoadTemplate() {
     tpls.map(function(t, i) {
       return '<div style="background:#12181D;border-radius:8px;padding:12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">' +
         '<div><div style="font-size:13px;font-weight:600;color:#fff">' + t.name + '</div>' +
-        '<div style="font-size:11px;color:#8B949E">' + (t.exercises||[]).length + ' exercises · ' + (t.freq||'—') + ' · Saved ' + t.savedAt + '</div></div>' +
+        '<div style="font-size:13px;color:#FFFFFF">' + (t.exercises||[]).length + ' exercises · ' + (t.freq||'—') + ' · Saved ' + t.savedAt + '</div></div>' +
         '<div style="display:flex;gap:6px">' +
         '<button onclick="loadTemplateModal(' + i + ')" style="padding:6px 12px;background:#2FD4F5;color:#0B0F12;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Load</button>' +
         '<button onclick="deleteTemplateModal(' + i + ',this)" style="padding:6px 10px;background:#26323A;color:#8B949E;border:none;border-radius:6px;font-size:12px;cursor:pointer">🗑</button>' +
@@ -8868,7 +8888,7 @@ function openDuplicateProg() {
   var inner = document.createElement('div');
   inner.style.cssText = 'background:#1A2530;border-radius:12px;padding:20px;max-width:420px;width:100%;max-height:80vh;overflow-y:auto';
   inner.innerHTML = '<div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:4px">⧉ Duplicate Program</div>' +
-    '<div style="font-size:11px;color:#8B949E;margin-bottom:14px">Copy "' + (prog.title||'Program') + '" to:</div>' +
+    '<div style="font-size:13px;color:#FFFFFF;margin-bottom:14px">Copy "' + (prog.title||'Program') + '" to:</div>' +
     '<input id="dupSearch" placeholder="Search clients..." oninput="filterDupClients(this.value)" style="width:100%;padding:8px 10px;background:#0B0F12;border:1px solid #1F2A33;border-radius:8px;color:#fff;font-size:13px;margin-bottom:10px;box-sizing:border-box;outline:none">' +
     '<div id="dupClientList">' +
     otherClients.map(function(c) {
@@ -9027,7 +9047,7 @@ function renderComplianceTab() {
   function sumCard(val,label,col) {
     return '<div style="background:#12181D;border-radius:10px;padding:14px 16px;border:1px solid #1F2A33;text-align:center">' +
            '<div style="font-size:24px;font-weight:800;color:'+col+'">'+val+'</div>' +
-           '<div style="font-size:11px;color:#8B949E;margin-top:3px">'+label+'</div></div>';
+           '<div style="font-size:13px;color:#FFFFFF;margin-top:3px">'+label+'</div></div>';
   }
   var summaryCards = sumCard(totalActive,'Active','#5BBFAA')+sumCard(totalAtRisk,'At Risk','#f59e0b')+
                      sumCard(totalInactive,'Inactive','#ef4444')+sumCard(avgSess,'Avg/30d','#2FD4F5');
@@ -9067,7 +9087,7 @@ function renderComplianceTab() {
       '<div>'+
         '<div style="font-size:14px;font-weight:700;color:#FFFFFF">'+r.cl.first+' '+r.cl.last+
           ' <span style="font-size:10px;color:'+trendCol+'">'+trendIcon+'</span></div>'+
-        '<div style="font-size:11px;color:#8B949E;margin-top:2px">'+(r.cl.clinician?r.cl.clinician+' · ':'')+
+        '<div style="font-size:13px;color:#FFFFFF;margin-top:2px">'+(r.cl.clinician?r.cl.clinician+' · ':'')+
           (r.cl.email||'')+'</div>'+
       '</div>'+
       '<div style="text-align:center;font-size:13px;font-weight:600;color:'+daysColor+'">'+daysText+'</div>'+
@@ -9078,7 +9098,7 @@ function renderComplianceTab() {
       '<div style="padding:0 8px;display:flex;align-items:center;gap:5px">'+
         '<div style="flex:1;height:5px;background:#1F2A33;border-radius:3px;overflow:hidden">'+
           '<div style="width:'+pct+'%;height:100%;background:'+statusColors[r.status]+';border-radius:3px"></div></div>'+
-        '<div style="font-size:11px;color:#8B949E;min-width:16px;text-align:right">'+r.last30+'</div>'+
+        '<div style="font-size:13px;color:#FFFFFF;min-width:16px;text-align:right">'+r.last30+'</div>'+
       '</div>'+
     '</div>'+
     '<div style="display:flex;flex-wrap:wrap;gap:5px;padding:0 16px 6px">'+
@@ -9096,9 +9116,9 @@ function renderComplianceTab() {
       (r.progAge?st('📆',r.progAge+'d','Prog age'):'')+
     '</div>'+
     '<div style="display:flex;align-items:center;justify-content:space-between;padding:2px 16px 10px">'+
-      '<div style="font-size:10px;color:#8B949E">6-week trend</div>'+
+      '<div style="font-size:13px;color:#FFFFFF">6-week trend</div>'+
       spark(r.combined)+
-      '<div style="font-size:10px;color:#8B949E">prev:'+r.prev30+' · now:'+r.last30+'</div>'+
+      '<div style="font-size:13px;color:#FFFFFF">prev:'+r.prev30+' · now:'+r.last30+'</div>'+
     '</div>'+
     '</div>';
   }).join('');
@@ -9107,11 +9127,11 @@ function renderComplianceTab() {
     '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:18px">'+summaryCards+'</div>'+
     '<div style="background:#12181D;border-radius:10px;overflow:hidden;border:1px solid #1F2A33">'+
     '<div style="display:grid;grid-template-columns:1.6fr 100px 90px 65px 110px;padding:10px 16px;border-bottom:1px solid #1F2A33;background:#0D1A24">'+
-    '<div style="font-size:10px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.07em">Client</div>'+
-    '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center;text-transform:uppercase;letter-spacing:.07em">Last Session</div>'+
-    '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center;text-transform:uppercase;letter-spacing:.07em">Status</div>'+
-    '<div style="font-size:10px;font-weight:700;color:#8B949E;text-align:center;text-transform:uppercase;letter-spacing:.07em">Total</div>'+
-    '<div style="font-size:10px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.07em;padding:0 8px">Last 30d</div>'+
+    '<div style="font-size:13px;font-weight:700;color:#FFFFFF;text-transform:uppercase;letter-spacing:.07em">Client</div>'+
+    '<div style="font-size:13px;font-weight:700;color:#FFFFFF;text-align:center;text-transform:uppercase;letter-spacing:.07em">Last Session</div>'+
+    '<div style="font-size:13px;font-weight:700;color:#FFFFFF;text-align:center;text-transform:uppercase;letter-spacing:.07em">Status</div>'+
+    '<div style="font-size:13px;font-weight:700;color:#FFFFFF;text-align:center;text-transform:uppercase;letter-spacing:.07em">Total</div>'+
+    '<div style="font-size:13px;font-weight:700;color:#FFFFFF;text-transform:uppercase;letter-spacing:.07em;padding:0 8px">Last 30d</div>'+
     '</div>'+clientRows+'</div>';
 
   el.innerHTML = html;
@@ -9328,7 +9348,7 @@ function openArchiveModal() {
     return '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #1F2A33">' +
       '<div>' +
         '<div style="font-size:14px;font-weight:600;color:#FFFFFF">' + c.first + ' ' + c.last + '</div>' +
-        '<div style="font-size:11px;color:#8B949E">' + (c.email||'') + (c.archivedAt ? ' · Archived ' + c.archivedAt : '') + '</div>' +
+        '<div style="font-size:13px;color:#FFFFFF">' + (c.email||'') + (c.archivedAt ? ' · Archived ' + c.archivedAt : '') + '</div>' +
       '</div>' +
       '<div style="display:flex;gap:8px">' +
         '<button onclick="reactivateClient(\'' + c.id + '\')" style="padding:6px 14px;background:#2FD4F5;color:#0B0F12;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">Reactivate</button>' +
@@ -9449,13 +9469,13 @@ function checkWeeklySummary(allLog, ownW, cvHealthDataLocal) {
       '<button onclick="document.getElementById(\'cvWeeklySummary\').remove()" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.1);border:none;color:#8B949E;font-size:20px;width:32px;height:32px;border-radius:50%;cursor:pointer">&#215;</button>' +
       '<div style="font-size:24px;margin-bottom:8px">&#128197;</div>' +
       '<div style="font-size:17px;font-weight:800;color:#FFFFFF;margin-bottom:4px">Last Week\'s Recap</div>' +
-      '<div style="font-size:12px;color:#8B949E;margin-bottom:20px">' + lastMonday.toLocaleDateString('en-AU',{day:'numeric',month:'short'}) + ' – ' + lastSunday.toLocaleDateString('en-AU',{day:'numeric',month:'short'}) + '</div>' +
+      '<div style="font-size:13px;color:#FFFFFF;margin-bottom:20px">' + lastMonday.toLocaleDateString('en-AU',{day:'numeric',month:'short'}) + ' – ' + lastSunday.toLocaleDateString('en-AU',{day:'numeric',month:'short'}) + '</div>' +
       '<div style="display:flex;gap:10px;margin-bottom:20px">' +
         '<div style="flex:1;background:#0B0F12;border-radius:10px;padding:14px;text-align:center;border:1px solid #1F2A33">' +
           '<div style="font-size:32px;font-weight:800;color:#2FD4F5">' + lastWeekSessions + '</div>' +
-          '<div style="font-size:10px;color:#8B949E;text-transform:uppercase;letter-spacing:.06em">' + sessionWord + '</div>' +
+          '<div style="font-size:13px;color:#FFFFFF;text-transform:uppercase;letter-spacing:.06em">' + sessionWord + '</div>' +
         '</div>' +
-        (lastWt ? '<div style="flex:1;background:#0B0F12;border-radius:10px;padding:14px;text-align:center;border:1px solid #1F2A33"><div style="font-size:32px;font-weight:800;color:#5BBFAA">' + lastWt.val + '</div><div style="font-size:10px;color:#8B949E;text-transform:uppercase;letter-spacing:.06em">Weight kg</div></div>' : '') +
+        (lastWt ? '<div style="flex:1;background:#0B0F12;border-radius:10px;padding:14px;text-align:center;border:1px solid #1F2A33"><div style="font-size:32px;font-weight:800;color:#5BBFAA">' + lastWt.val + '</div><div style="font-size:13px;color:#FFFFFF;text-transform:uppercase;letter-spacing:.06em">Weight kg</div></div>' : '') +
       '</div>' +
       '<div style="background:#0B0F12;border-radius:10px;padding:14px;border-left:3px solid #2FD4F5;margin-bottom:16px">' +
         '<div style="font-size:13px;color:#C9D1D9;line-height:1.6;font-style:italic">"' + msg + '"</div>' +
@@ -9712,7 +9732,7 @@ function cvOpenExDetail(exIdx) {
       histHTML += '<div style="margin-bottom:14px">';
       histHTML += '<div style="display:flex;justify-content:space-between;margin-bottom:6px">';
       histHTML += '<span style="font-size:13px;font-weight:600;color:#FFFFFF">' + h.prog + '</span>';
-      histHTML += '<span style="font-size:12px;color:#8B949E">' + h.date + '</span>';
+      histHTML += '<span style="font-size:13px;color:#FFFFFF">' + h.date + '</span>';
       histHTML += '</div>';
       h.sets.forEach(function(s, si) {
         // Parse "12 reps @ 20kg" or "12 reps @ 20 (prescribed)" format
@@ -9960,7 +9980,7 @@ function renderDashboard() {
         '<div style="width:32px;height:32px;border-radius:8px;background:#1F2A33;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#2FD4F5;flex-shrink:0;margin-right:12px">' +
           s.cl.first[0] + s.cl.last[0] + '</div>' +
         '<div><div style="font-size:13px;font-weight:600;color:#FFFFFF">' + s.cl.first + ' ' + s.cl.last + '</div>' +
-        '<div style="font-size:11px;color:#8B949E">' + s.prog + '</div></div>' +
+        '<div style="font-size:13px;color:#FFFFFF">' + s.prog + '</div></div>' +
         '<span class="dash-badge" style="background:#5BBFAA20;color:#5BBFAA;border:1px solid #5BBFAA44">' + dText + '</span>' +
       '</div>';
     }).join('') +
@@ -9981,7 +10001,7 @@ function renderDashboard() {
         '<div style="width:32px;height:32px;border-radius:8px;background:#f59e0b20;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#f59e0b;flex-shrink:0;margin-right:12px">' +
           cl.first[0] + cl.last[0] + '</div>' +
         '<div><div style="font-size:13px;font-weight:600;color:#FFFFFF">' + cl.first + ' ' + cl.last + '</div>' +
-        '<div style="font-size:11px;color:#8B949E">' + (cl.clinician||'') + '</div></div>' +
+        '<div style="font-size:13px;color:#FFFFFF">' + (cl.clinician||'') + '</div></div>' +
         '<span class="dash-badge" style="background:#f59e0b20;color:#f59e0b;border:1px solid #f59e0b44">' + days + 'd ago</span>' +
       '</div>';
     }).join('') +
@@ -10010,7 +10030,7 @@ function renderDashboard() {
       var pct = c.total ? Math.round(c.active/c.total*100) : 0;
       return '<div class="dash-row">' +
         '<div style="font-size:13px;font-weight:600;color:#FFFFFF;flex:1">' + name + '</div>' +
-        '<div style="font-size:12px;color:#8B949E;margin-right:12px">' + c.total + ' clients</div>' +
+        '<div style="font-size:13px;color:#FFFFFF;margin-right:12px">' + c.total + ' clients</div>' +
         '<div style="width:80px;height:5px;background:#1F2A33;border-radius:3px;overflow:hidden">' +
           '<div style="width:'+pct+'%;height:100%;background:#5BBFAA;border-radius:3px"></div></div>' +
       '</div>';
@@ -10021,7 +10041,7 @@ function renderDashboard() {
   var header = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">' +
     '<div>' +
       '<div style="font-size:20px;font-weight:800;color:#FFFFFF">Dashboard</div>' +
-      '<div style="font-size:12px;color:#8B949E">' + today + '</div>' +
+      '<div style="font-size:13px;color:#FFFFFF">' + today + '</div>' +
     '</div>' +
     '<button onclick="renderDashboard()" style="background:#1F2A33;border:1px solid #26323A;color:#8B949E;padding:7px 12px;border-radius:8px;font-size:12px;cursor:pointer">↻ Refresh</button>' +
   '</div>';
@@ -10254,18 +10274,18 @@ async function loadAllClientMessages() {
           '<div style="font-size:13px;font-weight:' + (data.unread?'700':'600') + ';color:' + (data.unread?'#FFFFFF':'#C9D1D9') + ';flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + cl2.first + ' ' + cl2.last + '</div>' +
           (data.unread ? '<span style="background:#2FD4F5;color:#0B0F12;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + data.unread + '</span>' : '') +
         '</div>' +
-        '<div style="font-size:11px;color:#8B949E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (data.lastMsg&&data.lastMsg.sender==='client'?'Client: ':'You: ') + lastText + '</div>' +
+        '<div style="font-size:13px;color:#FFFFFF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (data.lastMsg&&data.lastMsg.sender==='client'?'Client: ':'You: ') + lastText + '</div>' +
       '</div>';
     }).join('');
 
     // Add clients with no messages
     if (noMsgClients.length) {
-      listHTML += '<div style="padding:8px 12px;font-size:10px;color:#8B949E;border-top:1px solid #1F2A33;margin-top:4px">No messages yet</div>';
+      listHTML += '<div style="padding:8px 12px;font-size:13px;color:#FFFFFF;border-top:1px solid #1F2A33;margin-top:4px">No messages yet</div>';
       listHTML += noMsgClients.map(function(cl2) {
         var isSelected = practChatClientId === cl2.id;
         return '<div onclick="selectMsgClient(\'' + cl2.id + '\')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid #0D1217;background:' + (isSelected?'#12181D':'transparent') + ';opacity:.6">' +
           '<div style="font-size:13px;font-weight:600;color:#C9D1D9">' + cl2.first + ' ' + cl2.last + '</div>' +
-          '<div style="font-size:11px;color:#8B949E">No messages</div>' +
+          '<div style="font-size:13px;color:#FFFFFF">No messages</div>' +
         '</div>';
       }).join('');
     }
