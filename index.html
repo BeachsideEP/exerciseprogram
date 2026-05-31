@@ -5308,7 +5308,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Only sign out if we're not actively using the app
         if (!currentUser && !document.hidden) { showView('auth'); showPanel('magic'); }
       }
-      }).catch(function() { showView('auth'); });
+      }).catch(function() { /* network error restoring session - try saved token instead */ });
       return;
     }
   }
@@ -5344,7 +5344,10 @@ document.addEventListener('DOMContentLoaded', function() {
     return;
   }
 
-  showView('auth');
+  // Only show auth screen if there's genuinely no saved session
+  if (!localStorage.getItem('bep_token') && !localStorage.getItem('bep_refresh')) {
+    showView('auth');
+  }
 });
 
 
