@@ -1801,7 +1801,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <div style="grid-column:1/-1"><button class="btn btn-outline btn-sm" onclick="sendClientLink()">&#9993; Send Login Link</button></div>
   </div>
   <div class="modal-footer">
-    <button class="btn btn-ghost btn-sm" onclick="archiveClient()" style="color:#f59e0b;border-color:#f59e0b44">📦 Archive</button><button class="btn btn-danger btn-sm" onclick="deleteClient()">Delete</button>
+    <button class="btn btn-ghost btn-sm" onclick="openMergeClient()" style="color:#6366f1;border-color:#6366f144">🔀 Merge</button><button class="btn btn-ghost btn-sm" onclick="archiveClient()" style="color:#f59e0b;border-color:#f59e0b44">📦 Archive</button><button class="btn btn-danger btn-sm" onclick="deleteClient()">Delete</button>
     <button class="btn btn-outline" onclick="closeM('editClientM')">Cancel</button>
     <button class="btn btn-primary" onclick="saveClientEdit()">Save Changes</button>
   </div>
@@ -3297,12 +3297,48 @@ function loadDB() {
 async function pushLibraryToCloud() {
   if (!currentUser) return;
   try {
+    // Try to refresh token first to avoid RLS 42501 errors
+    var token = authToken();
+    if (!token || token === SUPA_KEY) {
+      // Try to get a fresh token
+      try {
+        var refresh = localStorage.getItem('bep_refresh');
+        if (refresh) {
+          var rr = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
+            method: 'POST', headers: {'Content-Type':'application/json','apikey':SUPA_KEY},
+            body: JSON.stringify({refresh_token: refresh})
+          });
+          if (rr.ok) {
+            var rd = await rr.json();
+            if (rd.access_token) {
+              token = rd.access_token;
+              localStorage.setItem('bep_token', token);
+              if (rd.refresh_token) localStorage.setItem('bep_refresh', rd.refresh_token);
+            }
+          }
+        }
+      } catch(re2) {}
+    }
+    const headers = {
+      'Content-Type': 'application/json',
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + token,
+      'Prefer': 'resolution=merge-duplicates,return=minimal'
+    };
     const payload = { id: 'bep_library', data: { exercises: customExercises, photos: customPhotos }, updated_at: new Date().toISOString() };
-    await fetch(SUPA_URL + '/rest/v1/library', {
-      method: 'POST',
-      headers: supaHeaders(),
-      body: JSON.stringify(payload)
+    var r = await fetch(SUPA_URL + '/rest/v1/library', {
+      method: 'POST', headers: headers, body: JSON.stringify(payload)
     });
+    if (!r.ok) {
+      var errText = await r.text();
+      // If still RLS error, try PATCH instead
+      if (errText.includes('42501') || errText.includes('row-level security')) {
+        await fetch(SUPA_URL + '/rest/v1/library?id=eq.bep_library', {
+          method: 'PATCH', headers: headers,
+          body: JSON.stringify({ data: { exercises: customExercises, photos: customPhotos }, updated_at: new Date().toISOString() })
+        });
+      }
+    }
   } catch(e) {}
 }
 
@@ -3450,6 +3486,78 @@ function deleteClient() {
   toast('Client deleted', 'ok');
 }
 
+
+// ── MERGE CLIENT ──
+function openMergeClient() {
+  var cl = getClient(); if (!cl) return;
+  document.getElementById('mergeSourceName').textContent = cl.first + ' ' + cl.last;
+  document.getElementById('mergeSourceName2').textContent = cl.first + ' ' + cl.last;
+  // Populate target dropdown with all other clients
+  var sel = document.getElementById('mergeTargetSel');
+  sel.innerHTML = clients
+    .filter(function(c) { return c.id !== cl.id; })
+    .sort(function(a,b) { return ((a.last||'')+(a.first||'')).localeCompare((b.last||'')+(b.first||'')); })
+    .map(function(c) { return '<option value="' + c.id + '">' + (c.last||'') + ', ' + (c.first||'') + '</option>'; })
+    .join('');
+  closeM('editClientM');
+  openM('mergeClientM');
+}
+
+function confirmMergeClient() {
+  var sourceId = currentClientId;
+  var targetId = document.getElementById('mergeTargetSel').value;
+  if (!sourceId || !targetId || sourceId === targetId) return;
+
+  var sourceCl = clients.find(function(c) { return c.id === sourceId; });
+  var targetCl = clients.find(function(c) { return c.id === targetId; });
+  if (!sourceCl || !targetCl) return;
+
+  if (!confirm('Merge ' + sourceCl.first + ' ' + sourceCl.last + ' into ' + targetCl.first + ' ' + targetCl.last + '?\n\nThis will:\n• Move all ' + (sourceCl.programs||[]).length + ' programs to ' + targetCl.first + '\n• Permanently delete ' + sourceCl.first + '\'s record\n\nThis cannot be undone.')) return;
+
+  // Merge programs from source into target
+  (sourceCl.programs || []).forEach(function(prog) {
+    // Rename if title conflicts
+    var existingTitles = (targetCl.programs || []).map(function(p) { return p.title; });
+    var title = prog.title;
+    var counter = 1;
+    while (existingTitles.includes(title)) {
+      title = prog.title + ' (' + (++counter) + ')';
+    }
+    prog.title = title;
+    if (!targetCl.programs) targetCl.programs = [];
+    targetCl.programs.push(prog);
+  });
+
+  // Merge outcomes and safetyLog
+  if (sourceCl.outcomes && sourceCl.outcomes.length) {
+    targetCl.outcomes = (targetCl.outcomes || []).concat(sourceCl.outcomes);
+  }
+  if (sourceCl.safetyLog && sourceCl.safetyLog.length) {
+    targetCl.safetyLog = (targetCl.safetyLog || []).concat(sourceCl.safetyLog);
+  }
+
+  // Save target
+  targetCl._localUpdatedAt = new Date().toISOString();
+  pushClientToCloud(JSON.parse(JSON.stringify(targetCl)));
+
+  // Delete source from Supabase and local
+  fetch(SUPA_URL + '/rest/v1/clients?id=eq.' + sourceId, {
+    method: 'DELETE',
+    headers: supaHeaders()
+  }).catch(function(){});
+  clients = clients.filter(function(c) { return c.id !== sourceId; });
+
+  // Switch to target client
+  localStorage.setItem(DB_KEY, JSON.stringify(clients));
+  currentClientId = targetId;
+  currentProgId = targetCl.programs[0] ? targetCl.programs[0].id : null;
+  closeM('mergeClientM');
+  renderClientDropdown();
+  document.getElementById('clientSel').value = targetId;
+  selectClient();
+  toast(sourceCl.first + ' merged into ' + targetCl.first + ' ✓', 'ok');
+}
+
 function archiveClient() {
   const cl = getClient(); if (!cl) return;
   if (!confirm('Archive ' + cl.first + ' ' + cl.last + '? They will be moved to the archive and cannot sign in until reactivated.')) return;
@@ -3487,11 +3595,31 @@ function newProgram() {
 
 function renderProgTabs() {
   const cl = getClient(); if (!cl) return;
-  document.getElementById('progTabs').innerHTML = cl.programs.map(p =>
+  document.getElementById('progTabs').innerHTML = cl.programs.map((p, i) =>
     `<div class="prog-tab ${p.id===currentProgId?'active':''}" onclick="switchProg('${p.id}')">
+      <span class="prog-tab-reorder">
+        ${i > 0 ? `<span onclick="event.stopPropagation();moveProgram('${p.id}',-1)" title="Move left" style="cursor:pointer;opacity:0.6;font-size:10px;padding:0 2px">◀</span>` : '<span style="opacity:0;font-size:10px;padding:0 2px">◀</span>'}
+        ${i < cl.programs.length-1 ? `<span onclick="event.stopPropagation();moveProgram('${p.id}',1)" title="Move right" style="cursor:pointer;opacity:0.6;font-size:10px;padding:0 2px">▶</span>` : '<span style="opacity:0;font-size:10px;padding:0 2px">▶</span>'}
+      </span>
       ${p.title||'Untitled'}<span class="dtab" onclick="event.stopPropagation();deleteProgram('${p.id}')">✕</span>
     </div>`
   ).join('');
+}
+
+function moveProgram(progId, direction) {
+  const cl = getClient(); if (!cl) return;
+  const idx = cl.programs.findIndex(p => p.id === progId);
+  const newIdx = idx + direction;
+  if (newIdx < 0 || newIdx >= cl.programs.length) return;
+  // Swap
+  var tmp = cl.programs[idx];
+  cl.programs[idx] = cl.programs[newIdx];
+  cl.programs[newIdx] = tmp;
+  cl._localUpdatedAt = new Date().toISOString();
+  localStorage.setItem(DB_KEY, JSON.stringify(clients));
+  pushClientToCloud(JSON.parse(JSON.stringify(cl)));
+  renderProgTabs();
+  toast('Program order updated', 'ok');
 }
 
 function switchProg(id) { currentProgId = id; renderProgTabs(); loadProg(); updatePreview(); }
@@ -4932,14 +5060,39 @@ function renderCV() {
   if (_progSel && !cvCustomWorkout) _progSel.value = 'prog_' + cvProgIdx;
 }
 
+function cvSaveState() {
+  if (!cvData || !cvData.id) return;
+  try {
+    var key = 'cv_state_' + cvData.id + '_' + cvProgIdx;
+    localStorage.setItem(key, JSON.stringify({ state: cvState, progIdx: cvProgIdx, feeling: cvFeeling, savedAt: new Date().toISOString() }));
+  } catch(e) {}
+}
+function cvRestoreState() {
+  if (!cvData || !cvData.id) return;
+  try {
+    var key = 'cv_state_' + cvData.id + '_' + cvProgIdx;
+    var saved = localStorage.getItem(key);
+    if (!saved) return;
+    var data = JSON.parse(saved);
+    if (Date.now() - new Date(data.savedAt).getTime() > 4 * 60 * 60 * 1000) { localStorage.removeItem(key); return; }
+    cvState = data.state || {};
+    if (data.feeling) cvFeeling = data.feeling;
+    toast('Workout progress restored!', 'ok');
+  } catch(e) {}
+}
+function cvClearState() {
+  if (!cvData || !cvData.id) return;
+  try { localStorage.removeItem('cv_state_' + cvData.id + '_' + cvProgIdx); } catch(e) {}
+}
 function cvToggle(i) { if (!cvState[i]) cvState[i] = {}; cvState[i].open = !cvState[i].open; renderCV(); }
 function cvTick(i) { if (!cvState[i]) cvState[i] = {}; cvState[i].done = !cvState[i].done; renderCV(); }
-function cvSet(i, f, val) { if (!cvState[i]) cvState[i] = {}; cvState[i][f] = val; }
+function cvSet(i, f, val) { if (!cvState[i]) cvState[i] = {}; cvState[i][f] = val; cvSaveState(); }
 
 function cvTickSet(exIdx, setIdx) {
   if (!cvState[exIdx]) cvState[exIdx] = {};
   if (!cvState[exIdx].sets) cvState[exIdx].sets = [];
   cvState[exIdx].sets[setIdx] = !cvState[exIdx].sets[setIdx];
+  cvSaveState();
   // Auto-open on first tick
   if (cvState[exIdx].sets[setIdx]) cvState[exIdx].open = true;
   renderCV();
@@ -9031,7 +9184,30 @@ function renderComplianceTab() {
       ['weight','bp','bg','hr','sleep'].forEach(function(k){ healthEntries+=(hd[k]||[]).length; });
       var wArr=hd.weight||[]; if(wArr.length) lastWeight=wArr[wArr.length-1].val+'kg';
     } catch(e2){}
-    var status = daysSince===null?'inactive':daysSince<=7?'active':daysSince<=21?'at-risk':'inactive';
+    // Use program creation date as reference if no sessions yet
+    var progCreatedDate = null;
+    (cl.programs||[]).forEach(function(p) {
+      if (p.id) {
+        // p.id is 'p_TIMESTAMP...' - extract timestamp
+        var ts = parseInt((p.id||'').replace('p_',''));
+        if (!isNaN(ts) && ts > 1000000000000) {
+          var d = new Date(ts);
+          if (!progCreatedDate || d > progCreatedDate) progCreatedDate = d;
+        }
+      }
+    });
+    var clientAge = progCreatedDate ? Math.floor((now - progCreatedDate) / (1000*60*60*24)) : 999;
+    
+    var status;
+    if (daysSince === null) {
+      // Never logged a session
+      if (clientAge <= 14) status = 'active';      // New client, grace period
+      else if (clientAge <= 30) status = 'at-risk'; // Given time but no sessions yet
+      else status = 'inactive';                      // Long time, no engagement
+    } else {
+      // Has logged sessions - use frequency-aware thresholds
+      status = daysSince <= 14 ? 'active' : daysSince <= 35 ? 'at-risk' : 'inactive';
+    }
     return { cl,combined,allLog,daysSince,last7,last30,prev30,totalSessions,trend,
              avgRPE,safetyLog,lastBP,lastBGL,lastHR,outcomeCount,progCount,
              totalExercises,progAge,healthEntries,lastWeight,status };
@@ -10484,5 +10660,22 @@ document.addEventListener('visibilitychange', function() {
   </div>
 </div>
 
+
+  <!-- MERGE CLIENT MODAL -->
+  <div class="overlay" id="mergeClientM" onclick="closeBg(event,'mergeClientM')">
+    <div class="modal" style="max-width:440px">
+      <div class="modal-title">🔀 Merge Client</div>
+      <p class="modal-sub">Merge <strong id="mergeSourceName"></strong> into another client. Their programs will be combined and this client will be deleted.</p>
+      <div class="fg" style="margin-top:12px">
+        <label>Merge into…</label>
+        <select id="mergeTargetSel" style="width:100%;padding:10px;border-radius:8px;background:var(--sand);border:1.5px solid var(--sand-dark);color:var(--text);font-size:14px"></select>
+      </div>
+      <p style="font-size:12px;color:#f59e0b;margin-top:10px">⚠️ This cannot be undone. <strong id="mergeSourceName2"></strong>'s record will be permanently deleted after merging.</p>
+      <div class="modal-footer">
+        <button class="btn btn-ghost btn-sm" onclick="closeM('mergeClientM')">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmMergeClient()" style="background:#6366f1">Merge Clients</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
