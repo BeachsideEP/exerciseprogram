@@ -4441,11 +4441,15 @@ async function signIn() {
   if (!email || !pass) { setAuthMsg('Enter your email and password.', 'err'); return; }
   setAuthMsg('Signing in...', 'ok');
   try {
+    const _sc = new AbortController();
+    const _st = setTimeout(function() { _sc.abort(); }, 12000);
     const r = await fetch(SUPA_URL + '/auth/v1/token?grant_type=password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
-      body: JSON.stringify({ email: email, password: pass })
+      body: JSON.stringify({ email: email, password: pass }),
+      signal: _sc.signal
     });
+    clearTimeout(_st);
     const d = await r.json();
     if (!r.ok) { setAuthMsg(d.error_description || d.msg || 'Sign in failed.', 'err'); return; }
     localStorage.setItem('bep_token', d.access_token);
@@ -4471,11 +4475,15 @@ async function sendOTP() {
   if (!email) { setAuthMsg('Enter your email address.', 'err'); return; }
   setAuthMsg('Sending code...', 'ok');
   try {
+    var _ctrl = new AbortController();
+    var _timer = setTimeout(function() { _ctrl.abort(); }, 12000);
     var r = await fetch(SUPA_URL + '/auth/v1/otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
-      body: JSON.stringify({ email: email, create_user: true })
+      body: JSON.stringify({ email: email, create_user: true }),
+      signal: _ctrl.signal
     });
+    clearTimeout(_timer);
     var d = await r.json();
     if (r.ok) {
       setAuthMsg('', 'ok');
@@ -4491,7 +4499,13 @@ async function sendOTP() {
         setAuthMsg('Could not send code: ' + msg, 'err');
       }
     }
-  } catch (e) { setAuthMsg('Connection error: ' + e.message, 'err'); }
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      setAuthMsg('Request timed out. Check your internet connection and try again.', 'err');
+    } else {
+      setAuthMsg('Connection error. Check your internet and try again.', 'err');
+    }
+  }
 }
 
 async function verifyOTP() {
@@ -4500,24 +4514,30 @@ async function verifyOTP() {
   if (!token || token.length < 4) { setAuthMsg('Enter the code from your email.', 'err'); return; }
   setAuthMsg('Verifying...', 'ok');
   try {
+    var _ctrl2 = new AbortController();
+    var _timer2 = setTimeout(function() { _ctrl2.abort(); }, 12000);
     var r = await fetch(SUPA_URL + '/auth/v1/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
-      body: JSON.stringify({ email: email, token: token, type: 'email' })
+      body: JSON.stringify({ email: email, token: token, type: 'email' }),
+      signal: _ctrl2.signal
     });
+    clearTimeout(_timer2);
     var d = await r.json();
     if (r.ok && d.access_token) {
       localStorage.setItem('bep_token', d.access_token);
       if (d.refresh_token) localStorage.setItem('bep_refresh', d.refresh_token);
-      // Also set supabase-js session so supabase.from() uses the right token
-      try {
-        await supabase.auth.setSession({ access_token: d.access_token, refresh_token: d.refresh_token || '' });
-      } catch(se) { console.warn('setSession failed:', se); }
       onAuthSuccess(d.user);
     } else {
       setAuthMsg(d.error_description || d.msg || 'Invalid or expired code. Try again.', 'err');
     }
-  } catch (e) { setAuthMsg('Connection error: ' + e.message, 'err'); }
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      setAuthMsg('Request timed out. Check your internet connection and try again.', 'err');
+    } else {
+      setAuthMsg('Connection error. Check your internet and try again.', 'err');
+    }
+  }
 }
 
 async function sendMagicLink() {
@@ -4610,11 +4630,15 @@ function onAuthSuccess(user) {
       try {
         var token = localStorage.getItem('bep_refresh');
         if (token) {
+          var _rc = new AbortController();
+          var _rt = setTimeout(function() { _rc.abort(); }, 10000);
           var resp = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
-            body: JSON.stringify({ refresh_token: token })
+            body: JSON.stringify({ refresh_token: token }),
+            signal: _rc.signal
           });
+          clearTimeout(_rt);
           if (resp.ok) {
             var data = await resp.json();
             if (data.access_token) {
