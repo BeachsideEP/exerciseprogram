@@ -4525,19 +4525,29 @@ async function sendMagicLink() {
   if (!email) { setAuthMsg('Enter your email address.', 'err'); return; }
   setAuthMsg('Sending...', 'ok');
   try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(function() { ctrl.abort(); }, 10000); // 10s timeout
     const r = await fetch(SUPA_URL + '/auth/v1/magiclink', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
-      body: JSON.stringify({ email: email })
+      body: JSON.stringify({ email: email }),
+      signal: ctrl.signal
     });
+    clearTimeout(timer);
     if (r.ok) {
-      setAuthMsg('Link sent! Check your email inbox.', 'ok');
+      setAuthMsg('Code sent! Check your email.', 'ok');
     } else {
       const d = await r.json();
       const msg = d.error_description || d.msg || d.error || JSON.stringify(d);
       setAuthMsg('Error: ' + msg, 'err');
     }
-  } catch (e) { setAuthMsg('Connection error: ' + e.message, 'err'); }
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      setAuthMsg('Request timed out — check your internet connection and try again.', 'err');
+    } else {
+      setAuthMsg('Connection error — check your internet and try again.', 'err');
+    }
+  }
 }
 
 // ── SEND LINK FROM EDIT CLIENT MODAL ──
@@ -4821,7 +4831,7 @@ async function loadClientView(user) {
     // Try 2: fetch all with stored JWT
     if (!rows.length) {
       try {
-        const r1 = await fetch(SUPA_URL + '/rest/v1/clients?select=data', { headers: fetchHeaders });
+        const r1 = await (function() { var c=new AbortController(); setTimeout(function(){c.abort();},15000); return fetch(SUPA_URL + '/rest/v1/clients?select=data', { headers: fetchHeaders, signal: c.signal }); })();
         if (r1.ok) { const d1 = await r1.json(); if (d1 && d1.length) rows = d1; }
       } catch(e1) {}
     }
