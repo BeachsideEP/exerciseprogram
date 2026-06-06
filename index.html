@@ -3350,8 +3350,27 @@ async function pullLibraryFromCloud() {
     if (!rows || !rows.length || !rows[0].data) return;
     const data = rows[0].data;
     if (data.exercises && data.exercises.length) {
-      customExercises = data.exercises;
-      localStorage.setItem(CUSTOM_EX_KEY, JSON.stringify(customExercises));
+      // Only update if cloud has MORE exercises, or same count (cloud may have fresher data)
+      // Never replace a larger local library with a smaller cloud one
+      if (data.exercises.length >= customExercises.length) {
+        customExercises = data.exercises;
+        // Write to localStorage without photos (quota safety)
+        try {
+          var stripped = customExercises.map(function(e) {
+            var c = Object.assign({}, e); delete c.photo1; delete c.photo2; return c;
+          });
+          localStorage.setItem(CUSTOM_EX_KEY, JSON.stringify(stripped));
+        } catch(e) {}
+      } else if (data.exercises.length > 0) {
+        // Cloud has fewer - merge: keep local exercises not in cloud
+        var cloudNames = new Set(data.exercises.map(function(e) { return e.name.toLowerCase(); }));
+        var localOnly = customExercises.filter(function(e) { return !cloudNames.has(e.name.toLowerCase()); });
+        if (localOnly.length > 0) {
+          // Push the merged set back to cloud
+          customExercises = data.exercises.concat(localOnly);
+          pushLibraryToCloud();
+        }
+      }
     }
     if (data.photos && Object.keys(data.photos).length) {
       // Merge cloud photos with local (cloud wins)
