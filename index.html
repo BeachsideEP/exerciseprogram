@@ -3379,12 +3379,50 @@ async function pullLibraryFromCloud() {
     }
   } catch(e) {}
 }
+// Fields kept in localStorage per program exercise (small, user-editable)
+var PROG_EX_KEEP = ['uid','name','sets','reps','hold','rest','load','notes','progression','superset','lastReps','lastLoad','_done'];
+
+function slimClientsForStorage(cls) {
+  // Reduce localStorage size by:
+  // 1. Stripping library-lookupable fields from exercises (cat, desc, muscles, video, id)
+  // 2. Trimming session logs to last 30 entries per program (full history stays in Supabase)
+  // Supabase always gets the FULL data - localStorage is just a local cache
+  return cls.map(function(cl) {
+    var slim = Object.assign({}, cl);
+    slim.programs = (cl.programs || []).map(function(p) {
+      var sp = Object.assign({}, p);
+      // Slim exercises - keep only user-editable fields
+      sp.exercises = (p.exercises || []).map(function(ex) {
+        var se = {};
+        PROG_EX_KEEP.forEach(function(k) { if (ex[k] !== undefined) se[k] = ex[k]; });
+        return se;
+      });
+      // Trim logs - keep last 30 entries (full log in Supabase)
+      if (sp.log && sp.log.length > 30) {
+        sp.log = sp.log.slice(-30);
+      }
+      return sp;
+    });
+    // Also trim safetyLog to last 50 entries
+    if (slim.safetyLog && slim.safetyLog.length > 50) {
+      slim.safetyLog = slim.safetyLog.slice(-50);
+    }
+    return slim;
+  });
+}
+
 function saveDB() {
   var cl = getClient();
   if (cl) cl._localUpdatedAt = new Date().toISOString();
-  localStorage.setItem(DB_KEY, JSON.stringify(clients));
+  // Write slim version to localStorage (strips library-lookupable fields)
+  try {
+    localStorage.setItem(DB_KEY, JSON.stringify(slimClientsForStorage(clients)));
+  } catch(e) {
+    // If still too big, try without notes/progression
+    try { localStorage.setItem(DB_KEY, JSON.stringify(clients)); } catch(e2) {}
+  }
   showAutosave();
-  // Deep snapshot of client into closure - immune to sync replacing clients array
+  // Deep snapshot of FULL client into closure for cloud push (cloud gets full data)
   if (cl && userRole === 'practitioner') {
     var snapCl = JSON.parse(JSON.stringify(cl));
     if (saveDB._timer) clearTimeout(saveDB._timer);
@@ -3827,7 +3865,24 @@ function updEx(uid, field, val) {
 }
 
 function renderDropZone() {
-  const p = getProg(); const exs = p ? p.exercises : [];
+  const p = getProg();
+  // Re-hydrate slim exercise objects with library data before rendering
+  if (p && p.exercises) {
+    var libMap = {};
+    getAllExercises().forEach(function(e) { libMap[e.name.toLowerCase()] = e; });
+    p.exercises.forEach(function(ex) {
+      if (!ex.cat || !ex.desc) {
+        var lib = libMap[ex.name.toLowerCase()];
+        if (lib) {
+          if (!ex.cat) ex.cat = lib.cat;
+          if (!ex.desc) ex.desc = lib.desc;
+          if (!ex.muscles) ex.muscles = lib.muscles;
+          if (!ex.id) ex.id = lib.id;
+        }
+      }
+    });
+  }
+  const exs = p ? p.exercises : [];
   const dz = document.getElementById('dropZone');
   if (!exs.length) {
     dz.innerHTML = `<div class="dz-empty"><div class="dz-ei">🏋️</div><p class="dz-et">Drag exercises from the library<br>or click <strong>+</strong> to add them here</p></div>`;
