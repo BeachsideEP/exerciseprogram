@@ -3215,11 +3215,22 @@ const CUSTOM_PHOTOS_KEY = 'bep_v6_photos';
 let clients = [], customExercises = [], customPhotos = {};
 try { clients = JSON.parse(localStorage.getItem('bep_v6_clients') || localStorage.getItem('bep_v6') || '[]'); } catch(e) { clients = []; }
 
-// Clean stale/large localStorage keys from old versions to prevent quota exhaustion
+// Clean stale keys and guard against localStorage overflow
 (function() {
   ['bep_v6', 'bep_v6_photos', 'bep_v6_custom_ex', 'bep_v6_custom_exercises'].forEach(function(k) {
     try { if (localStorage.getItem(k)) localStorage.removeItem(k); } catch(e) {}
   });
+  // Guard: if localStorage > 3.5MB, clear client cache (re-syncs from Supabase)
+  try {
+    var total = 0;
+    for (var _k in localStorage) {
+      if (localStorage.hasOwnProperty(_k)) total += (localStorage[_k]||'').length;
+    }
+    if (total > 3500000) {
+      localStorage.removeItem('bep_v6_clients');
+      console.log('localStorage guard: cleared cache (' + Math.round(total/1024) + 'KB)');
+    }
+  } catch(e) {}
 })();
 
 let currentClientId = null, currentProgId = null;
@@ -3415,12 +3426,15 @@ function saveDB() {
   var cl = getClient();
   if (cl) cl._localUpdatedAt = new Date().toISOString();
   // Write slim version to localStorage (strips library-lookupable fields)
+  // Write slim clients to localStorage as offline cache
+  // Skip silently if quota exceeded - Supabase is the source of truth
   try {
-    localStorage.setItem(DB_KEY, JSON.stringify(slimClientsForStorage(clients)));
-  } catch(e) {
-    // If still too big, try without notes/progression
-    try { localStorage.setItem(DB_KEY, JSON.stringify(clients)); } catch(e2) {}
-  }
+    var slim = JSON.stringify(slimClientsForStorage(clients));
+    if (slim.length < 4000000) { // Only write if under 4MB
+      localStorage.setItem(DB_KEY, slim);
+    }
+    // else skip localStorage - rely on Supabase
+  } catch(e) {}
   showAutosave();
   // Deep snapshot of FULL client into closure for cloud push (cloud gets full data)
   if (cl && userRole === 'practitioner') {
@@ -4743,11 +4757,49 @@ async function syncClients() {
   if (userRole !== 'practitioner') return;
   setSyncStatus('busy');
   try {
-    const r = await fetch(SUPA_URL + '/rest/v1/clients?select=data,updated_at&order=updated_at.desc', {
+    // Fetch lightweight manifest first (id + updated_at only)
+    // Then fetch full data only for clients that have changed since last sync
+    const r = await fetch(SUPA_URL + '/rest/v1/clients?select=id,updated_at&order=updated_at.desc', {
       headers: supaHeaders()
     });
     if (!r.ok) { setSyncStatus('err'); return; }
-    const rows = await r.json();
+    const manifest = await r.json();
+    if (!manifest || !manifest.length) { setSyncStatus('ok'); return; }
+
+    // Find which clients need fresh data (new or updated since we last saw them)
+    var localById = {};
+    clients.forEach(function(c) { if (c.id) localById[c.id] = c; });
+    var needFetch = manifest.filter(function(m) {
+      var local = localById[m.id];
+      if (!local) return true; // new client
+      var cloudT = new Date(m.updated_at||0).getTime();
+      var localT = new Date(local._localUpdatedAt||0).getTime();
+      return cloudT > localT + 5000; // cloud is more than 5s newer
+    });
+
+    // If nothing changed, we're done
+    if (!needFetch.length && clients.length === manifest.length) {
+      setSyncStatus('ok');
+      return;
+    }
+
+    // Fetch full data only for changed/new clients (batched by ID)
+    var rows = [];
+    if (needFetch.length > 0 && needFetch.length <= 20) {
+      // Small batch - fetch individually
+      var ids = needFetch.map(function(m) { return m.id; }).join(',');
+      var rFull = await fetch(SUPA_URL + '/rest/v1/clients?select=data,updated_at&id=in.(' + ids + ')', {
+        headers: supaHeaders()
+      });
+      if (rFull.ok) rows = await rFull.json();
+    } else {
+      // Many changes or first load - fetch all
+      var rAll = await fetch(SUPA_URL + '/rest/v1/clients?select=data,updated_at&order=updated_at.desc', {
+        headers: supaHeaders()
+      });
+      if (!rAll.ok) { setSyncStatus('err'); return; }
+      rows = await rAll.json();
+    }
     if (!rows || !rows.length) { setSyncStatus('ok'); return; }
 
     // Use in-memory clients (most current — includes unsaved edits)
@@ -4873,21 +4925,23 @@ async function loadClientView(user) {
         if (rId.ok) { const dId = await rId.json(); if (dId && dId.length) rows = dId; }
       } catch(eId) {}
     }
-    // Try 2: fetch all with stored JWT
+    // Try 2: server-side email filter (fast — avoids downloading all clients)
+    if (!rows.length && user.email) {
+      try {
+        var _ec = new AbortController(); setTimeout(function(){_ec.abort();},15000);
+        const rEmail = await fetch(SUPA_URL + '/rest/v1/clients?select=data&data->>email=eq.' + encodeURIComponent(user.email), { headers: fetchHeaders, signal: _ec.signal });
+        if (rEmail.ok) { const dEmail = await rEmail.json(); if (dEmail && dEmail.length) rows = dEmail; }
+      } catch(eEmail) {}
+    }
+    // Try 3: fetch all as last resort (fallback for edge cases e.g. email mismatch)
     if (!rows.length) {
       try {
-        const r1 = await (function() { var c=new AbortController(); setTimeout(function(){c.abort();},15000); return fetch(SUPA_URL + '/rest/v1/clients?select=data', { headers: fetchHeaders, signal: c.signal }); })();
+        var _ac = new AbortController(); setTimeout(function(){_ac.abort();},30000);
+        const r1 = await fetch(SUPA_URL + '/rest/v1/clients?select=data', { headers: fetchHeaders, signal: _ac.signal });
         if (r1.ok) { const d1 = await r1.json(); if (d1 && d1.length) rows = d1; }
       } catch(e1) {}
     }
-    // Try 3: supabase-js session
-    if (!rows.length) {
-      try {
-        const { data: sbData } = await supabase.from('clients').select('data');
-        if (sbData && sbData.length) rows = sbData;
-      } catch(e2) {}
-    }
-    if (!rows || !rows.length) throw new Error('Could not load data');
+        if (!rows || !rows.length) throw new Error('Could not load data');
     const allClients = rows.map(function(row) { return row.data || row; }).filter(Boolean);
     // If we fetched by cached ID, that single row IS the match
     var match = (cachedId && allClients.length === 1) ? allClients[0] : 
