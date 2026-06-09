@@ -1381,6 +1381,11 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 <body>
 
 
+<div id="viewLoading" style="display:none;position:fixed;inset:0;background:#0d1117;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:9999">
+  <div style="width:48px;height:48px;border:3px solid #2FFFD4;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+  <div style="color:#C9D1D9;font-size:14px;font-family:system-ui">Resuming your session...</div>
+</div>
+
 <div id="viewAuth" style="display:none">
   <div class="auth-card">
     <div class="auth-logo">
@@ -4557,9 +4562,11 @@ function setSyncStatus(s) {
 
 // ── VIEW SWITCHING ──
 function showView(v) {
-  document.getElementById('viewAuth').style.display   = v === 'auth'         ? 'block' : 'none';
-  document.getElementById('viewClient').style.display = v === 'client'       ? 'block' : 'none';
-  document.getElementById('viewApp').style.display    = v === 'practitioner' ? 'block' : 'none';
+  document.getElementById('viewAuth').style.display    = v === 'auth'         ? 'block' : 'none';
+  document.getElementById('viewClient').style.display  = v === 'client'       ? 'block' : 'none';
+  document.getElementById('viewApp').style.display     = v === 'practitioner' ? 'block' : 'none';
+  var vl = document.getElementById('viewLoading');
+  if (vl) vl.style.display = v === 'loading' ? 'flex' : 'none';
 }
 
 function showPanel(p) {
@@ -5695,9 +5702,19 @@ document.addEventListener('DOMContentLoaded', function() {
     return;
   }
 
-  // HOSTED — always show auth first as default fallback
-  showView('auth');
-  showPanel('magic'); // Show client OTP panel by default
+  // HOSTED — check localStorage synchronously before showing auth
+  // This prevents the "signed out" flash on Android tab-kill recovery
+  var _hasToken = localStorage.getItem('bep_token') || localStorage.getItem('bep_refresh');
+  var _cachedId = localStorage.getItem('bep_clk_cached_id');
+  if (_hasToken) {
+    // Has saved session — show loading screen, not auth
+    // Auth screen only shows if token validation fails (handled below)
+    showView('loading'); // see loadingView below
+  } else {
+    // Genuinely no session — show auth
+    showView('auth');
+    showPanel('magic');
+  }
 
 
   // HOSTED — check for magic link hash
@@ -5760,6 +5777,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Only show auth screen if there's genuinely no saved session
   if (!localStorage.getItem('bep_token') && !localStorage.getItem('bep_refresh')) {
+    showView('auth');
+  } else if (document.getElementById('viewLoading') && 
+             document.getElementById('viewLoading').style.display !== 'none') {
+    // Still on loading screen = token validation failed silently
     showView('auth');
   }
 });
