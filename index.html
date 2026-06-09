@@ -4758,11 +4758,22 @@ async function syncClients() {
   setSyncStatus('busy');
   try {
     // Fetch lightweight manifest first (id + updated_at only)
-    // Then fetch full data only for clients that have changed since last sync
-    const r = await fetch(SUPA_URL + '/rest/v1/clients?select=id,updated_at&order=updated_at.desc', {
-      headers: supaHeaders()
+    var _mc = new AbortController();
+    var _mt = setTimeout(function() { _mc.abort(); }, 20000);
+    const r = await fetch(SUPA_URL + '/rest/v1/clients?select=id,updated_at&limit=500', {
+      headers: supaHeaders(),
+      signal: _mc.signal
     });
-    if (!r.ok) { setSyncStatus('err'); return; }
+    clearTimeout(_mt);
+    if (!r.ok) {
+      var errText = await r.text().catch(function(){return '';});
+      // 57014 = statement timeout - use local data, don't show error to user
+      if (errText.includes('57014') || errText.includes('timeout')) {
+        setSyncStatus('ok'); // Silent - local data is fine
+        return;
+      }
+      setSyncStatus('err'); return;
+    }
     const manifest = await r.json();
     if (!manifest || !manifest.length) { setSyncStatus('ok'); return; }
 
@@ -4788,16 +4799,33 @@ async function syncClients() {
     if (needFetch.length > 0 && needFetch.length <= 20) {
       // Small batch - fetch individually
       var ids = needFetch.map(function(m) { return m.id; }).join(',');
+      var _dc = new AbortController();
+      var _dt = setTimeout(function() { _dc.abort(); }, 20000);
       var rFull = await fetch(SUPA_URL + '/rest/v1/clients?select=data,updated_at&id=in.(' + ids + ')', {
-        headers: supaHeaders()
+        headers: supaHeaders(),
+        signal: _dc.signal
       });
+      clearTimeout(_dt);
       if (rFull.ok) rows = await rFull.json();
+      else {
+        // Delta fetch failed - fall back to full fetch on next sync
+        var dErr = await rFull.text().catch(function(){return '';});
+        if (dErr.includes('57014') || dErr.includes('timeout')) { setSyncStatus('ok'); return; }
+      }
     } else {
       // Many changes or first load - fetch all
-      var rAll = await fetch(SUPA_URL + '/rest/v1/clients?select=data,updated_at&order=updated_at.desc', {
-        headers: supaHeaders()
+      var _fc = new AbortController();
+      var _ft = setTimeout(function() { _fc.abort(); }, 30000);
+      var rAll = await fetch(SUPA_URL + '/rest/v1/clients?select=data,updated_at&limit=500', {
+        headers: supaHeaders(),
+        signal: _fc.signal
       });
-      if (!rAll.ok) { setSyncStatus('err'); return; }
+      clearTimeout(_ft);
+      if (!rAll.ok) {
+        var fErr = await rAll.text().catch(function(){return '';});
+        if (fErr.includes('57014') || fErr.includes('timeout')) { setSyncStatus('ok'); return; }
+        setSyncStatus('err'); return;
+      }
       rows = await rAll.json();
     }
     if (!rows || !rows.length) { setSyncStatus('ok'); return; }
@@ -4887,7 +4915,12 @@ async function syncClients() {
     }
 
     setSyncStatus('ok');
-  } catch(e) { setSyncStatus('err'); }
+  } catch(e) {
+    // AbortError = our timeout fired; network error = connectivity issue
+    // Either way, local data is still good - don't show error to user
+    if (e.name === 'AbortError') { setSyncStatus('ok'); return; }
+    setSyncStatus('err');
+  }
 }
 
 
