@@ -7331,6 +7331,48 @@ function cvSwitchTab(tab) {
   }
   if (tab === 'calendar') renderCVCalendar();
   if (tab === 'ai') renderAnnaTab();
+  cvSaveSession(); // persist position for Android recovery
+}
+
+// ── SESSION PERSISTENCE (Android tab-kill recovery) ──
+function cvSaveSession() {
+  if (!cvData || !cvData.id) return;
+  try {
+    localStorage.setItem('bep_cv_session', JSON.stringify({
+      clientId: cvData.id,
+      email: cvData.email,
+      progIdx: cvProgIdx,
+      tab: cvActiveTab || 'home',
+      savedAt: Date.now()
+    }));
+  } catch(e) {}
+}
+
+function cvRestoreSession() {
+  try {
+    var s = JSON.parse(localStorage.getItem('bep_cv_session') || 'null');
+    if (!s || !cvData) return;
+    if (s.clientId !== cvData.id) return; // different client
+    if (Date.now() - s.savedAt > 8 * 60 * 60 * 1000) return; // >8hrs old
+    // Restore program index
+    if (typeof s.progIdx === 'number' && cvData.programs && s.progIdx < cvData.programs.length) {
+      cvProgIdx = s.progIdx;
+    }
+    // Restore tab (only switch to workouts if there's mid-workout state)
+    var hasState = Object.keys(cvState).length > 0;
+    if (s.tab === 'workouts' && hasState) {
+      cvSwitchTab('workouts');
+    } else if (s.tab && s.tab !== 'home' && s.tab !== 'workouts') {
+      cvSwitchTab(s.tab);
+    }
+    // Update program selector UI
+    var sel = document.getElementById('_progSel');
+    if (sel) sel.value = 'prog_' + cvProgIdx;
+  } catch(e) {}
+}
+
+function cvClearSession() {
+  try { localStorage.removeItem('bep_cv_session'); } catch(e) {}
 }
 
 // ── HOME SCREEN ──
@@ -8167,6 +8209,11 @@ function cvShowSyncPulse() {
 
 // Refresh auth token when user returns to the app (after phone lock etc)
 document.addEventListener('visibilitychange', async function() {
+  if (document.hidden && cvData) {
+    // Phone locked/app backgrounded - save everything immediately
+    cvSaveSession();
+    cvSaveState();
+  }
   if (!document.hidden && currentUser) {
     var refresh = localStorage.getItem('bep_refresh');
     if (refresh) {
@@ -8203,6 +8250,8 @@ function cvStartSync(user) {
 function cvStopSync() {
   cvSyncUser = null;
   if (cvSyncInterval) { clearInterval(cvSyncInterval); cvSyncInterval = null; }
+  cvClearSession();
+  cvClearSession();
 }
 
 
@@ -8530,6 +8579,7 @@ function cvSelectProg(val) {
     cvCustomWorkout = false;
     cvProgIdx = parseInt(val.replace('prog_', '')) || 0;
     cvState = {};
+    cvSaveSession(); // persist program position for Android recovery
     renderCV();
   }
 }
