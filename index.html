@@ -4912,175 +4912,63 @@ async function syncClients() {
   if (userRole !== 'practitioner') return;
   setSyncStatus('busy');
   try {
-    // Fetch lightweight manifest first (id + updated_at only)
+    // Fetch manifest only (id + updated_at) - never fetches full client data
     var _mc = new AbortController();
-    var _mt = setTimeout(function() { _mc.abort(); }, 20000);
+    var _mt = setTimeout(function() { _mc.abort(); }, 15000);
     const r = await fetch(SUPA_URL + '/rest/v1/clients?select=id,updated_at&limit=500', {
-      headers: supaHeaders(),
-      signal: _mc.signal
+      headers: supaHeaders(), signal: _mc.signal
     });
     clearTimeout(_mt);
+
     if (!r.ok) {
       var errText = await r.text().catch(function(){return '';});
-      // 57014 = statement timeout - use local data, don't show error to user
-      if (errText.includes('57014') || errText.includes('timeout')) {
-        setSyncStatus('ok'); // Silent - local data is fine
-        return;
-      }
+      if (errText.includes('57014') || errText.includes('timeout')) { setSyncStatus('ok'); return; }
       setSyncStatus('err'); return;
     }
+
     const manifest = await r.json();
     if (!manifest || !manifest.length) { setSyncStatus('ok'); return; }
 
-    // Find which clients need fresh data (new or updated since we last saw them)
-    var localById = {};
-    clients.forEach(function(c) { if (c.id) localById[c.id] = c; });
-    var needFetch = manifest.filter(function(m) {
-      var local = localById[m.id];
-      if (!local) return true; // new client
-      var cloudT = new Date(m.updated_at||0).getTime();
-      var localT = new Date(local._localUpdatedAt||0).getTime();
-      return cloudT > localT + 5000; // cloud is more than 5s newer
-    });
+    // Build map of cloud timestamps
+    var cloudMap = {};
+    manifest.forEach(function(m) { if (m.id) cloudMap[m.id] = m.updated_at; });
 
-    // If nothing changed, we're done
-    if (!needFetch.length && clients.length === manifest.length) {
-      setSyncStatus('ok');
-      return;
+    // Find new clients in cloud not in local memory
+    var localIds = new Set(clients.map(function(c) { return c.id; }));
+    var newCloudIds = manifest.filter(function(m) { return !localIds.has(m.id); }).map(function(m) { return m.id; });
+
+    // Fetch full data for new clients only (not in local at all)
+    if (newCloudIds.length > 0 && newCloudIds.length <= 10) {
+      var _nc = new AbortController();
+      var _nt = setTimeout(function() { _nc.abort(); }, 15000);
+      var rNew = await fetch(SUPA_URL + '/rest/v1/clients?select=data,updated_at&id=in.(' + newCloudIds.join(',') + ')', {
+        headers: supaHeaders(), signal: _nc.signal
+      });
+      clearTimeout(_nt);
+      if (rNew.ok) {
+        var newRows = await rNew.json();
+        newRows.forEach(function(row) {
+          if (row.data) { clients.push(row.data); }
+        });
+        localStorage.setItem(DB_KEY, JSON.stringify(slimClientsForStorage(clients)));
+        renderClientDropdown();
+      }
     }
 
-    // Fetch full data only for changed/new clients (batched by ID)
-    var rows = [];
-    if (needFetch.length > 0 && needFetch.length <= 20) {
-      // Small batch - fetch individually
-      var ids = needFetch.map(function(m) { return m.id; }).join(',');
-      var _dc = new AbortController();
-      var _dt = setTimeout(function() { _dc.abort(); }, 20000);
-      var rFull = await fetch(SUPA_URL + '/rest/v1/clients?select=data,updated_at&id=in.(' + ids + ')', {
-        headers: supaHeaders(),
-        signal: _dc.signal
-      });
-      clearTimeout(_dt);
-      if (rFull.ok) rows = await rFull.json();
-      else {
-        // Delta fetch failed - fall back to full fetch on next sync
-        var dErr = await rFull.text().catch(function(){return '';});
-        if (dErr.includes('57014') || dErr.includes('timeout')) { setSyncStatus('ok'); return; }
-      }
-    } else {
-      // Many changes or first load - fetch all
-      var _fc = new AbortController();
-      var _ft = setTimeout(function() { _fc.abort(); }, 30000);
-      var rAll = await fetch(SUPA_URL + '/rest/v1/clients?select=data,updated_at&limit=500', {
-        headers: supaHeaders(),
-        signal: _fc.signal
-      });
-      clearTimeout(_ft);
-      if (!rAll.ok) {
-        var fErr = await rAll.text().catch(function(){return '';});
-        if (fErr.includes('57014') || fErr.includes('timeout')) { setSyncStatus('ok'); return; }
-        setSyncStatus('err'); return;
-      }
-      rows = await rAll.json();
-    }
-    if (!rows || !rows.length) { setSyncStatus('ok'); return; }
-
-    // Use in-memory clients (most current — includes unsaved edits)
-    const localMap = {};
-    clients.forEach(function(c) { if (c.id) localMap[c.id] = c; });
-
-    const merged = rows.map(function(row) {
-      var cloudCl = row.data;
-      if (!cloudCl || !cloudCl.id) return null;
-      var localCl = localMap[cloudCl.id];
-      if (!localCl) return cloudCl; // only in cloud
-
-      var cloudProgCount = (cloudCl.programs || []).length;
-      var localProgCount = (localCl.programs || []).length;
-
-      // Local has more programs → keep local (push handled by saveDB)
-      if (localProgCount > cloudProgCount) return localCl;
-
-      // Cloud has more programs → use cloud but add local-only programs
-      if (cloudProgCount > localProgCount) {
-        (localCl.programs || []).forEach(function(lp) {
-          if (!cloudCl.programs.find(function(cp) { return cp.id === lp.id; })) {
-            cloudCl.programs.push(lp);
-          }
-        });
-        return cloudCl;
-      }
-
-      // Same program count → compare total exercise counts
-      var localExCount = (localCl.programs || []).reduce(function(n,p) { return n+(p.exercises||[]).length; }, 0);
-      var cloudExCount = (cloudCl.programs || []).reduce(function(n,p) { return n+(p.exercises||[]).length; }, 0);
-
-      // Local has more exercises → keep local
-      if (localExCount > cloudExCount) return localCl;
-
-      // Compare per-program exercise counts — keep any program where local has more
-      if (cloudExCount > localExCount) {
-        // Cloud has more total — use cloud but check each program
-        (cloudCl.programs || []).forEach(function(cp) {
-          var lp = (localCl.programs || []).find(function(p) { return p.id === cp.id; });
-          if (lp && lp.exercises.length > cp.exercises.length) {
-            cp.exercises = lp.exercises; // local prog has more — use it
-          }
-        });
-        return cloudCl;
-      }
-
-      // Same exercise count — use timestamps
-      var cloudTime = new Date(row.updated_at || 0).getTime();
-      var localTime = new Date(localCl._localUpdatedAt || 0).getTime();
-
-      if (localTime >= cloudTime) {
-        // Local is same age or newer — merge client session data from cloud
-        if (cloudCl.outcomes && (cloudCl.outcomes||[]).length > (localCl.outcomes||[]).length) localCl.outcomes = cloudCl.outcomes;
-        if (cloudCl.safetyLog && (cloudCl.safetyLog||[]).length > (localCl.safetyLog||[]).length) localCl.safetyLog = cloudCl.safetyLog;
-        if (cloudCl.ownWorkouts && (cloudCl.ownWorkouts||[]).length > (localCl.ownWorkouts||[]).length) localCl.ownWorkouts = cloudCl.ownWorkouts;
-        return localCl;
-      }
-
-      // Cloud is newer — preserve metadata
-      if (!cloudCl.email && localCl.email) cloudCl.email = localCl.email;
-      if (!cloudCl.phone && localCl.phone) cloudCl.phone = localCl.phone;
-      if (cloudCl.requireSafetyCheck === undefined) cloudCl.requireSafetyCheck = localCl.requireSafetyCheck;
-      return cloudCl;
-    }).filter(Boolean);
-
-    // Add local-only clients not in cloud (new clients not yet pushed)
-    clients.forEach(function(lc) {
-      if (!merged.find(function(m) { return m.id === lc.id; })) {
-        merged.push(lc);
+    // Update local timestamps so next sync knows what changed
+    clients.forEach(function(c) {
+      if (cloudMap[c.id] && !c._localUpdatedAt) {
+        c._localUpdatedAt = cloudMap[c.id];
       }
     });
-
-    clients = merged;
-    localStorage.setItem(DB_KEY, JSON.stringify(clients));
-    renderClientDropdown();
-
-    // Re-render UI only if cloud gave newer data for current client
-    if (currentClientId) {
-      var cloudRow = rows.find(function(row) { return row.data && row.data.id === currentClientId; });
-      var localCl2 = localMap[currentClientId];
-      var cloudT = cloudRow ? new Date(cloudRow.updated_at || 0).getTime() : 0;
-      var localT = localCl2 ? new Date(localCl2._localUpdatedAt || 0).getTime() : 0;
-      if (cloudT > localT) { renderProgTabs(); loadProg(); updatePreview(); }
-    }
 
     setSyncStatus('ok');
   } catch(e) {
-    // AbortError = our timeout fired; network error = connectivity issue
-    // Either way, local data is still good - don't show error to user
     if (e.name === 'AbortError') { setSyncStatus('ok'); return; }
     setSyncStatus('err');
   }
 }
 
-
-// ── CLIENT VIEW STATE ──
-let cvData = null, cvProgIdx = 0, cvState = {}, cvFeeling = '', cvSafetyDone = false, cvComment = '', cvCustomWorkout = false, cvCustomExercises = [], cvRPE = 5;
 
 async function loadClientView(user) {
   // Show loading state in home tab only — never write to cvBody (workouts tab) here
@@ -5157,7 +5045,9 @@ async function loadClientView(user) {
     }
     // Cache client ID for faster future loads (bypasses RLS)
     localStorage.setItem('bep_cid_' + email, match.id);
-    cvData = match; cvState = {}; cvFeeling = ''; cvProgIdx = 0; cvSafetyDone = false; cvComment = '';
+    cvData = match;
+    // Cache client ID for fast future loads (skips full table scan)
+    try { localStorage.setItem('bep_clk_cached_id', match.id); } catch(e) {} cvState = {}; cvFeeling = ''; cvProgIdx = 0; cvSafetyDone = false; cvComment = '';
     setTimeout(function(){cvCheckMilestones();},2000);
     cvStartSync(user); // Begin live sync
     loadAnnouncements().then(function() { if (cvActiveTab === 'home') renderCVHome(); }); // Load announcements
