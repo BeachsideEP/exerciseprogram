@@ -3629,6 +3629,73 @@ function confirmMergeClient() {
   toast(sourceCl.first + ' merged into ' + targetCl.first + ' ✓', 'ok');
 }
 
+
+async function migratePhotosToStorage() {
+  var btn = document.getElementById('migratePhotosBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Migrating...'; }
+
+  var toMigrate = customExercises.filter(function(e) {
+    return (e.photo1 && e.photo1.startsWith('data:')) || (e.photo2 && e.photo2.startsWith('data:'));
+  });
+
+  if (!toMigrate.length) {
+    toast('All photos already on cloud storage ✓', 'ok');
+    if (btn) { btn.disabled = false; btn.textContent = '☁️ Migrate Photos'; }
+    return;
+  }
+
+  toast('Migrating ' + toMigrate.length + ' exercises to cloud storage...', 'ok');
+  var token = authToken();
+  var migrated = 0;
+
+  for (var i = 0; i < toMigrate.length; i++) {
+    var ex = toMigrate[i];
+    var safeName = ex.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g,'-').substring(0,40);
+
+    // Migrate photo1
+    if (ex.photo1 && ex.photo1.startsWith('data:')) {
+      try {
+        var blob1 = await (async function(dataUrl) {
+          var res = await fetch(dataUrl); return await res.blob();
+        })(ex.photo1);
+        var ext1 = ex.photo1.indexOf('png') > -1 ? 'png' : 'jpg';
+        var fn1 = safeName + '-p1-' + Date.now() + '.' + ext1;
+        var r1 = await fetch(STORAGE_URL + '/exercise-photos/' + fn1, {
+          method: 'POST',
+          headers: {'Authorization':'Bearer '+token,'apikey':SUPA_KEY,'Content-Type':blob1.type,'x-upsert':'true'},
+          body: blob1
+        });
+        if (r1.ok) ex.photo1 = STORAGE_PUBLIC_URL + '/' + fn1;
+      } catch(e1) { console.warn('photo1 migrate fail:', ex.name, e1.message); }
+    }
+
+    // Migrate photo2
+    if (ex.photo2 && ex.photo2.startsWith('data:')) {
+      try {
+        var blob2 = await (async function(dataUrl) {
+          var res = await fetch(dataUrl); return await res.blob();
+        })(ex.photo2);
+        var ext2 = ex.photo2.indexOf('png') > -1 ? 'png' : 'jpg';
+        var fn2 = safeName + '-p2-' + (Date.now()+1) + '.' + ext2;
+        var r2 = await fetch(STORAGE_URL + '/exercise-photos/' + fn2, {
+          method: 'POST',
+          headers: {'Authorization':'Bearer '+token,'apikey':SUPA_KEY,'Content-Type':blob2.type,'x-upsert':'true'},
+          body: blob2
+        });
+        if (r2.ok) ex.photo2 = STORAGE_PUBLIC_URL + '/' + fn2;
+      } catch(e2) { console.warn('photo2 migrate fail:', ex.name, e2.message); }
+    }
+
+    migrated++;
+    if (btn) btn.textContent = 'Migrating ' + migrated + '/' + toMigrate.length + '...';
+  }
+
+  // Save updated library (now with URLs instead of base64)
+  saveCustomEx();
+  toast('✅ Migrated ' + migrated + ' exercises to cloud storage! Library is now ' + Math.round(JSON.stringify(customExercises).length/1024) + 'KB', 'ok');
+  if (btn) { btn.disabled = false; btn.textContent = '☁️ Migrate Photos'; }
+}
+
 function archiveClient() {
   const cl = getClient(); if (!cl) return;
   if (!confirm('Archive ' + cl.first + ' ' + cl.last + '? They will be moved to the archive and cannot sign in until reactivated.')) return;
@@ -3840,7 +3907,9 @@ function addEx(id) {
   let ex = getAllExercises().find(e => String(e.id) === String(id));
   if (!ex) { toast('Exercise not found', 'err'); return; }
   const p = getProg(); if (!p) return;
-  p.exercises.push({...ex, uid: Date.now()+Math.random(), load:'', notes:''});
+  var exCopy = Object.assign({}, ex, {uid: Date.now()+Math.random(), load:'', notes:''});
+  delete exCopy.photo1; delete exCopy.photo2; delete exCopy.photo; // photos live in library, not program exercises
+  p.exercises.push(exCopy);
   // Stamp timestamp so sync ALWAYS keeps this version
   const clStamp = getClient();
   if (clStamp) {
@@ -3984,16 +4053,73 @@ function renderEmList() {
     </div>`).join('');
 }
 
-function handleEmPhoto(event, previewId, dataId) {
+async function handleEmPhoto(event, previewId, dataId) {
   const file = event.target.files[0]; if (!file) return;
-  if (file.size > 2*1024*1024) { toast('Image too large — max 2MB','err'); return; }
-  const reader = new FileReader();
-  reader.onload = e => {
-    const data = e.target.result;
-    document.getElementById(dataId).value = data;
-    document.getElementById(previewId).innerHTML = `<img src="${data}" style="width:100%;height:100%;object-fit:cover;border-radius:5px">`;
-  };
-  reader.readAsDataURL(file);
+  if (file.size > 5*1024*1024) { toast('Image too large — max 5MB','err'); return; }
+
+  var previewEl = document.getElementById(previewId);
+  var dataEl = document.getElementById(dataId);
+  previewEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:12px">Uploading...</div>';
+
+  try {
+    // Compress if over 1MB
+    var uploadFile = file;
+    if (file.size > 1048576) uploadFile = await compressImage(file, 900);
+
+    // Build filename from exercise name + slot + timestamp
+    var nameEl = document.getElementById('ee_name') || document.getElementById('em_name');
+    var exName = nameEl ? nameEl.value : 'exercise';
+    var slot = dataId.includes('2') ? 'p2' : 'p1';
+    var ext = uploadFile.type.includes('png') ? 'png' : 'jpg';
+    var filename = exName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g,'-').substring(0,40)
+                   + '-' + slot + '-' + Date.now() + '.' + ext;
+
+    var token = authToken();
+    var uploadResp = await fetch(STORAGE_URL + '/exercise-photos/' + filename, {
+      method: 'POST',
+      headers: {'Authorization':'Bearer '+token,'apikey':SUPA_KEY,'Content-Type':uploadFile.type,'x-upsert':'true'},
+      body: uploadFile
+    });
+
+    if (uploadResp.ok) {
+      var photoUrl = STORAGE_PUBLIC_URL + '/' + filename;
+      previewEl.innerHTML = '<img src="' + photoUrl + '" style="width:100%;height:100%;object-fit:cover;border-radius:5px">';
+      dataEl.value = photoUrl;
+      toast('Photo uploaded ✓', 'ok');
+    } else {
+      throw new Error('status ' + uploadResp.status);
+    }
+  } catch(err) {
+    // Fallback to base64 if upload fails
+    console.warn('Storage upload failed, using base64:', err.message);
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var data = e.target.result;
+      dataEl.value = data;
+      previewEl.innerHTML = '<img src="' + data + '" style="width:100%;height:100%;object-fit:cover;border-radius:5px">';
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function compressImage(file, maxKB) {
+  return new Promise(function(resolve) {
+    var img = new Image();
+    var url = URL.createObjectURL(file);
+    img.onload = function() {
+      URL.revokeObjectURL(url);
+      var canvas = document.createElement('canvas');
+      var scale = Math.min(1, Math.sqrt((maxKB * 1024) / file.size));
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(function(blob) {
+        resolve(new File([blob], file.name, {type:'image/jpeg'}));
+      }, 'image/jpeg', 0.85);
+    };
+    img.onerror = function() { resolve(file); };
+    img.src = url;
+  });
 }
 
 function addCustomExercise() {
@@ -4383,6 +4509,8 @@ init();
 const SUPA_URL = 'https://aujuspwdiscefdlowcdm.supabase.co';
 const ANNA_API_KEY_STORE = 'bep_anna_key'; // localStorage key for Anthropic API key
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1anVzcHdkaXNjZWZkbG93Y2RtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5OTg4OTAsImV4cCI6MjA5MjU3NDg5MH0.GAxdMUp3r6XLc4tzq2RvpXtPMTPCKUN-kFOjO0dnQIM';
+const STORAGE_URL = SUPA_URL + '/storage/v1/object';
+const STORAGE_PUBLIC_URL = SUPA_URL + '/storage/v1/object/public/exercise-photos';
 const PRACTITIONER_DOMAIN = '@beachsideep.com.au';
 const PRACTITIONER_WHITELIST = []; // add extra emails e.g. ['braeden@gmail.com']
 
@@ -4659,7 +4787,24 @@ function onAuthSuccess(user) {
     });
     syncClients();
     syncTemplates();
-    setInterval(syncClients, 180000); // 3 min - less aggressive to prevent overwriting edits
+    setInterval(syncClients, 180000); // 3 min - less aggressive
+    // One-time cleanup: strip photos from program exercises in Supabase
+    // Runs 8s after login so it doesn't slow the initial load
+    if (!localStorage.getItem('bep_photos_stripped_v1')) {
+      setTimeout(function() {
+        var dirty = clients.filter(function(cl) {
+          return (cl.programs||[]).some(function(p) {
+            return (p.exercises||[]).some(function(ex) { return ex.photo1 || ex.photo2 || ex.photo; });
+          });
+        });
+        if (dirty.length > 0) {
+          console.log('Cleaning photos from ' + dirty.length + ' client records...');
+          dirty.forEach(function(cl) { pushClientToCloud(JSON.parse(JSON.stringify(cl))); });
+        }
+        localStorage.setItem('bep_photos_stripped_v1', '1');
+      }, 8000);
+    }
+    // to prevent overwriting edits
     // Refresh Supabase session every 5 minutes to prevent logout
     setInterval(async function() {
       try {
@@ -4725,6 +4870,16 @@ async function safePushClientToCloud(snapCl) {
 
 async function pushClientToCloud(cl) {
   if (userRole !== 'practitioner' && document.getElementById('viewApp').style.display === 'none') return;
+  // Strip photo data from program exercises before pushing - photos live in library only
+  // This keeps client rows ~20KB instead of 2MB each
+  cl = JSON.parse(JSON.stringify(cl)); // deep clone so we don't mutate in-memory
+  (cl.programs || []).forEach(function(p) {
+    (p.exercises || []).forEach(function(ex) {
+      delete ex.photo1;
+      delete ex.photo2;
+      delete ex.photo;
+    });
+  });
   // Safety check: never push a record with blank email if local has one
   var localCopy = clients.find(function(c){ return c.id === cl.id; });
   if (!cl.email && localCopy && localCopy.email) {
@@ -5975,16 +6130,23 @@ async function renderSVGtoPDF(doc, ex, x, y, w, h) {
   if (ex._photo) {
     // Custom photo - just add as image
     try {
-      // Detect image type from base64 header
       var imgData = ex._photo;
-      var imgType = (imgData.indexOf('data:image/png') === 0 || imgData.indexOf('/9j/') === -1 && imgData.indexOf('iVBOR') === 0) ? 'PNG' : 'JPEG';
-      // Strip data URL prefix if present (jsPDF sometimes needs raw base64)
+      // Handle URL photos (Supabase Storage)
+      if (imgData.startsWith('http')) {
+        try {
+          var resp = await fetch(imgData);
+          var blob = await resp.blob();
+          imgData = await new Promise(function(res) {
+            var r = new FileReader(); r.onload = function(e) { res(e.target.result); }; r.readAsDataURL(blob);
+          });
+        } catch(fe) { return; } // skip if can't fetch
+      }
+      // Detect image type from base64 header
+      var imgType = 'JPEG';
+      if (imgData.indexOf('data:image/png') === 0 || imgData.indexOf('iVBOR') === 0) imgType = 'PNG';
       if (imgData.indexOf('data:') === 0) {
         var parts = imgData.split(',');
-        if (parts.length > 1) {
-          imgType = parts[0].indexOf('png') > -1 ? 'PNG' : 'JPEG';
-          imgData = parts[1];
-        }
+        if (parts.length > 1) { imgType = parts[0].indexOf('png') > -1 ? 'PNG' : 'JPEG'; imgData = parts[1]; }
       }
       doc.addImage(imgData, imgType, x, y, w, h, undefined, 'FAST');
     } catch(e) {}
