@@ -1550,7 +1550,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
         <div style="display:flex;justify-content:space-between;align-items:center">
           <div>
             <div style="font-size:15px;font-weight:700;color:#0d1b2a">Any Practitioner</div>
-            <div style="font-size:12px;color:#6c757d;margin-top:2px">Show all available times</div>
+            <div style="font-size:12px;color:#6c757d;margin-top:2px">Braeden King · Meg Benger · Sierra Bulauan</div>
           </div>
           <div style="background:#2FFFD4;color:#0d1b2a;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px">✓ Selected</div>
         </div>
@@ -1558,7 +1558,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
       <!-- Confirm button -->
       <div style="padding:16px 12px;margin-top:auto">
         <button onclick="cvLaunchCliniko()" style="width:100%;background:#2FFFD4;color:#0d1b2a;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:700;cursor:pointer">
-          See Available Times →
+          Select Available Time →
         </button>
       </div>
     </div>
@@ -8396,7 +8396,7 @@ function cvLaunchCliniko() {
   if (prescreen) prescreen.style.display = 'none';
   if (iframeWrap) iframeWrap.style.display = 'flex';
   if (iframe) {
-    var url = 'https://beachside-exercise-physiology.au2.cliniko.com/bookings?business_id=1335938640521468158&appointment_type_id=1341606644529765156&embedded=true';
+    var url = 'https://beachside-exercise-physiology.au2.cliniko.com/bookings?business_id=1335938640521468158&appointment_type_id=1341606644529765156&practitioner_id[]=1335938636134226884&practitioner_id[]=1335938636847258086&embedded=true';
     iframe.src = url;
     window.addEventListener('message', function _cr(e) {
       if (!e.data || typeof e.data !== 'string') return;
