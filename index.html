@@ -1531,7 +1531,12 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
       <div style="color:#2FFFD4;font-size:15px;font-weight:700">📅 Book a Group Class</div>
       <button onclick="cvCloseClasses()" style="background:none;border:none;color:#C9D1D9;font-size:22px;cursor:pointer;line-height:1;padding:4px 8px">&times;</button>
     </div>
-    <div id="clinikoContainer" style="flex:1;overflow-y:auto;background:#fff;display:flex;flex-direction:column"></div>
+    <div id="clinikoContainer" style="flex:1;overflow-y:auto;background:#fff;display:flex;flex-direction:column;position:relative">
+      <div id="clinikoSelOverlay" style="display:none;position:absolute;inset:0;background:rgba(255,255,255,0.92);z-index:10;align-items:center;justify-content:center;flex-direction:column;gap:12px">
+        <div style="width:36px;height:36px;border:3px solid #2FFFD4;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+        <div style="color:#0d1b2a;font-size:14px;font-weight:600">Loading available classes...</div>
+      </div>
+    </div>
   </div>
 
 </div><!-- /viewClient -->
@@ -8347,58 +8352,86 @@ function cvOpenClasses() {
   if (!modal) return;
   modal.style.display = 'flex';
   var container = document.getElementById('clinikoContainer');
-  if (container && !container.querySelector('iframe')) {
-    // appointment_type_id pre-selects the class; practitioner auto-selected via JS below
-    var iframeUrl = 'https://beachside-exercise-physiology.au2.cliniko.com/bookings?business_id=1335938640521468158&appointment_type_id=1341606644529765156&embedded=true';
-    var iframe = document.createElement('iframe');
-    iframe.id = 'cliniko-86828384';
-    iframe.src = iframeUrl;
-    iframe.frameBorder = '0';
-    iframe.scrolling = 'auto';
-    iframe.style.cssText = 'width:100%;height:100%;border:none;flex:1;min-height:0;pointer-events:auto';
-    container.appendChild(iframe);
 
-    // Auto-click through Cliniko's selection steps after iframe loads
-    iframe.addEventListener('load', function() {
-      setTimeout(function() {
-        try {
-          var doc = iframe.contentDocument || iframe.contentWindow.document;
-          // Try to auto-click the appointment type and "Any Practitioner"
-          var autoClicker = setInterval(function() {
-            try {
-              var d = iframe.contentDocument || iframe.contentWindow.document;
-              // Look for "Any practitioner" or "any" option buttons
-              var btns = d.querySelectorAll('button, a, [role="button"]');
-              btns.forEach(function(btn) {
-                var txt = (btn.textContent || '').trim().toLowerCase();
-                if (txt === 'any practitioner' || txt === 'any' || txt === 'select' && btn.closest('[class*="practitioner"]')) {
-                  btn.click();
-                }
-              });
-            } catch(e) {} // cross-origin - will fail silently
-          }, 800);
-          // Stop trying after 5 seconds
-          setTimeout(function() { clearInterval(autoClicker); }, 5000);
-        } catch(e) {}
-      }, 1000);
-    });
+  // Always reload fresh so state resets properly
+  container.innerHTML = '';
 
-    // Resize handler
-    window.addEventListener('message', function(e) {
-      var f = document.getElementById('cliniko-86828384');
-      if (!f || typeof e.data !== 'string') return;
-      if (e.data.search('cliniko-bookings-resize') > -1) {
-        var h = Number(e.data.split(':')[1]);
-        f.style.height = h + 'px';
+  var iframeUrl = 'https://beachside-exercise-physiology.au2.cliniko.com/bookings?business_id=1335938640521468158&appointment_type_id=1341606644529765156&embedded=true';
+  var iframe = document.createElement('iframe');
+  iframe.id = 'cliniko-86828384';
+  iframe.src = iframeUrl;
+  iframe.frameBorder = '0';
+  iframe.scrolling = 'auto';
+  iframe.style.cssText = 'width:100%;height:100%;border:none;flex:1;min-height:0;pointer-events:auto';
+  container.appendChild(iframe);
+
+  // Track which page Cliniko is on via postMessage events
+  // Cliniko fires: 'cliniko-bookings-page:https://...#service'
+  // Sequence: #service → (we need: click service + click any practitioner) → #schedule
+  var _clinikoStage = 'loading';
+  var _clinikoHandler = function(e) {
+    if (!e.data || typeof e.data !== 'string') return;
+    if (e.data.includes('cliniko-bookings-resize')) {
+      var h = Number(e.data.split(':')[1]);
+      if (iframe) iframe.style.height = h + 'px';
+    }
+    if (e.data.includes('cliniko-bookings-page')) {
+      var pageUrl = e.data.split('cliniko-bookings-page:')[1] || '';
+      var hash = pageUrl.split('#')[1] || '';
+
+      if (hash === 'service' && _clinikoStage === 'loading') {
+        // Page loaded on service selection - show overlay with pre-selected state
+        _clinikoStage = 'service';
+        // Show a brief "Selecting..." overlay so user knows something is happening
+        var overlay = document.getElementById('clinikoSelOverlay');
+        if (overlay) { overlay.style.display = 'flex'; }
+        // Use the iframe src trick: reload with hash to skip to schedule
+        // After a short delay to let Cliniko's JS init
+        setTimeout(function() {
+          // Navigate the iframe to trigger the selections
+          // We'll use the URL builder approach - Cliniko stores state in session
+          // so navigating to #practitioner after #service keeps the selection
+          try {
+            iframe.contentWindow.location.hash = 'practitioner';
+          } catch(ex) {
+            // cross-origin blocked - use src navigation
+            iframe.src = iframeUrl + '#practitioner';
+          }
+        }, 800);
       }
-      if (e.data.search('cliniko-bookings-page') > -1) f.scrollIntoView();
-    });
-  }
+      if (hash === 'practitioner' && _clinikoStage === 'service') {
+        _clinikoStage = 'practitioner';
+        setTimeout(function() {
+          try {
+            iframe.contentWindow.location.hash = 'schedule';
+          } catch(ex) {
+            iframe.src = iframeUrl + '#schedule';
+          }
+          var overlay = document.getElementById('clinikoSelOverlay');
+          if (overlay) { overlay.style.display = 'none'; }
+        }, 400);
+      }
+      if (hash === 'schedule') {
+        _clinikoStage = 'schedule';
+        var overlay = document.getElementById('clinikoSelOverlay');
+        if (overlay) { overlay.style.display = 'none'; }
+      }
+      if (iframe) iframe.scrollIntoView();
+    }
+  };
+  window.addEventListener('message', _clinikoHandler);
+  // Clean up listener when modal closes
+  iframe._clinikoHandler = _clinikoHandler;
 }
 
 function cvCloseClasses() {
   var modal = document.getElementById('clinikoModal');
   if (modal) modal.style.display = 'none';
+  // Remove message listener and clear iframe so next open starts fresh
+  var iframe = document.getElementById('cliniko-86828384');
+  if (iframe && iframe._clinikoHandler) {
+    window.removeEventListener('message', iframe._clinikoHandler);
+  }
 }
 
 function annaAddMsg(text, isUser) {
