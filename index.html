@@ -1531,40 +1531,8 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
       <div style="color:#2FFFD4;font-size:15px;font-weight:700">📅 Book a Group Class</div>
       <button onclick="cvCloseClasses()" style="background:none;border:none;color:#C9D1D9;font-size:22px;cursor:pointer;line-height:1;padding:4px 8px">&times;</button>
     </div>
-    <!-- PRE-SELECTION SCREEN -->
-    <div id="clinikoPrescreen" style="display:none;flex:1;flex-direction:column;background:#f8f9fa;overflow-y:auto">
-      <div style="padding:20px 16px 8px;font-size:13px;color:#6c757d;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Select a service</div>
-      <!-- Exercise Physiology Class - pre-highlighted -->
-      <div style="margin:0 12px 12px;background:#fff;border-radius:12px;padding:16px;border:2px solid #2FFFD4;box-shadow:0 2px 8px rgba(47,255,212,.15)">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div style="font-size:15px;font-weight:700;color:#0d1b2a">Exercise Physiology Class</div>
-            <div style="font-size:12px;color:#6c757d;margin-top:2px">60 mins · Group class</div>
-          </div>
-          <div style="background:#2FFFD4;color:#0d1b2a;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px">✓ Selected</div>
-        </div>
-      </div>
-      <div style="padding:20px 16px 8px;font-size:13px;color:#6c757d;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Select a practitioner</div>
-      <!-- Any Practitioner - pre-highlighted -->
-      <div style="margin:0 12px 12px;background:#fff;border-radius:12px;padding:16px;border:2px solid #2FFFD4;box-shadow:0 2px 8px rgba(47,255,212,.15)">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div style="font-size:15px;font-weight:700;color:#0d1b2a">Any Practitioner</div>
-            <div style="font-size:12px;color:#6c757d;margin-top:2px">Braeden King · Meg Benger · Sierra Bulauan</div>
-          </div>
-          <div style="background:#2FFFD4;color:#0d1b2a;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px">✓ Selected</div>
-        </div>
-      </div>
-      <!-- Confirm button -->
-      <div style="padding:16px 12px;margin-top:auto">
-        <button onclick="cvLaunchCliniko()" style="width:100%;background:#2FFFD4;color:#0d1b2a;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:700;cursor:pointer">
-          Select Available Time →
-        </button>
-      </div>
-    </div>
-    <!-- IFRAME WRAP -->
-    <div id="clinikoIframeWrap" style="display:none;flex:1;flex-direction:column;background:#fff">
-      <iframe id="clinikoIframe" src="" frameborder="0" scrolling="auto" style="width:100%;height:100%;border:none;flex:1;pointer-events:auto"></iframe>
+    <div style="flex:1;overflow-y:auto;background:#fff">
+      <iframe id='cliniko-21331448' src='https://beachside-exercise-physiology.au2.cliniko.com/bookings?business_id=1335938640521468158&appointment_type_id=1341606644529765156&embedded=true' frameborder='0' scrolling='auto' width='100%' height='1000' style='pointer-events: auto;display:block'></iframe>
     </div>
   </div>
 
@@ -8378,44 +8346,12 @@ function renderAnnaTab() {
 
 function cvOpenClasses() {
   var modal = document.getElementById('clinikoModal');
-  if (!modal) return;
-  modal.style.display = 'flex';
-  // Show pre-selection screen
-  var prescreen = document.getElementById('clinikoPrescreen');
-  var iframeWrap = document.getElementById('clinikoIframeWrap');
-  var iframe = document.getElementById('clinikoIframe');
-  if (prescreen) prescreen.style.display = 'flex';
-  if (iframeWrap) iframeWrap.style.display = 'none';
-  if (iframe) iframe.src = '';
-}
-
-function cvLaunchCliniko() {
-  var prescreen = document.getElementById('clinikoPrescreen');
-  var iframeWrap = document.getElementById('clinikoIframeWrap');
-  var iframe = document.getElementById('clinikoIframe');
-  if (prescreen) prescreen.style.display = 'none';
-  if (iframeWrap) iframeWrap.style.display = 'flex';
-  if (iframe) {
-    var url = 'https://beachside-exercise-physiology.au2.cliniko.com/bookings?business_id=1335938640521468158&appointment_type_id=1341606644529765156&practitioner_id[]=1335938636134226884&practitioner_id[]=1335938636847258086&embedded=true';
-    iframe.src = url;
-    window.addEventListener('message', function _cr(e) {
-      if (!e.data || typeof e.data !== 'string') return;
-      if (e.data.includes('cliniko-bookings-resize')) {
-        var h = Number(e.data.split(':')[1]);
-        if (iframe) iframe.style.height = h + 'px';
-      }
-    });
-  }
+  if (modal) modal.style.display = 'flex';
 }
 
 function cvCloseClasses() {
   var modal = document.getElementById('clinikoModal');
   if (modal) modal.style.display = 'none';
-  // Reset for next open
-  var iframe = document.getElementById('clinikoIframe');
-  if (iframe) { iframe.src = ''; }
-  var iframeWrap = document.getElementById('clinikoIframeWrap');
-  if (iframeWrap) iframeWrap.style.display = 'none';
 }
 
 function annaAddMsg(text, isUser) {
@@ -11102,6 +11038,17 @@ document.addEventListener('visibilitychange', function() {
       if (typeof renderCV === 'function') renderCV();
     }
   }
+});
+
+// Cliniko iframe resize handler
+window.addEventListener('message', function(e) {
+  var f = document.getElementById('cliniko-21331448');
+  if (!f || typeof e.data !== 'string') return;
+  if (e.data.search('cliniko-bookings-resize') > -1) {
+    var h = Number(e.data.split(':')[1]);
+    f.style.height = h + 'px';
+  }
+  if (e.data.search('cliniko-bookings-page') > -1) f.scrollIntoView();
 });
 </script>
 
