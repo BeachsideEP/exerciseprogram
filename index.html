@@ -4949,34 +4949,75 @@ async function syncClients() {
     var cloudMap = {};
     manifest.forEach(function(m) { if (m.id) cloudMap[m.id] = m.updated_at; });
 
-    // Find new clients in cloud not in local memory
-    var localIds = new Set(clients.map(function(c) { return c.id; }));
-    var newCloudIds = manifest.filter(function(m) { return !localIds.has(m.id); }).map(function(m) { return m.id; });
+    // Find clients that need updating:
+    // 1. New clients not in local memory at all
+    // 2. Existing clients where cloud is newer than local copy
+    var localById = {};
+    clients.forEach(function(c) { if (c.id) localById[c.id] = c; });
 
-    // Fetch full data for new clients only (not in local at all)
-    if (newCloudIds.length > 0 && newCloudIds.length <= 10) {
+    var needFetch = manifest.filter(function(m) {
+      if (!localById[m.id]) return true; // new client
+      var cloudT = new Date(m.updated_at||0).getTime();
+      var localT = new Date(localById[m.id]._localUpdatedAt||0).getTime();
+      return cloudT > localT + 10000; // cloud is >10s newer than local
+    }).map(function(m) { return m.id; });
+
+    // Fetch full data for changed/new clients (batch up to 20)
+    if (needFetch.length > 0 && needFetch.length <= 20) {
       var _nc = new AbortController();
       var _nt = setTimeout(function() { _nc.abort(); }, 15000);
-      var rNew = await fetch(SUPA_URL + '/rest/v1/clients?select=data,updated_at&id=in.(' + newCloudIds.join(',') + ')', {
+      var rNew = await fetch(SUPA_URL + '/rest/v1/clients?select=data,updated_at&id=in.(' + needFetch.join(',') + ')', {
         headers: supaHeaders(), signal: _nc.signal
       });
       clearTimeout(_nt);
       if (rNew.ok) {
-        var newRows = await rNew.json();
-        newRows.forEach(function(row) {
-          if (row.data) { clients.push(row.data); }
+        var updatedRows = await rNew.json();
+        var changed = false;
+        updatedRows.forEach(function(row) {
+          if (!row.data) return;
+          var cloudCl = row.data;
+          var localCl = localById[cloudCl.id];
+
+          if (!localCl) {
+            // Brand new client - add to local
+            clients.push(cloudCl);
+            changed = true;
+          } else {
+            // Existing client - merge programs (cloud may have more)
+            var cloudProgCount = (cloudCl.programs||[]).length;
+            var localProgCount = (localCl.programs||[]).length;
+            var localExCount = (localCl.programs||[]).reduce(function(n,p){return n+(p.exercises||[]).length;},0);
+            var cloudExCount = (cloudCl.programs||[]).reduce(function(n,p){return n+(p.exercises||[]).length;},0);
+
+            if (cloudProgCount > localProgCount || cloudExCount > localExCount) {
+              // Cloud has more data - update local but preserve any local-only programs
+              (localCl.programs||[]).forEach(function(lp) {
+                if (!cloudCl.programs.find(function(cp){return cp.id===lp.id;})) {
+                  cloudCl.programs.push(lp); // keep local-only programs
+                }
+              });
+              var idx2 = clients.findIndex(function(c){return c.id===cloudCl.id;});
+              if (idx2 > -1) clients[idx2] = cloudCl;
+              changed = true;
+            }
+            // Always update the timestamp so we don't re-fetch unnecessarily
+            if (idx2 > -1 || localCl) {
+              var cl2 = clients.find(function(c){return c.id===cloudCl.id;});
+              if (cl2) cl2._localUpdatedAt = row.updated_at;
+            }
+          }
         });
-        localStorage.setItem(DB_KEY, JSON.stringify(slimClientsForStorage(clients)));
-        renderClientDropdown();
+
+        if (changed) {
+          localStorage.setItem(DB_KEY, JSON.stringify(slimClientsForStorage(clients)));
+          renderClientDropdown();
+          // Re-render if current client was updated
+          if (currentClientId && needFetch.includes(currentClientId)) {
+            renderProgTabs(); loadProg(); updatePreview();
+          }
+        }
       }
     }
-
-    // Update local timestamps so next sync knows what changed
-    clients.forEach(function(c) {
-      if (cloudMap[c.id] && !c._localUpdatedAt) {
-        c._localUpdatedAt = cloudMap[c.id];
-      }
-    });
 
     setSyncStatus('ok');
   } catch(e) {
@@ -8303,23 +8344,55 @@ function renderAnnaTab() {
 
 function cvOpenClasses() {
   var modal = document.getElementById('clinikoModal');
-  if (modal) {
-    modal.style.display = 'flex';
-    // Inject iframe on first open
-    var container = document.getElementById('clinikoContainer');
-    if (container && !container.querySelector('iframe')) {
-      var iframeUrl = 'https://beachside-exercise-physiology.au2.cliniko.com/bookings?business_id=1335938640521468158&appointment_type_id=1341606644529765156&embedded=true';
-      container.innerHTML = '<iframe id="cliniko-86828384" src="' + iframeUrl + '" frameborder="0" scrolling="auto" width="100%" height="100%" style="pointer-events:auto;border:none;flex:1;min-height:0"></iframe>';
-      window.addEventListener('message', function(e) {
-        var f = document.getElementById('cliniko-86828384');
-        if (!f || typeof e.data !== 'string') return;
-        if (e.data.search('cliniko-bookings-resize') > -1) {
-          var h = Number(e.data.split(':')[1]);
-          f.style.height = h + 'px';
-        }
-        if (e.data.search('cliniko-bookings-page') > -1) f.scrollIntoView();
-      });
-    }
+  if (!modal) return;
+  modal.style.display = 'flex';
+  var container = document.getElementById('clinikoContainer');
+  if (container && !container.querySelector('iframe')) {
+    // appointment_type_id pre-selects the class; practitioner auto-selected via JS below
+    var iframeUrl = 'https://beachside-exercise-physiology.au2.cliniko.com/bookings?business_id=1335938640521468158&appointment_type_id=1341606644529765156&embedded=true';
+    var iframe = document.createElement('iframe');
+    iframe.id = 'cliniko-86828384';
+    iframe.src = iframeUrl;
+    iframe.frameBorder = '0';
+    iframe.scrolling = 'auto';
+    iframe.style.cssText = 'width:100%;height:100%;border:none;flex:1;min-height:0;pointer-events:auto';
+    container.appendChild(iframe);
+
+    // Auto-click through Cliniko's selection steps after iframe loads
+    iframe.addEventListener('load', function() {
+      setTimeout(function() {
+        try {
+          var doc = iframe.contentDocument || iframe.contentWindow.document;
+          // Try to auto-click the appointment type and "Any Practitioner"
+          var autoClicker = setInterval(function() {
+            try {
+              var d = iframe.contentDocument || iframe.contentWindow.document;
+              // Look for "Any practitioner" or "any" option buttons
+              var btns = d.querySelectorAll('button, a, [role="button"]');
+              btns.forEach(function(btn) {
+                var txt = (btn.textContent || '').trim().toLowerCase();
+                if (txt === 'any practitioner' || txt === 'any' || txt === 'select' && btn.closest('[class*="practitioner"]')) {
+                  btn.click();
+                }
+              });
+            } catch(e) {} // cross-origin - will fail silently
+          }, 800);
+          // Stop trying after 5 seconds
+          setTimeout(function() { clearInterval(autoClicker); }, 5000);
+        } catch(e) {}
+      }, 1000);
+    });
+
+    // Resize handler
+    window.addEventListener('message', function(e) {
+      var f = document.getElementById('cliniko-86828384');
+      if (!f || typeof e.data !== 'string') return;
+      if (e.data.search('cliniko-bookings-resize') > -1) {
+        var h = Number(e.data.split(':')[1]);
+        f.style.height = h + 'px';
+      }
+      if (e.data.search('cliniko-bookings-page') > -1) f.scrollIntoView();
+    });
   }
 }
 
