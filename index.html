@@ -1531,11 +1531,40 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
       <div style="color:#2FFFD4;font-size:15px;font-weight:700">📅 Book a Group Class</div>
       <button onclick="cvCloseClasses()" style="background:none;border:none;color:#C9D1D9;font-size:22px;cursor:pointer;line-height:1;padding:4px 8px">&times;</button>
     </div>
-    <div id="clinikoContainer" style="flex:1;overflow-y:auto;background:#fff;display:flex;flex-direction:column;position:relative">
-      <div id="clinikoSelOverlay" style="display:none;position:absolute;inset:0;background:rgba(255,255,255,0.92);z-index:10;align-items:center;justify-content:center;flex-direction:column;gap:12px">
-        <div style="width:36px;height:36px;border:3px solid #2FFFD4;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite"></div>
-        <div style="color:#0d1b2a;font-size:14px;font-weight:600">Loading available classes...</div>
+    <!-- PRE-SELECTION SCREEN -->
+    <div id="clinikoPrescreen" style="display:none;flex:1;flex-direction:column;background:#f8f9fa;overflow-y:auto">
+      <div style="padding:20px 16px 8px;font-size:13px;color:#6c757d;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Select a service</div>
+      <!-- Exercise Physiology Class - pre-highlighted -->
+      <div style="margin:0 12px 12px;background:#fff;border-radius:12px;padding:16px;border:2px solid #2FFFD4;box-shadow:0 2px 8px rgba(47,255,212,.15)">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:15px;font-weight:700;color:#0d1b2a">Exercise Physiology Class</div>
+            <div style="font-size:12px;color:#6c757d;margin-top:2px">60 mins · Group class</div>
+          </div>
+          <div style="background:#2FFFD4;color:#0d1b2a;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px">✓ Selected</div>
+        </div>
       </div>
+      <div style="padding:20px 16px 8px;font-size:13px;color:#6c757d;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Select a practitioner</div>
+      <!-- Any Practitioner - pre-highlighted -->
+      <div style="margin:0 12px 12px;background:#fff;border-radius:12px;padding:16px;border:2px solid #2FFFD4;box-shadow:0 2px 8px rgba(47,255,212,.15)">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:15px;font-weight:700;color:#0d1b2a">Any Practitioner</div>
+            <div style="font-size:12px;color:#6c757d;margin-top:2px">Show all available times</div>
+          </div>
+          <div style="background:#2FFFD4;color:#0d1b2a;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px">✓ Selected</div>
+        </div>
+      </div>
+      <!-- Confirm button -->
+      <div style="padding:16px 12px;margin-top:auto">
+        <button onclick="cvLaunchCliniko()" style="width:100%;background:#2FFFD4;color:#0d1b2a;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:700;cursor:pointer">
+          See Available Times →
+        </button>
+      </div>
+    </div>
+    <!-- IFRAME WRAP -->
+    <div id="clinikoIframeWrap" style="display:none;flex:1;flex-direction:column;background:#fff">
+      <iframe id="clinikoIframe" src="" frameborder="0" scrolling="auto" style="width:100%;height:100%;border:none;flex:1;pointer-events:auto"></iframe>
     </div>
   </div>
 
@@ -8351,87 +8380,44 @@ function cvOpenClasses() {
   var modal = document.getElementById('clinikoModal');
   if (!modal) return;
   modal.style.display = 'flex';
-  var container = document.getElementById('clinikoContainer');
 
-  // Always reload fresh so state resets properly
+  // Show pre-selection UI first, then load iframe after user confirms
+  var container = document.getElementById('clinikoContainer');
   container.innerHTML = '';
 
-  var iframeUrl = 'https://beachside-exercise-physiology.au2.cliniko.com/bookings?business_id=1335938640521468158&appointment_type_id=1341606644529765156&embedded=true';
-  var iframe = document.createElement('iframe');
-  iframe.id = 'cliniko-86828384';
-  iframe.src = iframeUrl;
-  iframe.frameBorder = '0';
-  iframe.scrolling = 'auto';
-  iframe.style.cssText = 'width:100%;height:100%;border:none;flex:1;min-height:0;pointer-events:auto';
-  container.appendChild(iframe);
+  var prescreen = document.getElementById('clinikoPrescreen');
+  var iframe = document.getElementById('clinikoIframe');
+  if (prescreen) prescreen.style.display = 'flex';
+  if (iframe) { iframe.style.display = 'none'; iframe.src = ''; }
+}
 
-  // Track which page Cliniko is on via postMessage events
-  // Cliniko fires: 'cliniko-bookings-page:https://...#service'
-  // Sequence: #service → (we need: click service + click any practitioner) → #schedule
-  var _clinikoStage = 'loading';
-  var _clinikoHandler = function(e) {
-    if (!e.data || typeof e.data !== 'string') return;
-    if (e.data.includes('cliniko-bookings-resize')) {
-      var h = Number(e.data.split(':')[1]);
-      if (iframe) iframe.style.height = h + 'px';
-    }
-    if (e.data.includes('cliniko-bookings-page')) {
-      var pageUrl = e.data.split('cliniko-bookings-page:')[1] || '';
-      var hash = pageUrl.split('#')[1] || '';
-
-      if (hash === 'service' && _clinikoStage === 'loading') {
-        // Page loaded on service selection - show overlay with pre-selected state
-        _clinikoStage = 'service';
-        // Show a brief "Selecting..." overlay so user knows something is happening
-        var overlay = document.getElementById('clinikoSelOverlay');
-        if (overlay) { overlay.style.display = 'flex'; }
-        // Use the iframe src trick: reload with hash to skip to schedule
-        // After a short delay to let Cliniko's JS init
-        setTimeout(function() {
-          // Navigate the iframe to trigger the selections
-          // We'll use the URL builder approach - Cliniko stores state in session
-          // so navigating to #practitioner after #service keeps the selection
-          try {
-            iframe.contentWindow.location.hash = 'practitioner';
-          } catch(ex) {
-            // cross-origin blocked - use src navigation
-            iframe.src = iframeUrl + '#practitioner';
-          }
-        }, 800);
+function cvLaunchCliniko() {
+  var prescreen = document.getElementById('clinikoPrescreen');
+  var iframeWrap = document.getElementById('clinikoIframeWrap');
+  var iframe = document.getElementById('clinikoIframe');
+  if (prescreen) prescreen.style.display = 'none';
+  if (iframeWrap) iframeWrap.style.display = 'flex';
+  if (iframe) {
+    var url = 'https://beachside-exercise-physiology.au2.cliniko.com/bookings?business_id=1335938640521468158&appointment_type_id=1341606644529765156&embedded=true';
+    iframe.src = url;
+    window.addEventListener('message', function _cr(e) {
+      if (!e.data || typeof e.data !== 'string') return;
+      if (e.data.includes('cliniko-bookings-resize')) {
+        var h = Number(e.data.split(':')[1]);
+        if (iframe) iframe.style.height = h + 'px';
       }
-      if (hash === 'practitioner' && _clinikoStage === 'service') {
-        _clinikoStage = 'practitioner';
-        setTimeout(function() {
-          try {
-            iframe.contentWindow.location.hash = 'schedule';
-          } catch(ex) {
-            iframe.src = iframeUrl + '#schedule';
-          }
-          var overlay = document.getElementById('clinikoSelOverlay');
-          if (overlay) { overlay.style.display = 'none'; }
-        }, 400);
-      }
-      if (hash === 'schedule') {
-        _clinikoStage = 'schedule';
-        var overlay = document.getElementById('clinikoSelOverlay');
-        if (overlay) { overlay.style.display = 'none'; }
-      }
-      if (iframe) iframe.scrollIntoView();
-    }
-  };
-  window.addEventListener('message', _clinikoHandler);
-  // Clean up listener when modal closes
-  iframe._clinikoHandler = _clinikoHandler;
+    });
+  }
 }
 
 function cvCloseClasses() {
   var modal = document.getElementById('clinikoModal');
   if (modal) modal.style.display = 'none';
-  // Remove message listener and clear iframe so next open starts fresh
-  var iframe = document.getElementById('cliniko-86828384');
-  if (iframe && iframe._clinikoHandler) {
-    window.removeEventListener('message', iframe._clinikoHandler);
-  }
+  // Reset for next open
+  var iframe = document.getElementById('clinikoIframe');
+  if (iframe) { iframe.src = ''; }
+  var iframeWrap = document.getElementById('clinikoIframeWrap');
+  if (iframeWrap) iframeWrap.style.display = 'none';
 }
 
 function annaAddMsg(text, isUser) {
