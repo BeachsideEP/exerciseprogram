@@ -8380,15 +8380,13 @@ function cvOpenClasses() {
   var modal = document.getElementById('clinikoModal');
   if (!modal) return;
   modal.style.display = 'flex';
-
-  // Show pre-selection UI first, then load iframe after user confirms
-  var container = document.getElementById('clinikoContainer');
-  container.innerHTML = '';
-
+  // Show pre-selection screen
   var prescreen = document.getElementById('clinikoPrescreen');
+  var iframeWrap = document.getElementById('clinikoIframeWrap');
   var iframe = document.getElementById('clinikoIframe');
   if (prescreen) prescreen.style.display = 'flex';
-  if (iframe) { iframe.style.display = 'none'; iframe.src = ''; }
+  if (iframeWrap) iframeWrap.style.display = 'none';
+  if (iframe) iframe.src = '';
 }
 
 function cvLaunchCliniko() {
