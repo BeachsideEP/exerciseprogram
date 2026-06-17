@@ -4964,8 +4964,32 @@ async function syncClients() {
       return cloudT > localT + 10000; // cloud is >10s newer than local
     }).map(function(m) { return m.id; });
 
-    // Fetch full data for changed/new clients (batch up to 20)
-    if (needFetch.length > 0 && needFetch.length <= 20) {
+    // Fetch full data for changed/new clients
+    // If >20 need fetching it's likely a fresh load (incognito/new device) - fetch all
+    if (needFetch.length > 0) {
+      if (needFetch.length > 20) {
+        // Fresh load - fetch all clients at once
+        var _fc = new AbortController();
+        var _ft = setTimeout(function() { _fc.abort(); }, 30000);
+        var rAll = await fetch(SUPA_URL + '/rest/v1/clients?select=data,updated_at&limit=500', {
+          headers: supaHeaders(), signal: _fc.signal
+        });
+        clearTimeout(_ft);
+        if (rAll.ok) {
+          var allRows = await rAll.json();
+          allRows.forEach(function(row) {
+            if (!row.data) return;
+            row.data._localUpdatedAt = row.updated_at;
+            var existing = clients.findIndex(function(c){return c.id===row.data.id;});
+            if (existing > -1) clients[existing] = row.data;
+            else clients.push(row.data);
+          });
+          localStorage.setItem(DB_KEY, JSON.stringify(slimClientsForStorage(clients)));
+          renderClientDropdown();
+        }
+        setSyncStatus('ok');
+        return;
+      }
       var _nc = new AbortController();
       var _nt = setTimeout(function() { _nc.abort(); }, 15000);
       var rNew = await fetch(SUPA_URL + '/rest/v1/clients?select=data,updated_at&id=in.(' + needFetch.join(',') + ')', {
@@ -5020,7 +5044,6 @@ async function syncClients() {
         }
       }
     }
-
     setSyncStatus('ok');
   } catch(e) {
     if (e.name === 'AbortError') { setSyncStatus('ok'); return; }
@@ -5040,12 +5063,22 @@ async function loadClientView(user) {
   try {
     // Refresh Supabase session to ensure JWT is valid
     try {
-      const { data: sessionData } = await supabase.auth.refreshSession();
-      if (sessionData && sessionData.session) {
-        localStorage.setItem('bep_token', sessionData.session.access_token);
-        if (sessionData.session.refresh_token) localStorage.setItem('bep_refresh', sessionData.session.refresh_token);
+      var _rfToken = localStorage.getItem('bep_refresh');
+      if (_rfToken) {
+        var _rfRes = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
+          body: JSON.stringify({ refresh_token: _rfToken })
+        });
+        if (_rfRes.ok) {
+          var _rfData = await _rfRes.json();
+          if (_rfData.access_token) {
+            localStorage.setItem('bep_token', _rfData.access_token);
+            if (_rfData.refresh_token) localStorage.setItem('bep_refresh', _rfData.refresh_token);
+          }
+        }
       }
-    } catch(refreshErr) { console.warn('Session refresh failed:', refreshErr); }
+    } catch(refreshErr) {}
 
     const email = (user.email || '').toLowerCase();
 
@@ -5093,7 +5126,7 @@ async function loadClientView(user) {
     }
     if (match && match.archived) {
       toast('Your account is currently inactive. Please contact Beachside Exercise Physiology to reactivate your access.', 'err');
-      setTimeout(function() { supabase.auth.signOut(); showView('auth'); }, 2500);
+      setTimeout(function() { localStorage.removeItem('bep_token'); localStorage.removeItem('bep_refresh'); showView('auth'); }, 2500);
       return;
     }
     if (!match) {
