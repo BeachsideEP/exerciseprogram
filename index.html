@@ -4527,6 +4527,53 @@ const ANNA_API_KEY_STORE = 'bep_anna_key'; // localStorage key for Anthropic API
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1anVzcHdkaXNjZWZkbG93Y2RtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5OTg4OTAsImV4cCI6MjA5MjU3NDg5MH0.GAxdMUp3r6XLc4tzq2RvpXtPMTPCKUN-kFOjO0dnQIM';
 const STORAGE_URL = SUPA_URL + '/storage/v1/object';
 const STORAGE_PUBLIC_URL = SUPA_URL + '/storage/v1/object/public/exercise-photos';
+
+// ── SHARED TOKEN REFRESH (prevents race conditions that cause sign-outs) ──
+// Only one refresh call runs at a time; concurrent callers share the same in-flight promise.
+var _refreshInFlight = null;
+var _lastRefreshAt = 0;
+async function refreshAuthToken() {
+  // Don't refresh more than once every 15 seconds - prevents rapid duplicate calls
+  if (Date.now() - _lastRefreshAt < 15000 && _refreshInFlight) return _refreshInFlight;
+  if (_refreshInFlight) return _refreshInFlight;
+
+  var rt = localStorage.getItem('bep_refresh');
+  if (!rt) return null;
+
+  _refreshInFlight = (async function() {
+    try {
+      var ctrl = new AbortController();
+      var timer = setTimeout(function() { ctrl.abort(); }, 12000);
+      var resp = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
+        body: JSON.stringify({ refresh_token: rt }),
+        signal: ctrl.signal
+      });
+      clearTimeout(timer);
+      if (resp.ok) {
+        var data = await resp.json();
+        if (data.access_token) {
+          localStorage.setItem('bep_token', data.access_token);
+          if (data.refresh_token) localStorage.setItem('bep_refresh', data.refresh_token);
+          _lastRefreshAt = Date.now();
+          return data;
+        }
+      }
+      // Refresh failed - DO NOT clear tokens here. Could be transient network/server issue.
+      // Only a hard 400/401 with explicit invalid_grant should ever be treated as real expiry,
+      // and even then we keep the session alive client-side rather than forcing sign-out,
+      // since Cliniko-style aggressive expiry causes more harm than good for this app.
+      return null;
+    } catch(e) {
+      return null; // network error / timeout - keep user signed in, try again later
+    } finally {
+      _refreshInFlight = null;
+    }
+  })();
+
+  return _refreshInFlight;
+}
 const PRACTITIONER_DOMAIN = '@beachsideep.com.au';
 const PRACTITIONER_WHITELIST = []; // add extra emails e.g. ['braeden@gmail.com']
 
@@ -4823,30 +4870,8 @@ function onAuthSuccess(user) {
       }, 8000);
     }
     // to prevent overwriting edits
-    // Refresh Supabase session every 5 minutes to prevent logout
-    setInterval(async function() {
-      try {
-        var token = localStorage.getItem('bep_refresh');
-        if (token) {
-          var _rc = new AbortController();
-          var _rt = setTimeout(function() { _rc.abort(); }, 10000);
-          var resp = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
-            body: JSON.stringify({ refresh_token: token }),
-            signal: _rc.signal
-          });
-          clearTimeout(_rt);
-          if (resp.ok) {
-            var data = await resp.json();
-            if (data.access_token) {
-              localStorage.setItem('bep_token', data.access_token);
-              if (data.refresh_token) localStorage.setItem('bep_refresh', data.refresh_token);
-            }
-          }
-        }
-      } catch(e) {}
-    }, 180000);
+    // Refresh Supabase session periodically using the shared lock-protected function
+    setInterval(function() { refreshAuthToken(); }, 180000);
   } else {
     showView('client');
     loadClientView(user);
@@ -5061,24 +5086,8 @@ async function loadClientView(user) {
   // Pull custom exercise library so photos show correctly
   await pullLibraryFromCloud();
   try {
-    // Refresh Supabase session to ensure JWT is valid
-    try {
-      var _rfToken = localStorage.getItem('bep_refresh');
-      if (_rfToken) {
-        var _rfRes = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
-          body: JSON.stringify({ refresh_token: _rfToken })
-        });
-        if (_rfRes.ok) {
-          var _rfData = await _rfRes.json();
-          if (_rfData.access_token) {
-            localStorage.setItem('bep_token', _rfData.access_token);
-            if (_rfData.refresh_token) localStorage.setItem('bep_refresh', _rfData.refresh_token);
-          }
-        }
-      }
-    } catch(refreshErr) {}
+    // Refresh Supabase session using the shared lock-protected function
+    try { await refreshAuthToken(); } catch(refreshErr) {}
 
     const email = (user.email || '').toLowerCase();
 
@@ -5155,6 +5164,9 @@ async function loadClientView(user) {
     try { storedWorkouts = JSON.parse(localStorage.getItem('cv_own_workouts_' + match.id) || '[]'); } catch(e) {}
     cvOwnWorkouts = (match.ownWorkouts && match.ownWorkouts.length) ? match.ownWorkouts : storedWorkouts;
     cvSwitchTab('home');
+    try { cvRestoreState(); } catch(e0) {}       // restore mid-workout state if app was killed
+    try { cvRestoreSession(); } catch(e1) {}     // restore which program/tab they were on
+    try { cvRecoverPendingSubmit(); } catch(e2) {} // retry any workout that failed to save last time
     renderCV(); // Pre-render workouts tab in background — data is ready now, so it's instant
   } catch (e) {
     var errEl = document.getElementById('cvHomeContent') || document.getElementById('cvBody');
@@ -5620,6 +5632,61 @@ function cvSavePreSession() {
   renderCV();
 }
 
+async function cvRecoverPendingSubmit() {
+  if (!cvData || !cvData.id) return;
+  var raw = null;
+  try { raw = localStorage.getItem('bep_pending_submit_' + cvData.id); } catch(e) { return; }
+  if (!raw) return;
+
+  var pending;
+  try { pending = JSON.parse(raw); } catch(e) { try { localStorage.removeItem('bep_pending_submit_' + cvData.id); } catch(e2){} return; }
+
+  // Don't retry submissions older than 48 hours - too stale to be useful
+  if (Date.now() - (pending.savedAt||0) > 48*60*60*1000) {
+    try { localStorage.removeItem('bep_pending_submit_' + cvData.id); } catch(e) {}
+    return;
+  }
+
+  // Check if this log entry is already saved in cvData (i.e. it actually succeeded last time)
+  var prog = cvData.programs && cvData.programs[pending.progIdx];
+  if (!prog) { try { localStorage.removeItem('bep_pending_submit_' + cvData.id); } catch(e) {} return; }
+  var alreadySaved = (prog.log||[]).some(function(l) {
+    return l.date === pending.logEntry.date && l.text === pending.logEntry.text;
+  });
+  if (alreadySaved) {
+    try { localStorage.removeItem('bep_pending_submit_' + cvData.id); } catch(e) {}
+    return;
+  }
+
+  // Genuinely missing from the cloud - push it now, silently
+  try {
+    var freshResp = await fetch(SUPA_URL + '/rest/v1/clients?select=data&id=eq.' + cvData.id, { headers: supaHeaders() });
+    if (!freshResp.ok) return; // try again next load
+    var freshRows = await freshResp.json();
+    if (!freshRows || !freshRows.length || !freshRows[0].data) return;
+    var fresh = freshRows[0].data;
+    var freshProg = fresh.programs && fresh.programs[pending.progIdx];
+    if (!freshProg) return;
+    if (!freshProg.log) freshProg.log = [];
+    var stillMissing = !freshProg.log.some(function(l) { return l.date === pending.logEntry.date && l.text === pending.logEntry.text; });
+    if (stillMissing) {
+      freshProg.log.push(pending.logEntry);
+      var _sr = await fetch(SUPA_URL + '/rest/v1/clients', {
+        method: 'POST',
+        headers: supaHeaders(),
+        body: JSON.stringify({ id: cvData.id, data: fresh, updated_at: new Date().toISOString() })
+      });
+      if (_sr.ok) {
+        cvData = fresh;
+        try { localStorage.removeItem('bep_pending_submit_' + cvData.id); } catch(e) {}
+        toast('Recovered a workout that didn\'t save last time ✓', 'ok');
+      }
+    } else {
+      try { localStorage.removeItem('bep_pending_submit_' + cvData.id); } catch(e) {}
+    }
+  } catch(e) { /* network error - will retry next load */ }
+}
+
 async function cvSubmit() {
   var _sessionDuration = cvGetTimerDuration();
   cvStopTimer();
@@ -5707,65 +5774,98 @@ async function cvSubmit() {
     }
   }
 
-  try {
-    // Fetch fresh copy first to avoid overwriting practitioner's program changes
-    const freshResp = await fetch(SUPA_URL + '/rest/v1/clients?select=data&id=eq.' + cvData.id, {
-      headers: supaHeaders()
-    });
-    if (freshResp.ok) {
-      const freshRows = await freshResp.json();
-      if (freshRows && freshRows.length && freshRows[0].data) {
-        const fresh = freshRows[0].data;
-        // Merge only our changes onto fresh: log entries, lastReps/lastLoad, substitutions
-        const myProg = cvData.programs[cvProgIdx];
-        if (myProg && fresh.programs && fresh.programs[cvProgIdx]) {
-          const freshProg = fresh.programs[cvProgIdx];
-          // Append new log entries - merge by finding entries not already in fresh
-          if (!freshProg.log) freshProg.log = [];
-          const myLog = myProg.log || [];
-          myLog.forEach(function(entry) {
-            // Add if not already in freshProg.log (match by date+text)
-            var exists = freshProg.log.some(function(fe) { return fe.date === entry.date && fe.text === entry.text; });
-            if (!exists) freshProg.log.push(entry);
-          });
-          // Copy exercise progress (lastReps, lastLoad, substitutions)
-          // Match by uid or name to handle reordering
-          (myProg.exercises || []).forEach(function(ex, ei) {
-            // Try to find matching exercise by uid first, then name
-            var freshEx = null;
-            if (ex.uid) freshEx = (freshProg.exercises || []).find(function(fe) { return fe.uid === ex.uid; });
-            if (!freshEx && ex.name) freshEx = (freshProg.exercises || []).find(function(fe) { return fe.name === ex.name; });
-            if (!freshEx && freshProg.exercises && freshProg.exercises[ei]) freshEx = freshProg.exercises[ei]; // fallback to index
-            if (freshEx) {
-              if (ex.lastReps) freshEx.lastReps = ex.lastReps;
-              if (ex.lastLoad) freshEx.lastLoad = ex.lastLoad;
-              if (ex.substitutedFor) {
-                freshEx.name = ex.name;
-                freshEx.substitutedFor = ex.substitutedFor;
-                freshEx.substitutedAt = ex.substitutedAt;
+  // Save a local backup of this submission BEFORE attempting network calls.
+  // If the save fails, this lets us retry without losing the workout.
+  var _pendingSubmission = {
+    clientId: cvData.id,
+    progIdx: cvProgIdx,
+    logEntry: prog.log[prog.log.length - 1],
+    exercisesSnapshot: JSON.parse(JSON.stringify(exs)),
+    savedAt: Date.now()
+  };
+  try { localStorage.setItem('bep_pending_submit_' + cvData.id, JSON.stringify(_pendingSubmission)); } catch(e) {}
+
+  var _saveSucceeded = false;
+  var _attempt = 0;
+  var _lastError = '';
+
+  while (_attempt < 2 && !_saveSucceeded) {
+    _attempt++;
+    try {
+      var _ctrl = new AbortController();
+      var _timer = setTimeout(function() { _ctrl.abort(); }, 20000);
+
+      // Fetch fresh copy first to avoid overwriting practitioner's program changes
+      const freshResp = await fetch(SUPA_URL + '/rest/v1/clients?select=data&id=eq.' + cvData.id, {
+        headers: supaHeaders(), signal: _ctrl.signal
+      });
+      if (freshResp.ok) {
+        const freshRows = await freshResp.json();
+        if (freshRows && freshRows.length && freshRows[0].data) {
+          const fresh = freshRows[0].data;
+          const myProg = cvData.programs[cvProgIdx];
+          if (myProg && fresh.programs && fresh.programs[cvProgIdx]) {
+            const freshProg = fresh.programs[cvProgIdx];
+            if (!freshProg.log) freshProg.log = [];
+            const myLog = myProg.log || [];
+            myLog.forEach(function(entry) {
+              var exists = freshProg.log.some(function(fe) { return fe.date === entry.date && fe.text === entry.text; });
+              if (!exists) freshProg.log.push(entry);
+            });
+            (myProg.exercises || []).forEach(function(ex, ei) {
+              var freshEx = null;
+              if (ex.uid) freshEx = (freshProg.exercises || []).find(function(fe) { return fe.uid === ex.uid; });
+              if (!freshEx && ex.name) freshEx = (freshProg.exercises || []).find(function(fe) { return fe.name === ex.name; });
+              if (!freshEx && freshProg.exercises && freshProg.exercises[ei]) freshEx = freshProg.exercises[ei];
+              if (freshEx) {
+                if (ex.lastReps) freshEx.lastReps = ex.lastReps;
+                if (ex.lastLoad) freshEx.lastLoad = ex.lastLoad;
+                if (ex.substitutedFor) {
+                  freshEx.name = ex.name;
+                  freshEx.substitutedFor = ex.substitutedFor;
+                  freshEx.substitutedAt = ex.substitutedAt;
+                }
               }
-            }
-          });
+            });
+          }
+          if (cvData.safetyLog) fresh.safetyLog = cvData.safetyLog;
+          if (cvData.outcomes) fresh.outcomes = cvData.outcomes;
+          cvData = fresh;
         }
-        if (cvData.safetyLog) fresh.safetyLog = cvData.safetyLog;
-        if (cvData.outcomes) fresh.outcomes = cvData.outcomes;
-        cvData = fresh;
       }
+
+      const _sr = await fetch(SUPA_URL + '/rest/v1/clients', {
+        method: 'POST',
+        headers: supaHeaders(),
+        body: JSON.stringify({ id: cvData.id, data: cvData, updated_at: new Date().toISOString() }),
+        signal: _ctrl.signal
+      });
+      clearTimeout(_timer);
+
+      if (_sr.ok) {
+        _saveSucceeded = true;
+      } else {
+        _lastError = 'HTTP ' + _sr.status;
+        if (_attempt < 2) await new Promise(function(res) { setTimeout(res, 1500); });
+      }
+    } catch (e) {
+      _lastError = e.name === 'AbortError' ? 'Request timed out' : (e.message || 'Network error');
+      if (_attempt < 2) await new Promise(function(res) { setTimeout(res, 1500); });
     }
-    const _sr = await fetch(SUPA_URL + '/rest/v1/clients', {
-      method: 'POST',
-      headers: supaHeaders(),
-      body: JSON.stringify({ id: cvData.id, data: cvData, updated_at: new Date().toISOString() })
-    });
-    if (!_sr.ok) { const _st = await _sr.text(); toast('Save error ' + _sr.status + ': ' + _st.slice(0,80), 'err'); }
-    cvLastSync = 0; // Force next sync to refresh
+  }
+
+  if (_saveSucceeded) {
+    // Confirmed saved - safe to clear local backup and show success
+    try { localStorage.removeItem('bep_pending_submit_' + cvData.id); } catch(e) {}
+    cvLastSync = 0;
     cvState = {}; cvFeeling = ''; cvComment = ''; cvSafetyDone = false; cvRPE = 5;
     showCVCongrats(cvData.first, false, detectPBs(prog));
     cvSwitchTab('home');
-  } catch (e) {
-    cvState = {}; cvFeeling = ''; cvComment = ''; cvSafetyDone = false;
-    showCVCongrats(cvData.first, false);
-    cvSwitchTab('home');
+  } else {
+    // Genuinely failed after retry - tell the user honestly, do NOT show success,
+    // and keep cvState intact so nothing is lost. The pending backup stays in
+    // localStorage so we can retry automatically next time they open the app.
+    toast('Could not save your workout (' + _lastError + '). Check your connection and tap Submit again — nothing has been lost.', 'err');
   }
 }
 
@@ -5824,7 +5924,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!currentUser || currentUser.id !== user.id) onAuthSuccess(user);
       } else {
         // Only sign out if we're not actively using the app
-        if (!currentUser && !document.hidden) { showView('auth'); showPanel('magic'); }
+        // Don't force sign-out here - user may just have a stale link open while already signed in elsewhere
       }
       }).catch(function() { /* network error restoring session - try saved token instead */ });
       return;
@@ -5836,28 +5936,24 @@ document.addEventListener('DOMContentLoaded', function() {
   if (token) {
     fetch(SUPA_URL + '/auth/v1/user', {
       headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
-    }).then(function(r) {
+    }).then(async function(r) {
       if (r.ok) return r.json().then(function(user) { onAuthSuccess(user); });
-      var refresh = localStorage.getItem('bep_refresh');
-      if (refresh) {
-        return fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
-          body: JSON.stringify({ refresh_token: refresh })
-        }).then(function(r2) {
-          if (r2.ok) return r2.json().then(function(d) {
-            localStorage.setItem('bep_token', d.access_token);
-            if (d.refresh_token) localStorage.setItem('bep_refresh', d.refresh_token);
-            onAuthSuccess(d.user);
-          });
-          // Token refresh failed - don't sign out, just try again next interval
-          console.log('Token refresh failed - will retry');
-        });
+      // Access token rejected - use the shared, lock-protected refresh
+      var refreshResult = await refreshAuthToken();
+      if (refreshResult && refreshResult.user) {
+        onAuthSuccess(refreshResult.user);
+        return;
       }
-      // Only clear token if it's genuinely expired, not just a network error
-      var storedToken = localStorage.getItem('bep_token');
-      if (!storedToken) { showView('auth'); showPanel('magic'); }
-      // else keep the user signed in and try again later
+      if (refreshResult && refreshResult.access_token) {
+        // Got a token but no user object - fetch it
+        var ru = await fetch(SUPA_URL + '/auth/v1/user', {
+          headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + refreshResult.access_token }
+        });
+        if (ru.ok) { var uu = await ru.json(); onAuthSuccess(uu); return; }
+      }
+      // Refresh failed - but NEVER force sign-out from a startup check alone.
+      // Keep showing the loading screen state; the user stays on whatever
+      // view they were already in. Only the explicit sign-out button clears tokens.
     }).catch(function() { /* network error - keep user signed in */ });
     return;
   }
