@@ -1624,7 +1624,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <div class="prog-tabs-bar">
       <div class="prog-tabs" id="progTabs"></div>
       <div style="display:flex;gap:6px;align-items:center;margin-bottom:5px">
-        <input class="prog-title-inp" id="progTitle" type="text" placeholder="Program name…" oninput="updatePreview()">
+        <input class="prog-title-inp" id="progTitle" type="text" placeholder="Program name…" oninput="debouncedUpdatePreview()">
         <button class="new-prog-btn" onclick="newProgram()">+ New Program</button>
         <button class="new-prog-btn" onclick="openDuplicateProg()" style="border-color:var(--ocean-l);color:var(--ocean)">&#128260; Copy to Client</button>
       </div>
@@ -4019,6 +4019,21 @@ function renderDropZone() {
 // ══════════════════════════════════════
 // PREVIEW
 // ══════════════════════════════════════
+var _updatePreviewTimer = null;
+function debouncedUpdatePreview() {
+  var p = getProg();
+  if (p) {
+    var titleEl = document.getElementById('progTitle');
+    if (titleEl) p.title = titleEl.value;
+  }
+  clearTimeout(_updatePreviewTimer);
+  _updatePreviewTimer = setTimeout(function() {
+    saveDB();
+    updatePreview();
+    renderProgTabs();
+  }, 400);
+}
+
 function updatePreview() {
   renderLogPanel();
   renderOMPanel();
@@ -5273,7 +5288,6 @@ function renderCV() {
       else paramsStr += ' × ' + String(ex.reps).replace(/ ?each ?/gi,'').replace(/ ?each side ?/gi,'');
     }
     if (ex.hold) paramsStr += ' · hold';
-    h += '<div class="cv-ex-card">';
     // Card header - clickable to open detail
     h += '<div class="cv-ex-card-hdr" onclick="cvOpenExDetail(' + i + ')">';
 
