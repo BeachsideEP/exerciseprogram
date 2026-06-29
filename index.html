@@ -163,9 +163,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .prev-ex-n{font-size:9px;color:#5AA8C4;margin-top:1px;font-style:italic}
 .prev-empty{font-size:11px;color:rgba(255,255,255,.25);text-align:center;padding:14px 0}
 .prev-actions{margin-top:auto;padding-top:10px;display:flex;flex-direction:column;gap:5px}
-.clk-info-box{background:rgba(255,255,255,.07);border-radius:7px;padding:8px 10px;border:1px solid rgba(255,255,255,.1);margin-top:9px;font-size:10px;color:rgba(255,255,255,.55);line-height:1.6}
-.clk-info-box strong{color:#fff}
-.clk-info-box code{background:rgba(255,255,255,.1);padding:1px 4px;border-radius:3px;font-size:9px;font-family:monospace;color:#5BBFAA}
+
 
 /* MODALS */
 .overlay{position:fixed;inset:0;background:rgba(10,20,28,.65);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .2s}
@@ -187,8 +185,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .info-box code{background:var(--sand-d);padding:1px 5px;border-radius:3px;font-size:9px;font-family:monospace;color:var(--ocean-dp)}
 .status{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600}
 .st-ok{background:var(--teal-l);color:#1a6a50}.st-err{background:var(--coral-l);color:#a0301a}.st-load{background:var(--ocean-p);color:var(--ocean)}
-.cliniko-result{display:flex;align-items:center;padding:7px 9px;border:1.5px solid var(--sand-d);border-radius:7px;margin-bottom:4px;gap:7px;cursor:pointer;transition:all .12s;background:var(--sand)}
-.cliniko-result:hover{border-color:var(--ocean-l);background:var(--ocean-p)}
+
 .cli-av{width:28px;height:28px;border-radius:50%;background:var(--ocean);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
 
 /* EXERCISE MANAGER */
@@ -1547,7 +1544,6 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   </div>
   <div class="hdr-btns">
     <button class="btn btn-ghost btn-sm" onclick="openM('exMgrM')">🏋️ Exercise Manager</button>
-    <button class="btn btn-ghost btn-sm" onclick="openM('clinikoM')">🔗 Cliniko</button>
     <button class="btn btn-ghost btn-sm" onclick="openM('savedM')">📂 Programs</button>
     <button class="btn btn-ghost btn-sm" onclick="openM('templatesM')">&#128196; Templates</button>
     <button class="btn btn-ghost btn-sm" onclick="toggleDashboard()" id="dashBtn">&#128101; Dashboard</button>
@@ -2067,38 +2063,12 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   </div>
 </div></div>
 
-<!-- CLINIKO -->
-<div class="overlay" id="clinikoM" onclick="closeBg(event,'clinikoM')"><div class="modal">
-  <div class="modal-title">🔗 Cliniko Integration</div><p class="modal-sub">Import patients and learn about PDF options</p>
-  <div class="info-box">Cliniko → Settings → Integrations → API Keys → Add. Paste below. Stored in your browser only.</div>
-  <div style="display:flex;gap:6px;align-items:flex-end;margin-bottom:8px">
-    <div class="fg" style="flex:1"><label>Cliniko API Key</label><input id="clkKey" type="password" placeholder="Paste API key…"></div>
-    <button class="btn btn-primary btn-sm" onclick="testCliniko()">Connect</button>
-  </div>
-  <div id="clkStatus" style="margin-bottom:8px"></div>
-  <div id="clkSearchSection" style="display:none">
-    <hr style="border:none;border-top:1px solid var(--sand-d);margin:10px 0">
-    <div class="sec-lbl" style="margin-bottom:6px">Search Patients</div>
-    <div class="search-wrap" style="margin-bottom:7px"><span class="si">🔍</span><input id="clkSrch" type="text" placeholder="Patient name…" oninput="clkSearch()"></div>
-    <div id="clkResults" style="max-height:200px;overflow-y:auto"></div>
-  </div>
-  <hr style="border:none;border-top:1px solid var(--sand-d);margin:10px 0">
-  <div class="sec-lbl" style="margin-bottom:6px">PDF Save-Back</div>
-  <div class="info-box" style="border-color:var(--coral)">
-    Cliniko's API does not support file uploads for non-partner apps (archived May 2025).<br><br>
-    <strong>Best option now:</strong> Generate PDF → open patient in Cliniko → attach in the Files tab manually.<br>
-    <strong>For full integration:</strong> Email <strong>support@cliniko.com</strong> to apply as an Integration Partner — reference your clinic ABN and name.
-  </div>
-  <div class="modal-footer"><button class="btn btn-outline" onclick="closeM('clinikoM')">Close</button></div>
-</div></div>
-
 <!-- TEAM -->
 <div class="overlay" id="teamM" onclick="closeBg(event,'teamM')"><div class="modal">
   <div class="modal-title">🌐 Team Access</div><p class="modal-sub">How to share this tool with your whole team</p>
 
   <div class="info-box"><strong>⭐ Option 1 — Shared Drive (Free)</strong><br>Save <code>beachside_hep_v6.html</code> to clinic Google Drive / OneDrive. Staff open in Chrome and bookmark. Use Export JSON/Import JSON to share programs.</div>
   <div class="info-box"><strong>Option 2 — GitHub Pages (Free, always online)</strong><br>Upload to GitHub, enable Pages under Settings. Team gets a permanent URL like <code>yourclinic.github.io/hep</code></div>
-  <div class="info-box" style="border-color:var(--coral)"><strong>Cliniko Launch Integration</strong><br>Requires Cliniko Integration Partner status — email <strong>support@cliniko.com</strong>. The 🔗 Cliniko button already lets staff search and import patients with one click.</div>
   <div class="info-box" style="border-color:var(--teal);margin-top:8px">
     <strong>🔒 Step 3 — Enable Row-Level Security (Important!)</strong><br>
     Run this SQL once in your <a href="https://supabase.com/dashboard" target="_blank" style="color:var(--ocean)">Supabase SQL Editor</a> to lock down access — practitioners see everything, clients only see their own record:
@@ -3250,7 +3220,7 @@ try { clients = JSON.parse(localStorage.getItem('bep_v6_clients') || localStorag
 })();
 
 let currentClientId = null, currentProgId = null;
-let dragging = null, clkTimer = null, activeCat = 'All';
+let dragging = null, activeCat = 'All';
 
 // ══════════════════════════════════════
 // INIT
@@ -3260,18 +3230,6 @@ function init() {
   renderClientDropdown();
   renderLib();
   var _lc = document.getElementById('libCnt'); if (_lc) _lc.textContent = getAllExercises().length;
-  // URL params (Cliniko deeplink)
-  const p = new URLSearchParams(location.search);
-  if (p.get('first') || p.get('name')) {
-    const first = p.get('first') || p.get('name').split(' ')[0] || '';
-    const last = p.get('last') || (p.get('name').includes(' ') ? p.get('name').split(' ').slice(1).join(' ') : '');
-    const dob = p.get('dob') || '';
-    setTimeout(() => {
-      sv('nc_first', first); sv('nc_last', last); if (dob) sv('nc_dob', dob);
-      openM('newClientM');
-      toast(`Patient "${first} ${last}" pre-filled from Cliniko link`, 'ok');
-    }, 500);
-  }
   document.getElementById('em_cat').addEventListener('change', () => {
     document.getElementById('em_custom_cat_wrap').style.display = v('em_cat') === 'Custom' ? '' : 'none';
   });
@@ -4348,152 +4306,6 @@ function handleJSONImport(e) {
 }
 
 // ══════════════════════════════════════
-// CLINIKO
-// ══════════════════════════════════════
-function clkApiUrl(shard, path) {
-  // Route through Supabase Edge Function to avoid CORS
-  // path is fully encoded so & in query strings don't break the outer URL
-  return SUPA_URL + '/functions/v1/cliniko-edge-function-ts?shard=' + shard + '&path=' + encodeURIComponent(path);
-}
-
-function clkSearchUrl(shard, searchTerm) {
-  // Build search URL with correct q[] syntax - pass term separately
-  return SUPA_URL + '/functions/v1/cliniko-edge-function-ts?shard=' + shard + '&path=' + encodeURIComponent('/v1/patients') + '&search=' + encodeURIComponent(searchTerm) + '&per_page=20';
-}
-
-function testCliniko() {
-  const key = document.getElementById('clkKey').value.trim(); if (!key) return;
-  const st = document.getElementById('clkStatus');
-  st.innerHTML = '<span class="status st-load">Connecting...</span>';
-  const sm = key.match(/(au\d|us\d|ca\d|uk\d)/i);
-  const shard = sm ? sm[1].toLowerCase() : 'au2';
-  fetch(clkApiUrl(shard, '/v1/patients?per_page=1'), {
-    method: 'GET',
-    headers: { 'Authorization': 'Basic ' + btoa(key + ':'), 'apikey': SUPA_KEY, 'x-cliniko-key': key }
-  }).then(function(r) {
-    return r.text().then(function(t) {
-      if (r.ok) {
-        // Save to localStorage
-        localStorage.setItem('bep_clk_key', key);
-        localStorage.setItem('bep_clk_shard', shard);
-        // Save to Supabase for other devices
-        saveClinikoKey(key, shard);
-        // Update UI
-        applyClinikoKey(key, shard);
-      } else {
-        st.innerHTML = '<span class="status st-err">Error ' + r.status + ': ' + t.substring(0,80) + '</span>';
-      }
-    });
-  }).catch(function(err) {
-    st.innerHTML = '<span class="status st-err">Failed: ' + err.message + '</span>';
-  });
-}
-
-function clkSearch() {
-  clearTimeout(clkTimer);
-  clkTimer = setTimeout(function() {
-    const q = document.getElementById('clkSrch').value.trim(); if (q.length < 2) return;
-    const key = localStorage.getItem('bep_clk_key'), shard = localStorage.getItem('bep_clk_shard') || 'au1';
-    document.getElementById('clkResults').innerHTML = '<div style="font-size:11px;color:var(--text-light);padding:5px">Searching...</div>';
-    // Search by first name and last name separately then merge results
-    var parts = q.trim().split(/\s+/);
-    var headers2 = { method: 'GET', headers: { 'Authorization': 'Basic ' + btoa(key + ':'), 'apikey': SUPA_KEY, 'x-cliniko-key': key } };
-    // Search first_name and last_name separately using dedicated search param
-    var fnUrl = SUPA_URL + '/functions/v1/cliniko-edge-function-ts?shard=' + shard + '&field=first_name&search=' + encodeURIComponent(parts[0]) + '&per_page=20';
-    var lnUrl = SUPA_URL + '/functions/v1/cliniko-edge-function-ts?shard=' + shard + '&field=last_name&search=' + encodeURIComponent(parts[0]) + '&per_page=20';
-    Promise.all([
-      fetch(fnUrl, headers2).then(function(r){return r.json();}),
-      fetch(lnUrl, headers2).then(function(r){return r.json();})
-    ]).then(function(results) {
-      var seen = {};
-      var pts = [];
-      (results[0].patients||[]).concat(results[1].patients||[]).forEach(function(pt) {
-        if (!seen[pt.id]) { seen[pt.id] = true; pts.push(pt); }
-      });
-      pts.sort(function(a,b) { return (a.last_name||'').localeCompare(b.last_name||''); });
-      if (!pts.length) {
-        var rawMsg = JSON.stringify(results[0]).substring(0,200);
-        document.getElementById('clkResults').innerHTML = '<div style="font-size:11px;color:var(--text-light);padding:5px">No patients found. Response: ' + rawMsg + '</div>';
-        return;
-      }
-      document.getElementById('clkResults').innerHTML = pts.map(function(pt) {
-        var ptData = JSON.stringify({ first: pt.first_name, last: pt.last_name, dob: pt.date_of_birth || '', email: pt.email || '', phone: pt.patient_phone_numbers && pt.patient_phone_numbers[0] ? pt.patient_phone_numbers[0].number : '' });
-        return '<div class="cliniko-result" onclick="importPatient(' + ptData.replace(/"/g, '&quot;') + ')">' +
-          '<div class="cli-av">' + (pt.first_name||'?')[0] + (pt.last_name||'?')[0] + '</div>' +
-          '<div><div style="font-weight:600;font-size:11px">' + pt.first_name + ' ' + pt.last_name + '</div>' +
-          '<div style="font-size:9px;color:var(--text-light)">' + (pt.date_of_birth ? 'DOB: ' + fd(pt.date_of_birth) : '') + (pt.email ? '  ' + pt.email : '') + '</div></div>' +
-          '<button class="btn btn-primary btn-xs" style="margin-left:auto">Import</button>' +
-        '</div>';
-      }).join('');
-    }).catch(function(e) {
-      document.getElementById('clkResults').innerHTML = '<div style="color:var(--coral);font-size:11px;padding:5px">Search failed: ' + e.message + '</div>';
-    });
-    var _unused = {
-      method: 'GET',
-      headers: {
-        'Authorization': 'Basic ' + btoa(key + ':'),
-        'apikey': SUPA_KEY,
-        'x-cliniko-key': key
-      }
-    }; // end search
-  }, 400);
-}
-
-function importPatient(pt) {
-  sv('nc_first', pt.first);
-  sv('nc_last', pt.last);
-  if (pt.dob) sv('nc_dob', pt.dob);
-  if (pt.email) sv('nc_email', pt.email);
-  if (pt.phone) sv('nc_phone', pt.phone);
-  closeM('clinikoM');
-  openM('newClientM');
-  toast(pt.first + ' ' + pt.last + ' imported from Cliniko', 'ok');
-}
-
-// ── Cliniko key persistence across devices ──
-async function saveClinikoKey(key, shard) {
-  try {
-    await fetch(SUPA_URL + '/rest/v1/library', {
-      method: 'POST',
-      headers: supaHeaders(),
-      body: JSON.stringify({ id: 'bep_cliniko_config', data: { key: key, shard: shard }, updated_at: new Date().toISOString() })
-    });
-  } catch(e) {}
-}
-
-async function loadClinikoKey() {
-  // Try localStorage first (fast, works offline)
-  var cachedKey = localStorage.getItem('bep_clk_key');
-  var cachedShard = localStorage.getItem('bep_clk_shard') || 'au1';
-  if (cachedKey) {
-    applyClinikoKey(cachedKey, cachedShard);
-    return;
-  }
-  // Fall back to Supabase
-  try {
-    const r = await fetch(SUPA_URL + '/rest/v1/library?id=eq.bep_cliniko_config&select=data', { headers: supaHeaders() });
-    if (!r.ok) return;
-    const rows = await r.json();
-    if (!rows || !rows.length || !rows[0].data) return;
-    const d = rows[0].data;
-    if (d.key) {
-      localStorage.setItem('bep_clk_key', d.key);
-      localStorage.setItem('bep_clk_shard', d.shard || 'au1');
-      applyClinikoKey(d.key, d.shard || 'au1');
-    }
-  } catch(e) {}
-}
-
-function applyClinikoKey(key, shard) {
-  const keyEl = document.getElementById('clkKey');
-  if (keyEl) keyEl.value = key;
-  const st = document.getElementById('clkStatus');
-  if (st) st.innerHTML = '<span class="status st-ok">Connected (' + shard + ')</span>';
-  const ss = document.getElementById('clkSearchSection');
-  if (ss) ss.style.display = '';
-}
-
-// ══════════════════════════════════════
 // PDF
 // ══════════════════════════════════════
 function doPDF() {
@@ -4507,15 +4319,12 @@ function doPDF() {
 function openM(id) {
   if (id==='savedM') renderSavedModal();
   if (id==='editClientM') openEditClient();
-  if (id==='clinikoM') loadClinikoKey();
   if (id==='exMgrM') { renderEmList(); }
   if (id==='templatesM') { renderTemplates(); }
   if (id==='omHistM') { renderOMHistory(null); }
   if (id==='announceM') { loadAnnouncements().then(renderAnnList); }
   if (id==='teamM') { setTimeout(loadAnnaKeyStatus, 50); }
   if (id==='shareM') { renderShareClientList(); }
-  const k = localStorage.getItem('bep_clk_key');
-  if (id==='clinikoM'&&k) { sv('clkKey',k); document.getElementById('clkSearchSection').style.display=''; }
   document.getElementById(id).classList.add('open');
 }
 function closeM(id) { document.getElementById(id).classList.remove('open'); }
