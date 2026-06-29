@@ -4598,12 +4598,22 @@ let userRole = null; // 'practitioner' | 'client'
 function authToken() {
   var token = localStorage.getItem('bep_token');
   if (token) {
-    // Check if JWT is expired (basic check on exp claim)
+    // Check if JWT is about to expire (within 60s) - proactively refresh in background
+    // but keep using the current token until the refresh completes, so we never
+    // silently fall back to the anon key while a valid refresh token still exists.
     try {
       var payload = JSON.parse(atob(token.split('.')[1]));
-      if (payload.exp && payload.exp < Math.floor(Date.now()/1000)) {
-        localStorage.removeItem('bep_token'); // expired, remove it
-        return SUPA_KEY;
+      var nowSec = Math.floor(Date.now()/1000);
+      if (payload.exp && payload.exp < nowSec + 60) {
+        // Expiring soon or already expired - kick off a refresh (shared/lock-protected)
+        // but do NOT delete the token or fall back to anon key here. The refresh
+        // will update localStorage when it completes; callers in-flight right now
+        // still get the best token we have.
+        if (typeof refreshAuthToken === 'function') refreshAuthToken();
+        // If genuinely expired (not just close to it), we still have to return *something*.
+        // Prefer the (now stale) token over the anon key - Supabase will reject it
+        // cleanly with 401 and the caller's own retry/refresh logic handles that,
+        // rather than us silently downgrading every request to anonymous.
       }
     } catch(e) {}
   }
@@ -8426,30 +8436,17 @@ function cvShowSyncPulse() {
 }
 
 // Refresh auth token when user returns to the app (after phone lock etc)
-document.addEventListener('visibilitychange', async function() {
+document.addEventListener('visibilitychange', function() {
   if (document.hidden && cvData) {
     // Phone locked/app backgrounded - save everything immediately
     cvSaveSession();
     cvSaveState();
   }
   if (!document.hidden && currentUser) {
-    var refresh = localStorage.getItem('bep_refresh');
-    if (refresh) {
-      try {
-        var r = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
-          method: 'POST',
-          headers: {'Content-Type':'application/json','apikey':SUPA_KEY},
-          body: JSON.stringify({refresh_token: refresh})
-        });
-        if (r.ok) {
-          var d = await r.json();
-          if (d.access_token) {
-            localStorage.setItem('bep_token', d.access_token);
-            if (d.refresh_token) localStorage.setItem('bep_refresh', d.refresh_token);
-          }
-        }
-      } catch(e) { /* network error - keep user signed in */ }
-    }
+    // Phone woke up / tab refocused - refresh via the shared, lock-protected
+    // function so this can never race with the periodic interval or authToken()'s
+    // own reactive refresh check.
+    if (typeof refreshAuthToken === 'function') refreshAuthToken();
   }
 });
 
