@@ -5021,16 +5021,45 @@ async function syncClients() {
             var localExCount = (localCl.programs||[]).reduce(function(n,p){return n+(p.exercises||[]).length;},0);
             var cloudExCount = (cloudCl.programs||[]).reduce(function(n,p){return n+(p.exercises||[]).length;},0);
 
-            if (cloudProgCount > localProgCount || cloudExCount > localExCount) {
-              // Cloud has more data - update local but preserve any local-only programs
+            // Count log entries + outcomes on both sides. Client workout
+            // submissions add LOG ENTRIES (not programs/exercises), so we must
+            // detect those too or practitioner never sees submitted workouts.
+            var cloudLogCount = (cloudCl.programs||[]).reduce(function(n,p){return n+((p.log||[]).length);},0);
+            var localLogCount = (localCl.programs||[]).reduce(function(n,p){return n+((p.log||[]).length);},0);
+            var cloudOutcomes = (cloudCl.outcomes||[]).length + (cloudCl.safetyLog||[]).length;
+            var localOutcomes = (localCl.outcomes||[]).length + (localCl.safetyLog||[]).length;
+
+            var cloudIsAhead = cloudProgCount > localProgCount
+                            || cloudExCount > localExCount
+                            || cloudLogCount > localLogCount
+                            || cloudOutcomes > localOutcomes;
+
+            var idx2 = clients.findIndex(function(c){return c.id===cloudCl.id;});
+
+            if (cloudIsAhead) {
+              // Cloud has newer data. Start from cloud, then merge back anything
+              // local-only so we never lose unsynced practitioner edits:
+              // 1. keep local-only programs
               (localCl.programs||[]).forEach(function(lp) {
                 if (!cloudCl.programs.find(function(cp){return cp.id===lp.id;})) {
-                  cloudCl.programs.push(lp); // keep local-only programs
+                  cloudCl.programs.push(lp);
                 }
               });
-              var idx2 = clients.findIndex(function(c){return c.id===cloudCl.id;});
+              // 2. within shared programs, union the log entries (dedupe by date+text)
+              (cloudCl.programs||[]).forEach(function(cp) {
+                var lp = (localCl.programs||[]).find(function(x){return x.id===cp.id;});
+                if (!lp || !lp.log || !lp.log.length) return;
+                if (!cp.log) cp.log = [];
+                lp.log.forEach(function(le) {
+                  var dup = cp.log.some(function(ce){return ce.date===le.date && ce.text===le.text;});
+                  if (!dup) cp.log.push(le);
+                });
+              });
               if (idx2 > -1) clients[idx2] = cloudCl;
               changed = true;
+            } else if (localLogCount > cloudLogCount) {
+              // Local has log entries the cloud is missing (e.g. a workout the
+              // practitioner hasn't pushed yet) - leave local as-is, don't clobber.
             }
             // Always update the timestamp so we don't re-fetch unnecessarily
             if (idx2 > -1 || localCl) {
@@ -7008,7 +7037,7 @@ function openClientDemo() {
   if (!cl.programs || !cl.programs.length) { toast('Client has no programs yet', 'err'); return; }
   cvData = cl; cvState = {}; cvFeeling = ''; cvProgIdx = 0; cvSafetyDone = true; cvComment = '';
   document.getElementById('cvBackBtn').style.display = '';
-  document.getElementById('cvSignOutBtn').style.display = 'none';
+  var _soB = document.getElementById('cvSignOutBtn'); if (_soB) _soB.style.display = 'none';
   document.getElementById('cvLogoText').textContent = 'Preview: ' + cl.first + ' ' + cl.last;
   cvOwnWorkouts = JSON.parse(localStorage.getItem('cv_own_workouts_' + cl.id) || '[]');
   // Show client view first
@@ -7062,7 +7091,7 @@ function openClientDemo() {
 
 function closeClientDemo() {
   document.getElementById('cvBackBtn').style.display = 'none';
-  document.getElementById('cvSignOutBtn').style.display = '';
+  var _soB2 = document.getElementById('cvSignOutBtn'); if (_soB2) _soB2.style.display = '';
   document.getElementById('cvLogoText').textContent = 'Beachside Exercise Physiology';
   // Restore viewClient from phone frame
   var vc = document.getElementById('viewClient');
