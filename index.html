@@ -2255,72 +2255,7 @@ create policy "clients_read_library" on library for select using (auth.role() = 
 </div>
 
 
-<!-- PRE-EXERCISE SAFETY CHECKS MODAL -->
-<div class="overlay" id="safetyM" onclick="closeBg(event,'safetyM')">
-<div class="modal" style="width:520px">
-  <div class="modal-title">&#10084; Pre-Exercise Safety Check</div>
-  <p class="modal-sub" id="safetyClientName">Record vitals before session begins</p>
-
-  <div class="safety-alert" id="safetyAlert"></div>
-  <div class="safety-ok-msg" id="safetyOk"></div>
-
-  <div class="safety-grid">
-    <div class="safety-field" style="grid-column:1/-1">
-      <label>Blood Pressure</label>
-      <span class="sf-hint">Caution &amp; stop exercise: &ge;180/110 mmHg</span>
-      <div style="display:flex;gap:8px;align-items:center">
-        <input id="sf_bpSys" type="number" placeholder="120" min="60" max="250" oninput="checkSafety()" style="text-align:center">
-        <span style="font-size:18px;font-weight:700;color:var(--text-l)">/</span>
-        <input id="sf_bpDia" type="number" placeholder="80" min="40" max="150" oninput="checkSafety()" style="text-align:center">
-        <span style="font-size:11px;color:var(--text-l)">mmHg</span>
-      </div>
-    </div>
-
-    <div class="safety-field">
-      <label>Blood Glucose</label>
-      <span class="sf-hint">Normal: 4–8 mmol/L &nbsp;|&nbsp; Caution: &lt;4 or &gt;14</span>
-      <div style="display:flex;gap:6px;align-items:center">
-        <input id="sf_bgl" type="number" placeholder="5.5" min="1" max="30" step="0.1" oninput="checkSafety()">
-        <span style="font-size:11px;color:var(--text-l)">mmol/L</span>
-      </div>
-    </div>
-
-    <div class="safety-field">
-      <label>Pain VAS</label>
-      <span class="sf-hint">0 = no pain &nbsp;|&nbsp; 10 = worst &nbsp;|&nbsp; Caution: &gt;7</span>
-      <div style="display:flex;gap:6px;align-items:center">
-        <input id="sf_vas" type="number" placeholder="0" min="0" max="10" step="0.5" oninput="checkSafety()">
-        <span style="font-size:11px;color:var(--text-l)">/10</span>
-      </div>
-    </div>
-
-    <div class="safety-field">
-      <label>Heart Rate</label>
-      <span class="sf-hint">Record resting heart rate</span>
-      <div style="display:flex;gap:6px;align-items:center">
-        <input id="sf_hr" type="number" placeholder="72" min="30" max="220" oninput="checkSafety()">
-        <span style="font-size:11px;color:var(--text-l)">bpm</span>
-      </div>
-    </div>
-
-    <div class="safety-field" style="grid-column:1/-1">
-      <label>Additional Notes</label>
-      <input id="sf_notes" type="text" placeholder="e.g. Client reports dizziness this morning" style="text-align:left;font-size:12px;font-weight:400">
-    </div>
-  </div>
-
-  <div id="safetyPrevBox" style="display:none">
-    <div class="safety-prev-title">Previous readings</div>
-    <div class="safety-prev" id="safetyPrev"></div>
-  </div>
-
-  <div class="modal-footer" style="justify-content:space-between">
-    <button class="btn btn-outline" onclick="closeM('safetyM')">Cancel</button>
-    <button class="btn btn-primary" onclick="saveSafetyCheck()">&#10003; Record &amp; Proceed</button>
-  </div>
-</div>
-</div>
-
+<!-- (dead pre-exercise safety modal removed in bug sweep: it was never opened; live safety flow is openSafetyCheck) -->
 
 <!-- CLIENT SHARE MODAL -->
 <div class="overlay" id="shareM" onclick="closeBg(event,'shareM')">
@@ -3819,7 +3754,15 @@ function deleteProgram(id) {
   if (!confirm('Delete this program?')) return;
   cl.programs = cl.programs.filter(p => p.id !== id);
   if (currentProgId === id) currentProgId = cl.programs[0].id;
+  // Tombstone the deletion so the cloud merge logic can tell "deliberately
+  // deleted" apart from "not synced yet" and never resurrects this program.
+  if (!cl.deletedPrograms) cl.deletedPrograms = [];
+  if (cl.deletedPrograms.indexOf(id) === -1) cl.deletedPrograms.push(id);
   saveDB(); renderProgTabs(); loadProg(); updatePreview();
+  // CRITICAL: deletion previously never reached Supabase, so the client's app
+  // kept showing the deleted program. Push it now.
+  pushClientToCloud(cl);
+  toast('Program deleted', 'ok');
 }
 
 function loadProg() {
@@ -4872,15 +4815,20 @@ async function safePushClientToCloud(snapCl) {
       if (rows.length > 0 && rows[0].data && rows[0].data.programs) {
         var cloudProgs = rows[0].data.programs;
         var localProgs = snapCl.programs || [];
-        // Keep whichever has more programs
+        // Programs the practitioner has deliberately deleted must never be
+        // merged back in from the cloud.
+        var tombstones = (snapCl.deletedPrograms || [])
+          .concat((rows[0].data.deletedPrograms) || []);
+        cloudProgs = cloudProgs.filter(function(cp) { return tombstones.indexOf(cp.id) === -1; });
+        snapCl.deletedPrograms = tombstones.filter(function(v,i,a){ return a.indexOf(v) === i; });
+
         if (cloudProgs.length > localProgs.length) {
-          // Cloud has more - merge local programs in
+          // Cloud has programs we don't - merge them in (but never tombstoned ones)
           var merged = cloudProgs.slice();
           localProgs.forEach(function(lp) {
             var cp = merged.find(function(p) { return p.id === lp.id; });
             if (!cp) { merged.push(lp); }
-            else if (lp.exercises.length > cp.exercises.length) {
-              // Local has more exercises in this program - use local
+            else if ((lp.exercises||[]).length > (cp.exercises||[]).length) {
               merged[merged.indexOf(cp)] = lp;
             }
           });
@@ -5037,10 +4985,20 @@ async function syncClients() {
             var idx2 = clients.findIndex(function(c){return c.id===cloudCl.id;});
 
             if (cloudIsAhead) {
+              // Respect deletions: a program the practitioner deleted must not
+              // come back from the cloud just because the cloud still has it.
+              var _tomb = (localCl.deletedPrograms || []).concat(cloudCl.deletedPrograms || []);
+              _tomb = _tomb.filter(function(v,i,a){ return a.indexOf(v) === i; });
+              if (_tomb.length) {
+                cloudCl.programs = (cloudCl.programs||[]).filter(function(cp){ return _tomb.indexOf(cp.id) === -1; });
+              }
+              cloudCl.deletedPrograms = _tomb;
+
               // Cloud has newer data. Start from cloud, then merge back anything
               // local-only so we never lose unsynced practitioner edits:
-              // 1. keep local-only programs
+              // 1. keep local-only programs (excluding deleted ones)
               (localCl.programs||[]).forEach(function(lp) {
+                if (_tomb.indexOf(lp.id) !== -1) return;
                 if (!cloudCl.programs.find(function(cp){return cp.id===lp.id;})) {
                   cloudCl.programs.push(lp);
                 }
@@ -5104,7 +5062,11 @@ async function loadClientView(user) {
     // Try cached client ID first (bypasses RLS email matching entirely)
     var cachedId = localStorage.getItem('bep_cid_' + email);
     var rows = [];
-    var token = localStorage.getItem('bep_token') || SUPA_KEY;
+    // Refresh the JWT if needed BEFORE fetching. Previously this used the raw
+    // stored token: if it had expired, all three fetch attempts 401'd silently
+    // and the client kept seeing stale cached programs.
+    try { if (typeof refreshAuthToken === 'function') await refreshAuthToken(); } catch(eRf) {}
+    var token = authToken();
     var fetchHeaders = { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token };
 
     // Try 1: fetch by cached ID - most reliable, bypasses JWT issues
@@ -5658,7 +5620,14 @@ async function cvRecoverPendingSubmit() {
   }
 
   // Check if this log entry is already saved in cvData (i.e. it actually succeeded last time)
-  var prog = cvData.programs && cvData.programs[pending.progIdx];
+  // Match by stable program id first (index drifts if programs were reordered
+  // between the failed save and this recovery). Fall back to index for old
+  // backups that predate progId.
+  var prog = null;
+  if (pending.progId && cvData.programs) {
+    prog = cvData.programs.find(function(p){ return p.id === pending.progId; });
+  }
+  if (!prog && cvData.programs) prog = cvData.programs[pending.progIdx];
   if (!prog) { try { localStorage.removeItem('bep_pending_submit_' + cvData.id); } catch(e) {} return; }
   var alreadySaved = (prog.log||[]).some(function(l) {
     return l.date === pending.logEntry.date && l.text === pending.logEntry.text;
@@ -5789,6 +5758,7 @@ async function cvSubmit() {
   var _pendingSubmission = {
     clientId: cvData.id,
     progIdx: cvProgIdx,
+    progId: prog.id, // stable id — index can drift if programs are reordered
     logEntry: prog.log[prog.log.length - 1],
     exercisesSnapshot: JSON.parse(JSON.stringify(exs)),
     savedAt: Date.now()
@@ -5814,8 +5784,17 @@ async function cvSubmit() {
         if (freshRows && freshRows.length && freshRows[0].data) {
           const fresh = freshRows[0].data;
           const myProg = cvData.programs[cvProgIdx];
-          if (myProg && fresh.programs && fresh.programs[cvProgIdx]) {
-            const freshProg = fresh.programs[cvProgIdx];
+          // Match the program by STABLE ID, not array index. The practitioner may
+          // have reordered/added/removed programs since this phone last synced, so
+          // fresh.programs[cvProgIdx] can point at a different program (or not exist),
+          // which previously caused the submitted workout to be merged into the wrong
+          // program or silently dropped while the save still reported success.
+          var freshProg = null;
+          if (myProg && fresh.programs) {
+            if (myProg.id) freshProg = fresh.programs.find(function(fp){ return fp.id === myProg.id; });
+            if (!freshProg && fresh.programs[cvProgIdx]) freshProg = fresh.programs[cvProgIdx];
+          }
+          if (myProg && freshProg) {
             if (!freshProg.log) freshProg.log = [];
             const myLog = myProg.log || [];
             myLog.forEach(function(entry) {
@@ -5840,7 +5819,11 @@ async function cvSubmit() {
           }
           if (cvData.safetyLog) fresh.safetyLog = cvData.safetyLog;
           if (cvData.outcomes) fresh.outcomes = cvData.outcomes;
-          cvData = fresh;
+          // Only adopt the fresh copy if we actually merged our log into it.
+          // If the program couldn't be matched, keep our own cvData (which
+          // definitely contains the new log entry) so we never POST a
+          // successful-looking save that is missing the workout.
+          if (freshProg) { cvData = fresh; }
         }
       }
 
@@ -7585,7 +7568,7 @@ function cvRestoreSession() {
       cvSwitchTab(s.tab);
     }
     // Update program selector UI
-    var sel = document.getElementById('_progSel');
+    var sel = document.getElementById('cvProgSel');
     if (sel) sel.value = 'prog_' + cvProgIdx;
   } catch(e) {}
 }
@@ -8740,62 +8723,8 @@ function clientSearchKeydown(e) {
 }
 
 
-async function cvSaveWkt() {
-  if (!cvWktType) { alert('Select a workout type first.'); return; }
-  var dur = (document.getElementById('cvWktDur') || {}).value || '';
-  var feel = (document.getElementById('cvWktFeel') || {}).value || '';
-  var notes = (document.getElementById('cvWktNotes') || {}).value || '';
+// (dead function cvSaveWkt removed in bug sweep: zero callers, read non-existent element ids)
 
-  var today = new Date().toLocaleString('en-AU', {
-    day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'
-  });
-
-  var parts = [cvWktType];
-  if (dur) parts.push(dur + ' min');
-  if (feel) parts.push('Felt: ' + feel);
-  if (cvWktExercises.length) {
-    parts.push('Exercises: ' + cvWktExercises.map(function(ex) {
-      return ex.name + (ex.sets ? ' ' + ex.sets + 'x' : '') + (ex.reps || '') + (ex.load ? ' @' + ex.load : '');
-    }).join(', '));
-  }
-  if (notes) parts.push(notes);
-
-  if (!cvData.ownWorkouts) cvData.ownWorkouts = [];
-  cvData.ownWorkouts.push({
-    date: today,
-    type: cvWktType,
-    duration: dur,
-    feel: feel,
-    exercises: cvWktExercises,
-    notes: notes,
-    summary: parts.join(' | ')
-  });
-
-  // Sync to Supabase
-  try {
-    var freshResp = await fetch(SUPA_URL + '/rest/v1/clients?select=data&id=eq.' + cvData.id, {
-      headers: supaHeaders()
-    });
-    if (freshResp.ok) {
-      var freshRows = await freshResp.json();
-      if (freshRows && freshRows.length && freshRows[0].data) {
-        var fresh = freshRows[0].data;
-        fresh.ownWorkouts = cvData.ownWorkouts;
-        cvData = fresh;
-      }
-    }
-    await fetch(SUPA_URL + '/rest/v1/clients', {
-      method: 'POST',
-      headers: supaHeaders(),
-      body: JSON.stringify({ id: cvData.id, data: cvData, updated_at: new Date().toISOString() })
-    });
-  } catch(e) {}
-
-  // Update cvOwnWorkouts so calendar sees it immediately
-  cvOwnWorkouts = cvData.ownWorkouts || [];
-  closeCVWkt();
-  showCVCongrats(cvData.first, true);
-}
 
 
 // ════════════════════════════════════════════════════
