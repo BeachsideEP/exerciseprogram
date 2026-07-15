@@ -1597,7 +1597,10 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   <div id="clinikoModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);flex-direction:column">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#0d1b2a;flex-shrink:0">
       <div style="color:#2FFFD4;font-size:15px;font-weight:700">📅 Book a Group Class</div>
-      <button onclick="cvCloseClasses()" style="background:none;border:none;color:#C9D1D9;font-size:22px;cursor:pointer;line-height:1;padding:4px 8px">&times;</button>
+      <div style="display:flex;align-items:center;gap:6px">
+        <button onclick="cvOpenClassPrompt()" style="background:rgba(47,255,212,.12);border:1.5px solid rgba(47,255,212,.4);color:#2FFFD4;font-size:12px;font-weight:700;cursor:pointer;border-radius:8px;padding:6px 10px">&#43; Add to my calendar</button>
+        <button onclick="cvCloseClasses()" style="background:none;border:none;color:#C9D1D9;font-size:22px;cursor:pointer;line-height:1;padding:4px 8px">&times;</button>
+      </div>
     </div>
     <div style="flex:1;overflow-y:auto;background:#fff">
       <iframe id='cliniko-21331448' src='https://beachside-exercise-physiology.au2.cliniko.com/bookings?business_id=1335938640521468158&appointment_type_id=1341606644529765156&embedded=true' frameborder='0' scrolling='auto' width='100%' height='1000' style='pointer-events: auto;display:block'></iframe>
@@ -2264,6 +2267,22 @@ create policy "clients_read_library" on library for select using (auth.role() = 
   <div class="modal-title" id="cvChartTitle" style="color:var(--cv-text,#E8EEF3)">&#128200; Progress</div>
   <div id="cvChartBody" style="max-height:70vh;overflow-y:auto"></div>
   <div class="modal-footer"><button class="btn btn-outline" onclick="closeM('cvChartM')">Close</button></div>
+</div>
+</div>
+
+<!-- ADD BOOKED CLASS TO CALENDAR MODAL -->
+<div class="overlay" id="cvClassM" onclick="closeBg(event,'cvClassM')" style="z-index:10001">
+<div class="modal" style="width:min(420px,92vw);background:var(--cv-card,#12181D);color:var(--cv-text,#E8EEF3);border:1px solid var(--cv-border,#232B33)">
+  <div class="modal-title" style="color:var(--cv-text,#E8EEF3)">&#127881; Add your class to the calendar</div>
+  <p style="font-size:13px;color:var(--cv-text-3,#8B98A5);margin:4px 0 14px">Pop in the date and time of the class you just booked and it'll show on your calendar.</p>
+  <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:var(--cv-text-2,#C9D1D9)">Class date</label>
+  <input id="cvClassDate" type="date" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--cv-border-2,#2A3540);background:var(--cv-input-bg,#0F1419);color:var(--cv-text,#E8EEF3);font-size:16px;margin-bottom:12px">
+  <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:var(--cv-text-2,#C9D1D9)">Class time</label>
+  <input id="cvClassTime" type="time" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--cv-border-2,#2A3540);background:var(--cv-input-bg,#0F1419);color:var(--cv-text,#E8EEF3);font-size:16px;margin-bottom:6px">
+  <div class="modal-footer" style="justify-content:space-between;margin-top:14px">
+    <button class="btn btn-outline" onclick="closeM('cvClassM')">Not now</button>
+    <button class="btn btn-primary" onclick="cvConfirmClassBooking()">&#10003; Add to calendar</button>
+  </div>
 </div>
 </div>
 
@@ -3287,6 +3306,102 @@ function cvShowProgress(exIdx) {
     var mm = document.getElementById('cvChartM');
     if (mm) mm.classList.add('open');
   } catch (e) { console.warn('cvShowProgress', e); }
+}
+
+// ── BOOKED CLASSES → CALENDAR ──
+// Cliniko's embedded bookings iframe posts a message when the confirmation
+// page is reached (documented by Cliniko for analytics). It does NOT include
+// what/when was booked (cross-origin), so we prompt the client to confirm the
+// date/time in two taps and store it on their record.
+function cvGetClassBookings() {
+  var fromData = (cvData && cvData.classBookings) || [];
+  var mirror = [];
+  try { mirror = JSON.parse(localStorage.getItem('bep_class_bk_' + (cvData && cvData.id)) || '[]'); } catch(e) {}
+  var seen = {}, out = [];
+  fromData.concat(mirror).forEach(function(b) {
+    if (!b || !b.date) return;
+    var k = b.date + '|' + (b.time || '');
+    if (!seen[k]) { seen[k] = 1; out.push(b); }
+  });
+  return out;
+}
+function cvFmtTime(t) {
+  var m = String(t || '').match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return t || '';
+  var h = parseInt(m[1]), ap = h >= 12 ? 'pm' : 'am';
+  h = h % 12; if (h === 0) h = 12;
+  return h + ':' + m[2] + ' ' + ap;
+}
+function cvOpenClassPrompt() {
+  var d = document.getElementById('cvClassDate');
+  var t = document.getElementById('cvClassTime');
+  if (d && !d.value) {
+    var now = new Date();
+    d.value = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+  }
+  if (t) t.value = t.value || '';
+  var mm = document.getElementById('cvClassM');
+  if (mm) mm.classList.add('open');
+}
+function cvOnClassBookingConfirmed() {
+  if (window._cvClassPrompted) return;   // once per Classes-modal open
+  window._cvClassPrompted = true;
+  // small delay so the client sees Cliniko's own confirmation screen first
+  setTimeout(cvOpenClassPrompt, 900);
+}
+async function cvSaveClassBookingsToCloud() {
+  try {
+    var freshResp = await fetch(SUPA_URL + '/rest/v1/clients?select=data&id=eq.' + cvData.id, { headers: supaHeaders() });
+    if (!freshResp.ok) return false;
+    var rows = await freshResp.json();
+    if (!rows || !rows.length || !rows[0].data) return false;
+    var fresh = rows[0].data;
+    // union merge so two devices can't clobber each other
+    var seen = {}, merged = [];
+    (fresh.classBookings || []).concat(cvData.classBookings || []).forEach(function(b) {
+      if (!b || !b.date) return;
+      var k = b.date + '|' + (b.time || '');
+      if (!seen[k]) { seen[k] = 1; merged.push(b); }
+    });
+    // apply deletions: anything the user removed locally is marked in _removed
+    var removed = window._cvRemovedClassKeys || {};
+    merged = merged.filter(function(b) { return !removed[b.date + '|' + (b.time || '')]; });
+    fresh.classBookings = merged;
+    cvData.classBookings = merged;
+    var r = await fetch(SUPA_URL + '/rest/v1/clients', {
+      method: 'POST',
+      headers: supaHeaders(),
+      body: JSON.stringify({ id: cvData.id, data: fresh, updated_at: new Date().toISOString() })
+    });
+    return r.ok;
+  } catch(e) { return false; }
+}
+function cvConfirmClassBooking() {
+  var d = (document.getElementById('cvClassDate') || {}).value || '';
+  var t = (document.getElementById('cvClassTime') || {}).value || '';
+  if (!d) { alert('Please pick the class date'); return; }
+  if (!cvData.classBookings) cvData.classBookings = [];
+  var k = d + '|' + t;
+  var dup = cvData.classBookings.some(function(b) { return (b.date + '|' + (b.time||'')) === k; });
+  if (!dup) cvData.classBookings.push({ date: d, time: t, title: 'Exercise Class', addedAt: new Date().toISOString() });
+  try { localStorage.setItem('bep_class_bk_' + cvData.id, JSON.stringify(cvData.classBookings)); } catch(e) {}
+  closeM('cvClassM');
+  var dd = document.getElementById('cvClassDate'); if (dd) dd.value = '';
+  var tt = document.getElementById('cvClassTime'); if (tt) tt.value = '';
+  if (typeof toast === 'function') { try { toast('Class added to your calendar', 'ok'); } catch(e) {} }
+  if (cvActiveTab === 'calendar') { try { renderCVCalendar(); } catch(e) {} }
+  cvSaveClassBookingsToCloud(); // best-effort; local copy + mirror already safe
+}
+function cvRemoveClassBooking(date, time) {
+  if (!confirm('Remove this class from your calendar?')) return;
+  if (!window._cvRemovedClassKeys) window._cvRemovedClassKeys = {};
+  window._cvRemovedClassKeys[date + '|' + (time || '')] = 1;
+  cvData.classBookings = (cvData.classBookings || []).filter(function(b) {
+    return (b.date + '|' + (b.time || '')) !== (date + '|' + (time || ''));
+  });
+  try { localStorage.setItem('bep_class_bk_' + cvData.id, JSON.stringify(cvData.classBookings)); } catch(e) {}
+  try { renderCVCalendar(); } catch(e) {}
+  cvSaveClassBookingsToCloud();
 }
 
 var libVideoFilter = false;
@@ -5131,8 +5246,8 @@ async function syncClients() {
             // detect those too or practitioner never sees submitted workouts.
             var cloudLogCount = (cloudCl.programs||[]).reduce(function(n,p){return n+((p.log||[]).length);},0);
             var localLogCount = (localCl.programs||[]).reduce(function(n,p){return n+((p.log||[]).length);},0);
-            var cloudOutcomes = (cloudCl.outcomes||[]).length + (cloudCl.safetyLog||[]).length;
-            var localOutcomes = (localCl.outcomes||[]).length + (localCl.safetyLog||[]).length;
+            var cloudOutcomes = (cloudCl.outcomes||[]).length + (cloudCl.safetyLog||[]).length + (cloudCl.classBookings||[]).length;
+            var localOutcomes = (localCl.outcomes||[]).length + (localCl.safetyLog||[]).length + (localCl.classBookings||[]).length;
 
             var cloudIsAhead = cloudProgCount > localProgCount
                             || cloudExCount > localExCount
@@ -5202,6 +5317,7 @@ async function syncClients() {
 }
 
 // ── CLIENT VIEW STATE ──
+var cvWkMode = 'list'; // workouts tab: 'list' (program launcher) | 'active' (session view)
 var cvData = null, cvProgIdx = 0, cvState = {}, cvFeeling = '', cvSafetyDone = false, cvComment = '', cvCustomWorkout = false, cvCustomExercises = [], cvRPE = 5, cvActiveTab = 'home', cvSyncUser = null, cvSyncInterval = null;
 
 async function loadClientView(user) {
@@ -5319,7 +5435,8 @@ function renderCV() {
   if (cvData && cvData.requireSafetyCheck === false) cvSafetyDone = true;
   // Check custom workout mode FIRST before any cvData checks
   if (cvCustomWorkout) {
-    document.getElementById('cvBody').innerHTML = renderCVCustomWorkout();
+    var _bkBar = '<div style="display:flex;align-items:center;gap:10px;margin:2px 0 12px"><button onclick="cvBackToPrograms()" style="background:#12181D;border:1px solid #1F2A33;color:#C9D1D9;font-size:13px;font-weight:700;cursor:pointer;border-radius:10px;padding:8px 12px;flex-shrink:0">&#8249; My Workouts</button><div style="flex:1;font-size:16px;font-weight:800;color:#FFFFFF">Build Your Own</div></div>';
+    document.getElementById('cvBody').innerHTML = _bkBar + renderCVCustomWorkout();
     var _progSel = document.getElementById('cvProgSel');
     if (_progSel) _progSel.value = 'custom';
     return;
@@ -5359,15 +5476,11 @@ function renderCV() {
   }
   h += '</div>'; } // end showSafety
 
-  // ── Program selector ──
-  // Program selector - always show (includes Build Your Own)
-  h += '<div class="cv-prog-sel"><select onchange="cvSelectProg(this.value)" id="cvProgSel">';
-  progs.forEach(function(p, i) {
-    h += '<option value="prog_' + i + '"' + (i === cvProgIdx && !cvCustomWorkout ? ' selected' : '') + '>' + (p.title || 'Program ' + (i+1)) + '</option>';
-  });
-  // If only one program and not in custom mode, auto-show it
-  h += '<option value="custom"' + (cvCustomWorkout ? ' selected' : '') + '>&#127947; Build Your Own Workout</option>';
-  h += '</select></div>';
+  // ── Back to programs bar (replaces the old program dropdown) ──
+  h += '<div style="display:flex;align-items:center;gap:10px;margin:2px 0 12px">';
+  h += '<button onclick="cvBackToPrograms()" style="background:#12181D;border:1px solid #1F2A33;color:#C9D1D9;font-size:13px;font-weight:700;cursor:pointer;border-radius:10px;padding:8px 12px;flex-shrink:0">&#8249; My Workouts</button>';
+  h += '<div style="flex:1;font-size:16px;font-weight:800;color:#FFFFFF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (prog.title || 'Program') + '</div>';
+  h += '</div>';
 
   // ── Exercise cards ──
   // Render exercises with superset grouping
@@ -5573,6 +5686,7 @@ function cvRestoreState() {
     var data = JSON.parse(saved);
     if (Date.now() - new Date(data.savedAt).getTime() > 4 * 60 * 60 * 1000) { localStorage.removeItem(key); return; }
     cvState = data.state || {};
+    if (Object.keys(cvState).length) cvWkMode = 'active'; // resume straight into the session
     if (data.feeling) cvFeeling = data.feeling;
     toast('Workout progress restored!', 'ok');
   } catch(e) {}
@@ -7692,7 +7806,8 @@ function cvSwitchTab(tab) {
   if (tab === 'home') { renderCVHome(); if (_cvTimerStart) cvStopTimer(); }
   if (tab === 'workouts') {
     requestWakeLock();
-    if (!cvState || !Object.keys(cvState).length) { renderCV(); cvStartTimer(); }
+    if (cvWkMode === 'list' && !cvCustomWorkout) { renderCVProgramList(); }
+    else if (!cvState || !Object.keys(cvState).length) { renderCV(); cvStartTimer(); }
   }
   if (tab === 'calendar') renderCVCalendar();
   if (tab === 'ai') renderAnnaTab();
@@ -7726,6 +7841,7 @@ function cvRestoreSession() {
     // Restore tab (only switch to workouts if there's mid-workout state)
     var hasState = Object.keys(cvState).length > 0;
     if (s.tab === 'workouts' && hasState) {
+      cvWkMode = 'active'; // mid-workout: skip the launcher, resume the session
       cvSwitchTab('workouts');
     } else if (s.tab && s.tab !== 'home' && s.tab !== 'workouts') {
       cvSwitchTab(s.tab);
@@ -7963,8 +8079,14 @@ function renderCVHome() {
     // Inject Cliniko booking iframe listener once
     if (!window._clinikoListenerAdded) {
       window.addEventListener('message', function(e) {
+        if (typeof e.data !== 'string') return;
+        // Cliniko posts a page message when the booking confirmation page is
+        // reached — use it to offer adding the class to the calendar.
+        if (e.data.indexOf('cliniko-bookings-page') > -1 && e.data.toLowerCase().indexOf('confirm') > -1) {
+          try { cvOnClassBookingConfirmed(); } catch(ec) {}
+        }
         var frame = document.getElementById('cliniko-31280155');
-        if (!frame || typeof e.data !== 'string') return;
+        if (!frame) return;
         if (e.data.indexOf('cliniko-bookings-resize') > -1) {
           frame.style.height = Number(e.data.split(':')[1]) + 'px';
         }
@@ -8172,6 +8294,16 @@ function renderCVCalendar() {
       feeling: w.feel || '', duration: w.duration || '', details: details });
   });
 
+  // Booked classes (added from the CLASSES tab)
+  try {
+    cvGetClassBookings().forEach(function(b) {
+      var d = normDate(b.date) || b.date; // already YYYY-MM-DD from the date input
+      if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return;
+      if (!sessionsByDate[d]) sessionsByDate[d] = [];
+      sessionsByDate[d].push({ type: 'class', title: b.title || 'Exercise Class', time: b.time || '', details: [], _bkDate: b.date, _bkTime: b.time || '' });
+    });
+  } catch(eCls) {}
+
     // Build today using local date components to avoid timezone offset issues
   var _now = new Date();
   var _tzOffset = _now.getTimezoneOffset() * 60000;
@@ -8207,13 +8339,15 @@ function renderCVCalendar() {
       sessions.forEach(function(s, si) {
         var uid = 'cal_' + dateKey.replace(/ /g,'_') + '_' + si;
         var isPrescribed = s.type === 'prescribed';
-        var accent = isPrescribed ? '#2FD4F5' : '#5BBFAA';
-        var icon = isPrescribed ? '&#127947;' : '&#127939;';
+        var isClass = s.type === 'class';
+        var accent = isClass ? '#F4B942' : (isPrescribed ? '#2FD4F5' : '#5BBFAA');
+        var icon = isClass ? '&#128197;' : (isPrescribed ? '&#127947;' : '&#127939;');
         var sub = '';
         if (s.feeling) sub += 'Felt: ' + s.feeling;
         if (s.duration) sub += (sub ? ' · ' : '') + s.duration + ' min';
         if (s.exCount) sub += (sub ? ' · ' : '') + s.exCount + ' exercises';
-        if (!sub) sub = 'Completed';
+        if (isClass) sub = 'Booked class' + (s.time ? ' &middot; ' + cvFmtTime(s.time) : '');
+        if (!sub) sub = isClass ? 'Booked class' : 'Completed';
 
         h += '<div id="' + uid + '" style="margin:8px 16px;background:#12181D;border-radius:12px;border:1px solid #1F2A33;overflow:hidden">';
         h += '<div onclick="cvCalToggle(\'' + uid + '\')" style="padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer">';
@@ -8222,7 +8356,8 @@ function renderCVCalendar() {
         h += '<div style="font-size:14px;font-weight:700;color:#FFFFFF">' + s.title + '</div>';
         h += '<div style="font-size:13px;color:#FFFFFF;margin-top:2px">' + sub + '</div>';
         h += '</div>';
-        h += '<div id="' + uid + '_arr" style="color:#8B949E;font-size:20px;transition:transform .2s">&#8250;</div>';
+        if (isClass) h += '<button onclick="event.stopPropagation();cvRemoveClassBooking(\'' + s._bkDate + '\',\'' + s._bkTime + '\')" style="background:none;border:none;color:#8B949E;font-size:15px;cursor:pointer;padding:4px 6px" title="Remove from calendar">&#10005;</button>';
+        h += '<div id="' + uid + '_arr" style="color:#8B949E;font-size:20px;transition:transform .2s;display:' + (isClass ? 'none' : 'block') + '">&#8250;</div>';
         h += '</div>';
 
         if (s.details && s.details.length) {
@@ -8645,6 +8780,7 @@ function renderAnnaTab() {
 }
 
 function cvOpenClasses() {
+  window._cvClassPrompted = false; // allow one auto-prompt per booking session
   var modal = document.getElementById('clinikoModal');
   if (modal) modal.style.display = 'flex';
 }
@@ -8909,6 +9045,73 @@ function cvSelectProg(val) {
     cvSaveSession(); // persist program position for Android recovery
     renderCV();
   }
+}
+
+// ── WORKOUTS LAUNCHER (Start Workout page) ──
+// The Workouts tab now lands on a card grid of the client's programs (like a
+// gym app's Start Workout screen). Tapping a card starts (or resumes) that
+// program; the old dropdown selector is replaced by a back bar.
+function cvDaysAgoLabel(dateStr) {
+  try {
+    var d = (typeof parseAUDate === 'function') ? parseAUDate(dateStr) : null;
+    if (!d) return '';
+    var today = new Date(); today.setHours(0,0,0,0);
+    var that = new Date(d); that.setHours(0,0,0,0);
+    var diff = Math.round((today - that) / 86400000);
+    if (diff <= 0) return 'Today';
+    if (diff === 1) return 'Yesterday';
+    if (diff < 30) return diff + ' days ago';
+    var w = Math.round(diff / 7);
+    return w + ' weeks ago';
+  } catch(e) { return ''; }
+}
+function renderCVProgramList() {
+  var body = document.getElementById('cvBody');
+  if (!body) return;
+  if (!cvData || !cvData.programs || !cvData.programs.length) {
+    body.innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#127945;</div><p>No programs found.</p></div>';
+    return;
+  }
+  var hasState = cvState && Object.keys(cvState).length > 0;
+  var h = '<div style="padding:4px 2px 20px">';
+  h += '<div style="font-size:26px;font-weight:800;color:#FFFFFF;margin:4px 0 2px;font-family:Georgia,serif">Start Workout</div>';
+  h += '<div style="font-size:13px;color:#8B98A5;margin-bottom:16px">Tap a program to begin</div>';
+  h += '<div style="font-size:12px;font-weight:700;color:#8B98A5;letter-spacing:.06em;margin-bottom:8px">MY PROGRAMS (' + cvData.programs.length + ')</div>';
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+  cvData.programs.forEach(function(p, i) {
+    var resume = hasState && !cvCustomWorkout && i === cvProgIdx;
+    var exs = (p.exercises || []).map(function(e){ return e.name; }).filter(Boolean);
+    var preview = exs.slice(0, 3).join(', ');
+    if (exs.length > 3) preview += ' &amp; ' + (exs.length - 3) + ' more&hellip;';
+    if (!preview) preview = 'No exercises yet';
+    var lastDate = '';
+    (p.log || []).forEach(function(e) { if (e && e.clientSubmitted && e.date) lastDate = e.date; });
+    var ago = lastDate ? cvDaysAgoLabel(lastDate) : '';
+    h += '<div onclick="cvStartProgram(' + i + ')" style="background:#12181D;border:1px solid ' + (resume ? '#F4B942' : '#1F2A33') + ';border-radius:14px;padding:14px;cursor:pointer">';
+    h += '<div style="font-size:15px;font-weight:800;color:#FFFFFF;line-height:1.25;margin-bottom:6px">' + (p.title || 'Program ' + (i+1)) + '</div>';
+    if (resume) h += '<div style="display:inline-block;background:#F4B94222;border:1px solid #F4B942;color:#F4B942;font-size:10px;font-weight:700;border-radius:10px;padding:1px 8px;margin-bottom:6px">&#9654; In progress &mdash; tap to resume</div>';
+    h += '<div style="font-size:12px;color:#8B98A5;line-height:1.5">' + preview + '</div>';
+    h += '<div style="font-size:11px;color:#5A6B78;margin-top:8px">' + (ago ? '&#128337; ' + ago : 'Not started yet') + '</div>';
+    h += '</div>';
+  });
+  h += '</div>';
+  h += '<button onclick="cvStartCustomFromList()" style="width:100%;box-sizing:border-box;margin-top:14px;padding:13px;border-radius:12px;border:1px solid #1F2A33;background:#12181D;color:#2FD4F5;font-size:14px;font-weight:700;cursor:pointer">&#127947; Build Your Own Workout</button>';
+  h += '</div>';
+  body.innerHTML = h;
+}
+function cvStartProgram(i) {
+  var resuming = (i === cvProgIdx) && !cvCustomWorkout && cvState && Object.keys(cvState).length > 0;
+  cvWkMode = 'active';
+  if (resuming) { renderCV(); cvStartTimer(); cvSaveSession(); return; }
+  cvSelectProg('prog_' + i); // resets state + timer, renders, persists position
+}
+function cvStartCustomFromList() {
+  cvWkMode = 'active';
+  cvSelectProg('custom');
+}
+function cvBackToPrograms() {
+  cvWkMode = 'list';
+  renderCVProgramList();
 }
 
 function renderCVCustomWorkout() {
