@@ -2261,6 +2261,16 @@ create policy "clients_read_library" on library for select using (auth.role() = 
 
 <!-- (dead pre-exercise safety modal removed in bug sweep: it was never opened; live safety flow is openSafetyCheck) -->
 
+<!-- ARCHIVED PROGRAMS MODAL (practitioner) -->
+<div class="overlay" id="progArchM" onclick="closeBg(event,'progArchM')">
+<div class="modal" style="width:min(520px,94vw)">
+  <div class="modal-title">&#128230; Archived Programs</div>
+  <p style="font-size:11px;color:var(--text-l);margin:2px 0 12px">Archived programs are hidden from the client but their workout history still feeds progress charts and stats. Restore anytime.</p>
+  <div id="progArchList" style="max-height:60vh;overflow-y:auto"></div>
+  <div class="modal-footer"><button class="btn btn-outline" onclick="closeM('progArchM')">Close</button></div>
+</div>
+</div>
+
 <!-- CLIENT PROGRESS CHART MODAL -->
 <div class="overlay" id="cvChartM" onclick="closeBg(event,'cvChartM')" style="z-index:1200">
 <div class="modal" style="width:min(560px,94vw);background:var(--cv-card,#12181D);color:var(--cv-text,#E8EEF3);border:1px solid var(--cv-border,#232B33)">
@@ -3757,7 +3767,7 @@ function selectClient() {
   document.getElementById('editClientBtn').style.display = cl ? '' : 'none';
   if (cl) {
     if (!cl.programs.length) cl.programs.push(mkProg('Home Exercise Program'));
-    currentProgId = cl.programs[0].id;
+    currentProgId = firstActiveProgId(cl);
     renderProgTabs(); loadProg(); updatePreview();
     renderOMPanel();
   } else {
@@ -3990,21 +4000,27 @@ function newProgram() {
 
 function renderProgTabs() {
   const cl = getClient(); if (!cl) return;
-  document.getElementById('progTabs').innerHTML = cl.programs.map((p, i) =>
+  const act = cl.programs.filter(p => !p.archived);
+  const archN = cl.programs.length - act.length;
+  document.getElementById('progTabs').innerHTML = act.map((p, i) =>
     `<div class="prog-tab ${p.id===currentProgId?'active':''}" onclick="switchProg('${p.id}')">
       <span class="prog-tab-reorder">
         ${i > 0 ? `<span onclick="event.stopPropagation();moveProgram('${p.id}',-1)" title="Move left" style="cursor:pointer;opacity:0.6;font-size:10px;padding:0 2px">◀</span>` : '<span style="opacity:0;font-size:10px;padding:0 2px">◀</span>'}
-        ${i < cl.programs.length-1 ? `<span onclick="event.stopPropagation();moveProgram('${p.id}',1)" title="Move right" style="cursor:pointer;opacity:0.6;font-size:10px;padding:0 2px">▶</span>` : '<span style="opacity:0;font-size:10px;padding:0 2px">▶</span>'}
+        ${i < act.length-1 ? `<span onclick="event.stopPropagation();moveProgram('${p.id}',1)" title="Move right" style="cursor:pointer;opacity:0.6;font-size:10px;padding:0 2px">▶</span>` : '<span style="opacity:0;font-size:10px;padding:0 2px">▶</span>'}
       </span>
-      ${p.title||'Untitled'}<span class="dtab" onclick="event.stopPropagation();deleteProgram('${p.id}')">✕</span>
+      ${p.title||'Untitled'}<span class="dtab" onclick="event.stopPropagation();archiveProgram('${p.id}')" title="Archive program (history is kept)">&#128230;</span>
     </div>`
-  ).join('');
+  ).join('') + (archN ? `<div class="prog-tab" style="opacity:.75" onclick="openArchivedProgs()" title="View archived programs">&#128230; ${archN} archived</div>` : '');
 }
 
 function moveProgram(progId, direction) {
   const cl = getClient(); if (!cl) return;
   const idx = cl.programs.findIndex(p => p.id === progId);
-  const newIdx = idx + direction;
+  // Find the next NON-ARCHIVED neighbour in the given direction (archived
+  // programs are hidden from the tabs, so swapping with one would look like
+  // nothing happened).
+  var newIdx = idx + direction;
+  while (newIdx >= 0 && newIdx < cl.programs.length && cl.programs[newIdx].archived) newIdx += direction;
   if (newIdx < 0 || newIdx >= cl.programs.length) return;
   // Swap
   var tmp = cl.programs[idx];
@@ -4019,12 +4035,73 @@ function moveProgram(progId, direction) {
 
 function switchProg(id) { currentProgId = id; renderProgTabs(); loadProg(); updatePreview(); }
 
+// ── PROGRAM ARCHIVING ──
+// Archiving (not deleting) keeps the program's workout history on the record:
+// progress charts, calendar history and stats all keep working across program
+// generations. Archived programs are hidden from clients and from the main
+// tabs, but stay findable (and restorable) in the Archived list.
+function firstActiveProgId(cl) {
+  var p = (cl.programs || []).find(function(x){ return !x.archived; });
+  return p ? p.id : ((cl.programs && cl.programs[0]) ? cl.programs[0].id : null);
+}
+function archiveProgram(id) {
+  const cl = getClient(); if (!cl) return;
+  var active = cl.programs.filter(function(p){ return !p.archived; });
+  if (active.length === 1 && active[0].id === id) { toast("Can't archive the only active program", 'err'); return; }
+  if (!confirm('Archive this program?\n\nIts workout history is kept and still feeds progress charts. Clients will no longer see it. You can restore it anytime from the Archived list.')) return;
+  var p = cl.programs.find(function(x){ return x.id === id; });
+  if (!p) return;
+  p.archived = true;
+  p.archivedAt = new Date().toISOString();
+  if (currentProgId === id) currentProgId = firstActiveProgId(cl);
+  saveDB(); renderProgTabs(); loadProg(); updatePreview();
+  pushClientToCloud(cl);
+  toast('Program archived', 'ok');
+}
+function restoreProgram(id) {
+  const cl = getClient(); if (!cl) return;
+  var p = cl.programs.find(function(x){ return x.id === id; });
+  if (!p) return;
+  p.archived = false;
+  delete p.archivedAt;
+  saveDB(); renderProgTabs(); loadProg(); updatePreview();
+  pushClientToCloud(cl);
+  renderArchivedProgList();
+  toast('Program restored', 'ok');
+}
+function openArchivedProgs() {
+  renderArchivedProgList();
+  var m = document.getElementById('progArchM');
+  if (m) m.classList.add('open');
+}
+function renderArchivedProgList() {
+  var el = document.getElementById('progArchList');
+  if (!el) return;
+  const cl = getClient(); if (!cl) { el.innerHTML = ''; return; }
+  var archived = (cl.programs || []).filter(function(p){ return p.archived; });
+  if (!archived.length) {
+    el.innerHTML = '<div style="text-align:center;padding:22px;color:var(--text-l);font-size:12px">No archived programs.</div>';
+    return;
+  }
+  el.innerHTML = archived.map(function(p) {
+    var when = p.archivedAt ? new Date(p.archivedAt).toLocaleDateString('en-AU', {day:'numeric',month:'short',year:'numeric'}) : '';
+    var exN = (p.exercises || []).length, logN = (p.log || []).length;
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--sand-d);border-radius:10px;margin-bottom:8px">' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-weight:700;font-size:13px">&#128230; ' + (p.title || 'Untitled') + '</div>' +
+        '<div style="font-size:11px;color:var(--text-l)">' + exN + ' exercises &middot; ' + logN + ' logged sessions' + (when ? ' &middot; archived ' + when : '') + '</div>' +
+      '</div>' +
+      '<button class="btn btn-outline btn-sm" onclick="restoreProgram(\'' + p.id + '\')">&#8617; Restore</button>' +
+      '<button class="btn btn-outline btn-sm" style="color:var(--coral)" onclick="deleteProgram(\'' + p.id + '\')">Delete forever</button>' +
+    '</div>';
+  }).join('');
+}
 function deleteProgram(id) {
   const cl = getClient(); if (!cl) return;
   if (cl.programs.length === 1) { toast("Can't delete the only program", 'err'); return; }
-  if (!confirm('Delete this program?')) return;
+  if (!confirm('PERMANENTLY delete this program?\n\nThis also deletes its workout history. If you want to keep the history, use Archive instead.')) return;
   cl.programs = cl.programs.filter(p => p.id !== id);
-  if (currentProgId === id) currentProgId = cl.programs[0].id;
+  if (currentProgId === id) currentProgId = firstActiveProgId(cl);
   // Tombstone the deletion so the cloud merge logic can tell "deliberately
   // deleted" apart from "not synced yet" and never resurrects this program.
   if (!cl.deletedPrograms) cl.deletedPrograms = [];
@@ -4033,6 +4110,7 @@ function deleteProgram(id) {
   // CRITICAL: deletion previously never reached Supabase, so the client's app
   // kept showing the deleted program. Push it now.
   pushClientToCloud(cl);
+  renderArchivedProgList();
   toast('Program deleted', 'ok');
 }
 
@@ -5431,6 +5509,16 @@ function getExIllusStr(ex) {
 }
 
 function renderCV() {
+  // If the selected program was archived (and no session is in progress),
+  // move to the first active program so clients never land on an archived one.
+  if (cvData && cvData.programs && !cvCustomWorkout && (!cvState || !Object.keys(cvState).length)) {
+    var _cur = cvData.programs[cvProgIdx];
+    if (_cur && _cur.archived) {
+      var _fna = -1;
+      for (var _ai = 0; _ai < cvData.programs.length; _ai++) { if (!cvData.programs[_ai].archived) { _fna = _ai; break; } }
+      if (_fna > -1) cvProgIdx = _fna;
+    }
+  }
   // Auto-clear safety if not required for this client
   if (cvData && cvData.requireSafetyCheck === false) cvSafetyDone = true;
   // Check custom workout mode FIRST before any cvData checks
@@ -9080,12 +9168,18 @@ function renderCVProgramList() {
     return;
   }
   var hasState = cvState && Object.keys(cvState).length > 0;
+  var activeCount = cvData.programs.filter(function(p){ return !p.archived; }).length;
+  if (!activeCount) {
+    body.innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#127945;</div><p>No active programs. Your practitioner will assign one soon.</p></div>';
+    return;
+  }
   var h = '<div style="padding:4px 2px 20px">';
   h += '<div style="font-size:26px;font-weight:800;color:#FFFFFF;margin:4px 0 2px;font-family:Georgia,serif">Start Workout</div>';
   h += '<div style="font-size:13px;color:#8B98A5;margin-bottom:16px">Tap a program to begin</div>';
-  h += '<div style="font-size:12px;font-weight:700;color:#8B98A5;letter-spacing:.06em;margin-bottom:8px">MY PROGRAMS (' + cvData.programs.length + ')</div>';
+  h += '<div style="font-size:12px;font-weight:700;color:#8B98A5;letter-spacing:.06em;margin-bottom:8px">MY PROGRAMS (' + activeCount + ')</div>';
   h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
   cvData.programs.forEach(function(p, i) {
+    if (p.archived) return; // hidden from clients; history still feeds charts/stats
     var resume = hasState && !cvCustomWorkout && i === cvProgIdx;
     var exs = (p.exercises || []).map(function(e){ return e.name; }).filter(Boolean);
     var preview = exs.slice(0, 3).join(', ');
