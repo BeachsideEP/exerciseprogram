@@ -5490,12 +5490,18 @@ function renderCV() {
     // Check if previous exercise started a superset group
     var prevEx = i > 0 ? _exList[i-1] : null;
     var nextEx = i < _exList.length - 1 ? _exList[i+1] : null;
-    var isSSStart = ex.superset && nextEx;
-    var isSSMid = prevEx && prevEx.superset;
-
-    // Open superset group at exercise 1 (isSSStart), not exercise 2
-    if (isSSStart && !_ssOpen) { h += '<div class="cv-superset-group"><div class="cv-superset-label">SUPERSET</div>'; _ssOpen = true; }
-    else if (!isSSMid && !isSSStart && _ssOpen) { h += '</div>'; _ssOpen = false; }
+    // ex.superset means "linked with the NEXT exercise" (see toggleSuperset).
+    // A superset chain = consecutive linked exercises. The chain ENDS at the
+    // first exercise that doesn't link forward — we close AFTER rendering that
+    // exercise (below, at end of card). Closing on the exercise itself, rather
+    // than waiting to peek at the next one, keeps back-to-back supersets in
+    // separate boxes and guarantees the box always closes.
+    var _ssFromPrev = prevEx && prevEx.superset;   // linked from previous exercise
+    var _ssForward  = ex.superset && nextEx;       // links to the next exercise
+    if ((_ssForward || _ssFromPrev) && !_ssFromPrev && !_ssOpen) {
+      h += '<div class="cv-superset-group"><div class="cv-superset-label">SUPERSET</div>';
+      _ssOpen = true;
+    }
 
     const st = cvState[i] || {};
     const sets = parseInt(ex.sets) || 3;
@@ -5635,6 +5641,7 @@ function renderCV() {
       h += '</div>'; // end cv-ex-card-body
     } // end isOpen
     h += '</div>'; // end cv-ex-card
+    if (_ssOpen && !ex.superset) { h += '</div>'; _ssOpen = false; } // superset chain ends at this exercise
   });
   if (_ssOpen) { h += '</div>'; } // close any open superset group
 
