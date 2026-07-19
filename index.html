@@ -3235,7 +3235,7 @@ function cvCollectExerciseHistory(exName) {
         var reReps = /(\d+)\s*reps/gi;
         while ((m = reReps.exec(seg))) { var r = parseInt(m[1]); if (!isNaN(r) && (maxReps === null || r > maxReps)) maxReps = r; }
         if (maxLoad === null && maxReps === null) return;
-        var d = (typeof parseAUDate === 'function') ? parseAUDate(entry.date) : null;
+        var d = cvParseWorkoutDate(entry.date);
         out.push({ date: entry.date, t: d ? d.getTime() : out.length, load: maxLoad, reps: maxReps });
       });
     });
@@ -3572,6 +3572,28 @@ function loadDB() {
 }
 
 // ── Sync custom library to/from Supabase ──
+// mergeLibraries: cloud copy wins by default, but (a) local-only exercises are
+// kept, and (b) a video/photo on EITHER side is never lost just because the
+// other side lacks it. Protects against one practitioner's stale device
+// overwriting another's freshly-added videos (whole-row last-write-wins).
+var _libMergeRescued = false;
+function mergeLibraries(cloudList, localList) {
+  _libMergeRescued = false;
+  var out = (cloudList || []).map(function(e) { return Object.assign({}, e); });
+  var byName = {};
+  out.forEach(function(e) { if (e && e.name) byName[e.name.toLowerCase()] = e; });
+  (localList || []).forEach(function(le) {
+    if (!le || !le.name) return;
+    var k = le.name.toLowerCase();
+    var ce = byName[k];
+    if (!ce) { var copy = Object.assign({}, le); out.push(copy); byName[k] = copy; _libMergeRescued = true; return; }
+    var ceV = ce.videoUrl || ce.video, leV = le.videoUrl || le.video;
+    if (leV && !ceV) { ce.videoUrl = le.videoUrl || le.video; _libMergeRescued = true; }
+    if (le.photo1 && !ce.photo1) { ce.photo1 = le.photo1; _libMergeRescued = true; }
+    if (le.photo2 && !ce.photo2) { ce.photo2 = le.photo2; _libMergeRescued = true; }
+  });
+  return out;
+}
 async function pushLibraryToCloud() {
   if (!currentUser) return;
   try {
@@ -3603,6 +3625,20 @@ async function pushLibraryToCloud() {
       'Authorization': 'Bearer ' + token,
       'Prefer': 'resolution=merge-duplicates,return=minimal'
     };
+    // SAFETY MERGE before pushing: this device may be stale. Fetch the cloud
+    // copy and merge so we never overwrite someone else's videos/photos.
+    try {
+      var pr = await fetch(SUPA_URL + '/rest/v1/library?id=eq.bep_library&select=data', {
+        headers: { 'Content-Type':'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
+      });
+      if (pr.ok) {
+        var prow = await pr.json();
+        if (prow && prow.length && prow[0].data) {
+          if (prow[0].data.exercises) customExercises = mergeLibraries(prow[0].data.exercises, customExercises);
+          if (prow[0].data.photos) customPhotos = Object.assign({}, prow[0].data.photos, customPhotos);
+        }
+      }
+    } catch(eMg) {}
     const payload = { id: 'bep_library', data: { exercises: customExercises, photos: customPhotos }, updated_at: new Date().toISOString() };
     var r = await fetch(SUPA_URL + '/rest/v1/library', {
       method: 'POST', headers: headers, body: JSON.stringify(payload)
@@ -3628,27 +3664,19 @@ async function pullLibraryFromCloud() {
     if (!rows || !rows.length || !rows[0].data) return;
     const data = rows[0].data;
     if (data.exercises && data.exercises.length) {
-      // Only update if cloud has MORE exercises, or same count (cloud may have fresher data)
-      // Never replace a larger local library with a smaller cloud one
-      if (data.exercises.length >= customExercises.length) {
-        customExercises = data.exercises;
-        // Write to localStorage without photos (quota safety)
-        try {
-          var stripped = customExercises.map(function(e) {
-            var c = Object.assign({}, e); delete c.photo1; delete c.photo2; return c;
-          });
-          localStorage.setItem(CUSTOM_EX_KEY, JSON.stringify(stripped));
-        } catch(e) {}
-      } else if (data.exercises.length > 0) {
-        // Cloud has fewer - merge: keep local exercises not in cloud
-        var cloudNames = new Set(data.exercises.map(function(e) { return e.name.toLowerCase(); }));
-        var localOnly = customExercises.filter(function(e) { return !cloudNames.has(e.name.toLowerCase()); });
-        if (localOnly.length > 0) {
-          // Push the merged set back to cloud
-          customExercises = data.exercises.concat(localOnly);
-          pushLibraryToCloud();
-        }
-      }
+      // Merge instead of count-based replace: cloud wins per exercise, but
+      // local-only exercises and any videos/photos the cloud copy lacks are
+      // preserved (see mergeLibraries).
+      customExercises = mergeLibraries(data.exercises, customExercises);
+      // Write to localStorage without photos (quota safety)
+      try {
+        var stripped = customExercises.map(function(e) {
+          var c = Object.assign({}, e); delete c.photo1; delete c.photo2; return c;
+        });
+        localStorage.setItem(CUSTOM_EX_KEY, JSON.stringify(stripped));
+      } catch(e) {}
+      // If we rescued anything the cloud was missing, persist it back
+      if (_libMergeRescued) { try { pushLibraryToCloud(); } catch(ePb) {} }
     }
     if (data.photos && Object.keys(data.photos).length) {
       // Merge cloud photos with local (cloud wins)
@@ -3658,7 +3686,10 @@ async function pullLibraryFromCloud() {
   } catch(e) {}
 }
 // Fields kept in localStorage per program exercise (small, user-editable)
-var PROG_EX_KEEP = ['uid','name','sets','reps','hold','rest','load','notes','progression','superset','lastReps','lastLoad','_done'];
+var PROG_EX_KEEP = ['uid','name','sets','reps','hold','rest','load','notes','progression','superset','lastReps','lastLoad','_done','videoUrl','video'];
+// 'videoUrl'/'video' were previously stripped here as "library-lookupable" — but after a
+// reload the app pushed the stripped copies back to Supabase, silently wiping
+// videos off program exercises. A URL is ~60 bytes; keeping it is essentially free.
 
 function slimClientsForStorage(cls) {
   // Reduce localStorage size by:
@@ -9146,9 +9177,33 @@ function cvSelectProg(val) {
 // The Workouts tab now lands on a card grid of the client's programs (like a
 // gym app's Start Workout screen). Tapping a card starts (or resumes) that
 // program; the old dropdown selector is replaced by a back bar.
+// Global date parser for workout log dates. (The two parseAUDate helpers are
+// nested inside other functions, so they're NOT visible here — relying on them
+// made every launcher card say "Not started yet".)
+// Handles: "2 Jul 2026 at 06:17 pm", "13/07/2026" (AU), and ISO strings.
+function cvParseWorkoutDate(str) {
+  if (!str) return null;
+  var s = String(str);
+  var months = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+  var m = s.match(/(\d{1,2})\s+([A-Za-z]{3,})\s+(\d{4})/);
+  if (m) {
+    var mo = months[m[2].slice(0,3).toLowerCase()];
+    if (mo !== undefined) {
+      var d1 = new Date(parseInt(m[3]), mo, parseInt(m[1]));
+      if (!isNaN(d1)) return d1;
+    }
+  }
+  var m2 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); // DD/MM/YYYY (AU convention)
+  if (m2) {
+    var d2 = new Date(parseInt(m2[3]), parseInt(m2[2]) - 1, parseInt(m2[1]));
+    if (!isNaN(d2)) return d2;
+  }
+  var d3 = new Date(s);
+  return isNaN(d3) ? null : d3;
+}
 function cvDaysAgoLabel(dateStr) {
   try {
-    var d = (typeof parseAUDate === 'function') ? parseAUDate(dateStr) : null;
+    var d = cvParseWorkoutDate(dateStr);
     if (!d) return '';
     var today = new Date(); today.setHours(0,0,0,0);
     var that = new Date(d); that.setHours(0,0,0,0);
@@ -9186,7 +9241,11 @@ function renderCVProgramList() {
     if (exs.length > 3) preview += ' &amp; ' + (exs.length - 3) + ' more&hellip;';
     if (!preview) preview = 'No exercises yet';
     var lastDate = '';
-    (p.log || []).forEach(function(e) { if (e && e.clientSubmitted && e.date) lastDate = e.date; });
+    // Client-submitted entries first (incl. legacy ones that predate the
+    // clientSubmitted flag but carry clinician:'Client')...
+    (p.log || []).forEach(function(e) { if (e && e.date && (e.clientSubmitted || e.clinician === 'Client')) lastDate = e.date; });
+    // ...otherwise ANY dated log entry counts (e.g. in-clinic sessions).
+    if (!lastDate) (p.log || []).forEach(function(e) { if (e && e.date) lastDate = e.date; });
     var ago = lastDate ? cvDaysAgoLabel(lastDate) : '';
     h += '<div onclick="cvStartProgram(' + i + ')" style="background:#12181D;border:1px solid ' + (resume ? '#F4B942' : '#1F2A33') + ';border-radius:14px;padding:14px;cursor:pointer">';
     h += '<div style="font-size:15px;font-weight:800;color:#FFFFFF;line-height:1.25;margin-bottom:6px">' + (p.title || 'Program ' + (i+1)) + '</div>';
