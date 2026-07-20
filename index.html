@@ -4851,10 +4851,34 @@ async function refreshAuthToken() {
           return data;
         }
       }
-      // Refresh failed - DO NOT clear tokens here. Could be transient network/server issue.
-      // Only a hard 400/401 with explicit invalid_grant should ever be treated as real expiry,
-      // and even then we keep the session alive client-side rather than forcing sign-out,
-      // since Cliniko-style aggressive expiry causes more harm than good for this app.
+      // Distinguish PERMANENT failures from transient ones.
+      // A refresh token that is "already used" / invalid will NEVER work again.
+      // Keeping it silently locks the user out forever: the app skips the
+      // sign-in screen while tokens exist, but every request 401s.
+      // (This exact loop trapped Karen H for 5 days — dead token from a
+      // mid-rotation race on 14 Jul, retried unsuccessfully ever since.)
+      var bodyText = '';
+      try { bodyText = await resp.text(); } catch(eB) {}
+      var permanentlyDead = (resp.status === 400 || resp.status === 401 || resp.status === 403) && (
+        bodyText.indexOf('refresh_token_already_used') > -1 ||
+        bodyText.indexOf('refresh_token_not_found') > -1 ||
+        bodyText.indexOf('invalid_grant') > -1 ||
+        bodyText.indexOf('Invalid Refresh Token') > -1
+      );
+      if (permanentlyDead) {
+        try {
+          localStorage.removeItem('bep_token');
+          localStorage.removeItem('bep_refresh');
+          if (typeof clearTokenBackupIDB === 'function') clearTokenBackupIDB();
+        } catch(eC) {}
+        currentUser = null; userRole = null;
+        try {
+          showView('auth'); showPanel('magic');
+          setAuthMsg('Your session has expired — please sign in again. Enter your email and we\'ll send you a fresh code.', 'err');
+        } catch(eV) {}
+        return null;
+      }
+      // Otherwise: transient network/server issue — keep tokens and retry later.
       return null;
     } catch(e) {
       return null; // network error / timeout - keep user signed in, try again later
