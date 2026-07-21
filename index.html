@@ -1614,8 +1614,8 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
         <button onclick="cvCloseClasses()" style="background:none;border:none;color:#C9D1D9;font-size:22px;cursor:pointer;line-height:1;padding:4px 8px">&times;</button>
       </div>
     </div>
-    <div style="flex:1;overflow-y:auto;background:#fff">
-      <iframe id='cliniko-21331448' src='https://beachside-exercise-physiology.au2.cliniko.com/bookings?business_id=1335938640521468158&appointment_type_id=1341606644529765156&embedded=true' frameborder='0' scrolling='auto' width='100%' height='1000' style='pointer-events: auto;display:block'></iframe>
+    <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:#fff">
+      <iframe id='cliniko-21331448' src='https://beachside-exercise-physiology.au2.cliniko.com/bookings?business_id=1335938640521468158&appointment_type_id=1341606644529765156&embedded=true' frameborder='0' scrolling='yes' width='100%' height='1800' style='pointer-events:auto;display:block;border:0;min-height:1800px'></iframe>
     </div>
   </div>
 
@@ -8259,12 +8259,18 @@ function renderCVHome() {
         if (e.data.indexOf('cliniko-bookings-page') > -1 && e.data.toLowerCase().indexOf('confirm') > -1) {
           try { cvOnClassBookingConfirmed(); } catch(ec) {}
         }
-        var frame = document.getElementById('cliniko-31280155');
+        // Target whichever booking iframe is actually on the page. The visible
+        // CLASSES modal uses id cliniko-21331448; a second embed uses
+        // cliniko-31280155. The old code only looked for the latter, so the
+        // visible iframe never resized — on Android the fixed-height iframe
+        // couldn't scroll and the lower half (times + confirm) was unreachable.
+        var frame = document.getElementById('cliniko-21331448') || document.getElementById('cliniko-31280155');
         if (!frame) return;
         if (e.data.indexOf('cliniko-bookings-resize') > -1) {
-          frame.style.height = Number(e.data.split(':')[1]) + 'px';
+          var _h = Number(e.data.split(':')[1]);
+          if (_h > 0) { frame.style.height = _h + 'px'; frame.style.minHeight = _h + 'px'; }
         }
-        if (e.data.indexOf('cliniko-bookings-page') > -1) frame.scrollIntoView();
+        if (e.data.indexOf('cliniko-bookings-page') > -1) { try { frame.scrollIntoView(); } catch(e2) {} }
       });
       window._clinikoListenerAdded = true;
     }
