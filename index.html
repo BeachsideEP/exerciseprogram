@@ -5567,9 +5567,15 @@ async function loadClientView(user) {
     cvOwnWorkouts = (match.ownWorkouts && match.ownWorkouts.length) ? match.ownWorkouts : storedWorkouts;
     cvSwitchTab('home');
     try { cvInitTheme(); } catch(eth) {}
-    try { cvRestoreState(); } catch(e0) {}       // restore mid-workout state if app was killed
-    try { cvRestoreSession(); } catch(e1) {}     // restore which program/tab they were on
-    try { cvRecoverPendingSubmit(); } catch(e2) {} // retry any workout that failed to save last time
+    // ORDER MATTERS: restore the session FIRST so cvProgIdx points at the program
+    // they were actually on, THEN restore the per-program mid-workout state.
+    // (Previously state was restored against the default program index 0, so a
+    // workout in progress on any other program was silently dropped on refresh —
+    // this is what lost Braeden's & Glenda's in-progress workouts.)
+    try { cvRestoreSessionProgram(); } catch(e1) {} // sets cvProgIdx from saved session
+    try { cvRestoreState(); } catch(e0) {}          // restore mid-workout ticks for THAT program
+    try { cvRestoreSession(); } catch(e1b) {}       // now resume the correct tab/mode
+    try { cvRecoverPendingSubmit(); } catch(e2) {}  // retry any workout that failed to save last time
     renderCV(); // Pre-render workouts tab in background — data is ready now, so it's instant
   } catch (e) {
     var errEl = document.getElementById('cvHomeContent') || document.getElementById('cvBody');
@@ -5750,7 +5756,12 @@ function renderCV() {
       for (let s = 0; s < sessionSets; s++) {
         const setDone = (st.sets && st.sets[s]) || false;
         const setReps = (st.setReps && st.setReps[s] != null) ? st.setReps[s] : (ex.lastReps || '');
-        const setLoad = (st.setLoads && st.setLoads[s] != null) ? st.setLoads[s] : (ex.lastLoad || '');
+        var setLoadRaw = (st.setLoads && st.setLoads[s] != null) ? st.setLoads[s] : (ex.lastLoad || '');
+        // Strip the unit ("95kg" -> "95") before pre-filling the editable box.
+        // A pre-filled value containing letters (kg) breaks select-and-overtype
+        // on iOS Safari, so typed weights silently reverted to the old value
+        // and saved as "(prescribed)". The unit is re-added on display/save.
+        const setLoad = String(setLoadRaw).replace(/[^0-9.]/g, '');
         const repsPlaceholder = (ex.reps || '—').toString().replace(/ ?each ?/gi,'').replace(/ ?each side ?/gi,'');
         const loadPlaceholder = (ex.cat === 'Cardio') ? 'min' : (ex.load || 'kg');
         // Previous session values
@@ -5877,7 +5888,7 @@ function cvTickSet(exIdx, setIdx) {
   if (!cvState[exIdx]) cvState[exIdx] = {};
   if (!cvState[exIdx].sets) cvState[exIdx].sets = [];
   cvState[exIdx].sets[setIdx] = !cvState[exIdx].sets[setIdx];
-  cvSaveState();
+  cvSaveState(); cvSaveSession();
   // Auto-open on first tick
   if (cvState[exIdx].sets[setIdx]) cvState[exIdx].open = true;
   renderCV();
@@ -8002,6 +8013,19 @@ function cvSaveSession() {
   } catch(e) {}
 }
 
+function cvRestoreSessionProgram() {
+  // Lightweight: set cvProgIdx from the saved session so the subsequent
+  // cvRestoreState() reads the correct per-program state key. No UI/tab changes.
+  try {
+    var s = JSON.parse(localStorage.getItem('bep_cv_session') || 'null');
+    if (!s || !cvData) return;
+    if (s.clientId !== cvData.id) return;
+    if (Date.now() - s.savedAt > 8 * 60 * 60 * 1000) return;
+    if (typeof s.progIdx === 'number' && cvData.programs && s.progIdx < cvData.programs.length) {
+      cvProgIdx = s.progIdx;
+    }
+  } catch(e) {}
+}
 function cvRestoreSession() {
   try {
     var s = JSON.parse(localStorage.getItem('bep_cv_session') || 'null');
@@ -8840,6 +8864,16 @@ async function cvSilentSync() {
   if (!cvSyncUser) return;
   // Don't sync more than once every 30s
   if (Date.now() - cvLastSync < 30000) return;
+  // Flush any set input the client is mid-editing into state FIRST, so a
+  // background sync can never drop an in-progress weight/rep entry.
+  try {
+    var _foc = document.querySelector('#cvBody input[data-field]:focus');
+    if (_foc) {
+      var _ex = parseInt(_foc.getAttribute('data-ex')), _st = parseInt(_foc.getAttribute('data-set'));
+      var _fl = _foc.getAttribute('data-field');
+      if (!isNaN(_ex) && !isNaN(_st) && typeof cvSetRow === 'function') cvSetRow(_ex, _st, _fl, _foc.value);
+    }
+  } catch(eF) {}
   try {
     const r = await fetch(SUPA_URL + '/rest/v1/clients?select=data', { headers: supaHeaders() });
     if (!r.ok) return;
@@ -8882,11 +8916,18 @@ async function cvSilentSync() {
       if (localIdx !== -1) { clients[localIdx] = match; if (typeof saveDB === 'function') saveDB(); }
     }
 
-    // Refresh announcements then re-render
+    // Refresh announcements then re-render — BUT never re-render the workouts
+    // tab while a workout is in progress. Re-rendering rebuilds the weight/rep
+    // inputs from saved state, which silently reverts anything the client is
+    // mid-typing (this logged sets as "(prescribed)" and lost real weights —
+    // e.g. 100kg reverting to the 95kg placeholder). Data is still updated in
+    // memory; we just defer the visual refresh until they leave the session.
     await loadAnnouncements();
     var activeTab = cvActiveTab || 'home';
+    var workoutInProgress = (cvState && Object.keys(cvState).length > 0) ||
+      !!document.querySelector('#cvBody input:focus');
     if (activeTab === 'home') renderCVHome();
-    else if (activeTab === 'workouts') renderCV();
+    else if (activeTab === 'workouts') { if (!workoutInProgress) renderCV(); /* else: leave inputs untouched */ }
     else if (activeTab === 'calendar') renderCVCalendar();
 
     // Show a subtle sync indicator
