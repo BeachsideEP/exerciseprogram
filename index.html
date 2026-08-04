@@ -5496,8 +5496,15 @@ async function syncClients() {
         if (changed) {
           localStorage.setItem(DB_KEY, JSON.stringify(slimClientsForStorage(clients)));
           renderClientDropdown();
-          // Re-render if current client was updated
-          if (currentClientId && needFetch.includes(currentClientId)) {
+          // Re-render if current client was updated — BUT never yank the editor
+          // out from under the practitioner mid-edit. If a field is focused,
+          // skip the rebuild (it caused the whole program list to blink every
+          // 3 minutes, and could discard an in-progress edit). The data is
+          // already merged in memory; the view refreshes next time they switch
+          // program/client or on their next manual action.
+          var _editing = !!(document.activeElement && document.activeElement.matches &&
+            document.activeElement.matches('input, textarea, select'));
+          if (currentClientId && needFetch.includes(currentClientId) && !_editing) {
             renderProgTabs(); loadProg(); updatePreview();
           }
         }
@@ -5731,7 +5738,7 @@ function renderCV() {
       if (isCardioEx) paramsStr = ex.reps;
       else paramsStr += ' × ' + String(ex.reps).replace(/ ?each ?/gi,'').replace(/ ?each side ?/gi,'');
     }
-    if (ex.hold) paramsStr += ' · hold';
+    if (ex.hold) paramsStr += ' · ' + withUnit(ex.hold, 's') + ' hold';
     // Card header - clickable to open detail
     h += '<div class="cv-ex-card-hdr" onclick="cvOpenExDetail(' + i + ')">';
 
