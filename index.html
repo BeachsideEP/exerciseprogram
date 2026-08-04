@@ -4330,7 +4330,11 @@ function updEx(uid, field, val) {
     ex[field] = (typeof val === 'string') ? collapseUnits(val) : val;
     // Stamp so sync keeps local version
     const clU = getClient(); if (clU) clU._localUpdatedAt = new Date().toISOString();
-    saveDB(); updatePreview();
+    // Lightweight refresh: rebuild ONLY the preview pane, debounced. Previously
+    // this ran a full updatePreview() (log panel + OM panel + tabs) on every
+    // field edit, repainting the whole screen — that was the "fluttering".
+    saveDB();
+    scheduleFieldPreview();
   }
 }
 
@@ -4405,6 +4409,39 @@ function debouncedUpdatePreview() {
   }, 400);
 }
 
+// Lightweight: rebuild ONLY the preview pane (no log/OM panel repaint).
+// Used for per-field edits so the whole screen doesn't flash while typing.
+function updatePreviewPaneOnly() {
+  const cl = getClient(), p = getProg(); if (!cl || !p) return;
+  const progTitle = v('progTitle') || p.title || 'Home Exercise Program';
+  if (p.title !== progTitle) { p.title = progTitle; }
+  let html = '';
+  html += row('Client', `${cl.first} ${cl.last}`);
+  if (cl.email) html += row('Email', cl.email);
+  if (cl.dob) html += row('DOB', fd(cl.dob));
+  if (cl.clinician) html += row('Clinician', cl.clinician);
+  if (cl.goal) html += row('Goal', cl.goal);
+  if (cl.review) html += row('Review', fd(cl.review));
+  html += row('Frequency', p.freq || '5×/week');
+  if (p.exercises.length) {
+    html += `<div class="prev-div"></div>`;
+    html += p.exercises.map((ex,i) => {
+      const ps = [ex.sets?`${ex.sets} sets`:'',ex.reps?`${ex.reps} reps`:'',ex.hold||'',ex.load||'',ex.rest?`Rest: ${ex.rest}`:''].filter(Boolean).join(' · ');
+      return `<div class="prev-ex"><div class="prev-ex-nm">${i+1}. ${ex.name}</div><div class="prev-ex-p">${ps||'—'}</div>${ex.notes?`<div class="prev-ex-n">📋 ${ex.notes}</div>`:''}</div>`;
+    }).join('');
+  } else { html += `<div class="prev-empty" style="margin-top:9px">Add exercises above</div>`; }
+  var pane = document.getElementById('prevPane');
+  if (pane) pane.innerHTML = html;
+}
+// Debounced field-edit handler: saves + refreshes preview without repainting
+// the whole screen (log panel, OM panel, tabs) on every keystroke/blur.
+var _updExTimer = null;
+function scheduleFieldPreview() {
+  clearTimeout(_updExTimer);
+  _updExTimer = setTimeout(function() {
+    try { updatePreviewPaneOnly(); } catch(e) {}
+  }, 250);
+}
 function updatePreview() {
   renderLogPanel();
   renderOMPanel();
