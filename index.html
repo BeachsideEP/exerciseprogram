@@ -5288,18 +5288,31 @@ async function safePushClientToCloud(snapCl) {
         cloudProgs = cloudProgs.filter(function(cp) { return tombstones.indexOf(cp.id) === -1; });
         snapCl.deletedPrograms = tombstones.filter(function(v,i,a){ return a.indexOf(v) === i; });
 
-        if (cloudProgs.length > localProgs.length) {
-          // Cloud has programs we don't - merge them in (but never tombstoned ones)
-          var merged = cloudProgs.slice();
-          localProgs.forEach(function(lp) {
-            var cp = merged.find(function(p) { return p.id === lp.id; });
-            if (!cp) { merged.push(lp); }
-            else if ((lp.exercises||[]).length > (cp.exercises||[]).length) {
-              merged[merged.indexOf(cp)] = lp;
-            }
-          });
-          snapCl.programs = merged;
-        }
+        // We are about to PUSH a practitioner edit, so LOCAL program definitions
+        // are authoritative (weights/reps/notes the practitioner just changed).
+        // Start from LOCAL; only pull in cloud programs that are genuinely
+        // missing locally. Previously this started from the cloud copy and kept
+        // stale cloud programs when exercise counts matched — silently
+        // discarding weight edits on save (the "save & reopen reverted" bug).
+        var merged = localProgs.slice();
+        cloudProgs.forEach(function(cp) {
+          if (!merged.find(function(p) { return p.id === cp.id; })) {
+            merged.push(cp); // a program that exists only in the cloud
+          }
+        });
+        // Union cloud LOG entries into the matching local programs so we never
+        // lose client-submitted workouts while keeping local definitions.
+        merged.forEach(function(mp) {
+          var cp = cloudProgs.find(function(p) { return p.id === mp.id; });
+          if (cp && cp.log && cp.log.length) {
+            if (!mp.log) mp.log = [];
+            cp.log.forEach(function(ce) {
+              var dup = mp.log.some(function(le){ return le.date===ce.date && le.text===ce.text; });
+              if (!dup) mp.log.push(ce);
+            });
+          }
+        });
+        snapCl.programs = merged;
       }
     }
   } catch(e) {}
@@ -5460,27 +5473,56 @@ async function syncClients() {
               }
               cloudCl.deletedPrograms = _tomb;
 
-              // Cloud has newer data. Start from cloud, then merge back anything
-              // local-only so we never lose unsynced practitioner edits:
-              // 1. keep local-only programs (excluding deleted ones)
-              (localCl.programs||[]).forEach(function(lp) {
-                if (_tomb.indexOf(lp.id) !== -1) return;
-                if (!cloudCl.programs.find(function(cp){return cp.id===lp.id;})) {
-                  cloudCl.programs.push(lp);
-                }
-              });
-              // 2. within shared programs, union the log entries (dedupe by date+text)
-              (cloudCl.programs||[]).forEach(function(cp) {
-                var lp = (localCl.programs||[]).find(function(x){return x.id===cp.id;});
-                if (!lp || !lp.log || !lp.log.length) return;
-                if (!cp.log) cp.log = [];
-                lp.log.forEach(function(le) {
-                  var dup = cp.log.some(function(ce){return ce.date===le.date && ce.text===le.text;});
-                  if (!dup) cp.log.push(le);
+              // WHO EDITED THE PROGRAM DEFINITIONS MORE RECENTLY?
+              // cloudIsAhead can be true just because the client logged another
+              // workout (more log entries). That must NOT let stale exercise
+              // VALUES (weights/reps/notes) from the cloud overwrite a
+              // practitioner edit made here. Compare timestamps: if our local
+              // copy was edited more recently than the cloud's, keep our program
+              // DEFINITIONS and only pull the cloud's newer LOG entries into them.
+              var _localTs = Date.parse(localCl._localUpdatedAt || 0) || 0;
+              var _cloudTs = Date.parse(row.updated_at || cloudCl._localUpdatedAt || 0) || 0;
+              var _localDefsWin = _localTs > _cloudTs;
+
+              if (_localDefsWin) {
+                // Base = LOCAL (keeps practitioner's edited weights/reps/notes).
+                // Merge in any cloud programs we don't have, and union newer logs.
+                (cloudCl.programs||[]).forEach(function(cp) {
+                  if (_tomb.indexOf(cp.id) !== -1) return;
+                  var lp = (localCl.programs||[]).find(function(x){return x.id===cp.id;});
+                  if (!lp) { (localCl.programs = localCl.programs || []).push(cp); return; }
+                  // union cloud logs into the local program (dedupe by date+text)
+                  if (cp.log && cp.log.length) {
+                    if (!lp.log) lp.log = [];
+                    cp.log.forEach(function(ce) {
+                      var dup = lp.log.some(function(le){return le.date===ce.date && le.text===ce.text;});
+                      if (!dup) lp.log.push(ce);
+                    });
+                  }
                 });
-              });
-              if (idx2 > -1) clients[idx2] = cloudCl;
-              changed = true;
+                if (idx2 > -1) clients[idx2] = localCl;
+                changed = true;
+              } else {
+                // Cloud is genuinely newer — take cloud as base, but still keep
+                // local-only programs and union local logs (original behaviour).
+                (localCl.programs||[]).forEach(function(lp) {
+                  if (_tomb.indexOf(lp.id) !== -1) return;
+                  if (!cloudCl.programs.find(function(cp){return cp.id===lp.id;})) {
+                    cloudCl.programs.push(lp);
+                  }
+                });
+                (cloudCl.programs||[]).forEach(function(cp) {
+                  var lp = (localCl.programs||[]).find(function(x){return x.id===cp.id;});
+                  if (!lp || !lp.log || !lp.log.length) return;
+                  if (!cp.log) cp.log = [];
+                  lp.log.forEach(function(le) {
+                    var dup = cp.log.some(function(ce){return ce.date===le.date && ce.text===le.text;});
+                    if (!dup) cp.log.push(le);
+                  });
+                });
+                if (idx2 > -1) clients[idx2] = cloudCl;
+                changed = true;
+              }
             } else if (localLogCount > cloudLogCount) {
               // Local has log entries the cloud is missing (e.g. a workout the
               // practitioner hasn't pushed yet) - leave local as-is, don't clobber.
@@ -5799,15 +5841,25 @@ function renderCV() {
       h += '</div>';
       for (let s = 0; s < sessionSets; s++) {
         const setDone = (st.sets && st.sets[s]) || false;
-        const setReps = (st.setReps && st.setReps[s] != null) ? st.setReps[s] : (ex.lastReps || '');
+        // Reps: same approach — placeholder hints last/target, value only if typed.
+        var _repsTyped = (st.setReps && st.setReps[s] != null && String(st.setReps[s]).trim() !== '');
+        const setReps = _repsTyped ? st.setReps[s] : '';
         var setLoadRaw = (st.setLoads && st.setLoads[s] != null) ? st.setLoads[s] : (ex.lastLoad || '');
         // Strip the unit ("95kg" -> "95") before pre-filling the editable box.
         // A pre-filled value containing letters (kg) breaks select-and-overtype
         // on iOS Safari, so typed weights silently reverted to the old value
         // and saved as "(prescribed)". The unit is re-added on display/save.
-        const setLoad = String(setLoadRaw).replace(/[^0-9.]/g, '');
-        const repsPlaceholder = (ex.reps || '—').toString().replace(/ ?each ?/gi,'').replace(/ ?each side ?/gi,'');
-        const loadPlaceholder = (ex.cat === 'Cardio') ? 'min' : (ex.load || 'kg');
+        // Value reflects ONLY what the client actually typed this session; if
+        // they haven't entered this set yet, leave it EMPTY so the placeholder
+        // (last time's weight) shows and there's nothing stale to submit.
+        var _typedThis = (st.setLoads && st.setLoads[s] != null && String(st.setLoads[s]).trim() !== '');
+        const setLoad = _typedThis ? String(st.setLoads[s]).replace(/[^0-9.]/g, '') : '';
+        const repsPlaceholder = (ex.lastReps ? String(ex.lastReps) : (ex.reps || '—').toString()).replace(/ ?each ?/gi,'').replace(/ ?each side ?/gi,'');
+        // Show last time's weight as a HINT (placeholder), not a pre-filled value.
+        // Pre-filling caused iOS select-and-overtype failures that silently
+        // submitted the old/prescribed number. Empty box = clean tap-and-type.
+        var _lastW = String(setLoadRaw).replace(/[^0-9.]/g, '');
+        const loadPlaceholder = (ex.cat === 'Cardio') ? 'min' : (_lastW ? _lastW : (ex.load ? String(ex.load).replace(/[^0-9.]/g,'') : 'kg'));
         // Previous session values
         var prevLoad = ex.lastLoad || '—';
         var prevReps = String(ex.lastReps || ex.reps || '—').replace(/ ?each ?side ?/gi,'').replace(/ ?each ?/gi,'');
@@ -6218,7 +6270,9 @@ async function cvSubmit() {
       if (didSet) {
         var setStr = 'Set ' + (s+1) + ': ';
         if (r) { setStr += r + ' reps'; lastReps.push(r); } else if (ex.reps) { setStr += ex.reps + ' reps (prescribed)'; lastReps.push(ex.reps); }
-        if (l) { setStr += ' @ ' + l; lastLoads.push(l); } else if (ex.load) { setStr += ' @ ' + ex.load + ' (prescribed)'; lastLoads.push(ex.load); }
+        if (l) { setStr += ' @ ' + l; lastLoads.push(l); }
+        else if (ex.lastLoad) { setStr += ' @ ' + collapseUnits(ex.lastLoad) + ' (last)'; lastLoads.push(collapseUnits(ex.lastLoad)); }
+        else if (ex.load) { setStr += ' @ ' + ex.load + ' (prescribed)'; lastLoads.push(ex.load); }
         setRows.push(setStr);
       }
     }
