@@ -5339,7 +5339,12 @@ async function pushClientToCloud(cl) {
   setSyncStatus('busy');
   try {
     const now = new Date().toISOString();
-    cl._localUpdatedAt = now; // stamp so syncClients knows this version was pushed
+    // IMPORTANT: do NOT bump _localUpdatedAt here. That timestamp must reflect
+    // when the DATA was last actually edited, not when this device last pushed.
+    // Bumping it on every push made a stale device (e.g. a practitioner merely
+    // opening a client) look "newer" than the client's real workout data, so
+    // the timestamp-based merge then reverted the client's saved weights to the
+    // stale copy's prescribed values. Preserve whatever edit-time is already set.
     const r = await fetch(SUPA_URL + '/rest/v1/clients', {
       method: 'POST',
       headers: supaHeaders(),
