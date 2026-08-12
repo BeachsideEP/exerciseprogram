@@ -5813,16 +5813,23 @@ function renderCV() {
       // YouTube video button — check customExercises FIRST (overrides), then ALL_EXERCISES
       var exVideoUrl = ex.videoUrl || '';
       if (!exVideoUrl) {
-        // Check custom/override exercises first (they have videoUrl if practitioner added one)
+        // Match by NORMALISED name, not exact string. Program exercises and
+        // library entries often differ only in casing/spacing/punctuation
+        // ("Dead Bug" vs "Deadbug", "Glute Bridge" vs "Glute bridge"), and
+        // exact matching silently lost the video for hundreds of exercises.
+        var _exKey = (typeof normNameKey === 'function') ? normNameKey(ex.name) : (ex.name||'').toLowerCase();
+        // Check custom/override exercises first (practitioner-added videos)
         var customEx = customExercises.find(function(le) {
-          return le.name === ex.name && le.videoUrl;
+          return (le.videoUrl || le.video) && normNameKey(le.name) === _exKey;
         });
         if (customEx) {
-          exVideoUrl = customEx.videoUrl;
+          exVideoUrl = customEx.videoUrl || customEx.video;
         } else {
-          // Fallback to full library (catches future cases)
-          var libEx = ALL_EXERCISES.find(function(le) { return le.name === ex.name; });
-          if (libEx) exVideoUrl = libEx.videoUrl || '';
+          // Fallback to full library
+          var libEx = ALL_EXERCISES.find(function(le) {
+            return (le.videoUrl || le.video) && normNameKey(le.name) === _exKey;
+          });
+          if (libEx) exVideoUrl = libEx.videoUrl || libEx.video || '';
         }
       }
       if (exVideoUrl && ytVideoId(exVideoUrl)) {
