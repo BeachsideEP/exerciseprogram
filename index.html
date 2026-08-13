@@ -4339,6 +4339,12 @@ function updExVideo(uid, val) {
   saveDB();
   scheduleFieldPreview();
 }
+// Flush the video field to cloud immediately (e.g. on blur / before leaving),
+// so pasting a link and quickly navigating away still persists it.
+function flushExVideo(uid, val) {
+  updExVideo(uid, val);
+  try { var cl = getClient(); if (cl && userRole === 'practitioner') safePushClientToCloud(JSON.parse(JSON.stringify(cl))); } catch(e) {}
+}
 function updEx(uid, field, val) {
   const p = getProg(); if (!p) return;
   const ex = p.exercises.find(e => e.uid === uid);
@@ -4406,7 +4412,7 @@ function renderDropZone() {
         <input type="text" value="${ex.progression||''}" placeholder="e.g. Add 2kg when 3x12 is easy" onchange="updEx(${ex.uid},'progression',this.value)">
       </div>
       <div class="pe-video" style="margin-top:3px"><label>🎬 Video link (YouTube / Shorts)</label>
-        <input type="text" value="${ex.videoUrl||''}" placeholder="Paste a YouTube or Shorts link" onchange="updExVideo(${ex.uid},this.value)" style="direction:ltr">
+        <input type="text" value="${ex.videoUrl||''}" placeholder="Paste a YouTube or Shorts link" oninput="updExVideo(${ex.uid},this.value)" onchange="updExVideo(${ex.uid},this.value)" onblur="flushExVideo(${ex.uid},this.value)" style="direction:ltr">
         <span id="vidok_${ex.uid}" style="font-size:11px;color:${ex.videoUrl && ytVideoId(ex.videoUrl) ? '#2FD4F5' : (ex.videoUrl ? '#e06a5a' : '#8B98A5')}">${ex.videoUrl ? (ytVideoId(ex.videoUrl) ? '✓ Video attached to this exercise' : '⚠ Not a valid YouTube link') : 'Optional — attaches directly to this exercise'}</span>
       </div>
     </div>`).join('')}</div>`;
