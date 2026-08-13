@@ -4322,6 +4322,23 @@ function moveEx(uid, dir) {
   saveDB(); renderDropZone(); updatePreview();
 }
 
+function updExVideo(uid, val) {
+  const p = getProg(); if (!p) return;
+  const ex = p.exercises.find(e => e.uid === uid);
+  if (!ex) return;
+  val = (val || '').trim();
+  ex.videoUrl = val;
+  // live validity hint
+  var hint = document.getElementById('vidok_' + uid);
+  if (hint) {
+    if (!val) { hint.textContent = 'Optional — attaches directly to this exercise'; hint.style.color = '#8B98A5'; }
+    else if (ytVideoId(val)) { hint.textContent = '✓ Video attached to this exercise'; hint.style.color = '#2FD4F5'; }
+    else { hint.textContent = '⚠ Not a valid YouTube link'; hint.style.color = '#e06a5a'; }
+  }
+  const clU = getClient(); if (clU) clU._localUpdatedAt = new Date().toISOString();
+  saveDB();
+  scheduleFieldPreview();
+}
 function updEx(uid, field, val) {
   const p = getProg(); if (!p) return;
   const ex = p.exercises.find(e => e.uid === uid);
@@ -4387,6 +4404,10 @@ function renderDropZone() {
       </div>
       <div class="pe-prog" style="margin-top:3px"><label>Progression / Next Goal</label>
         <input type="text" value="${ex.progression||''}" placeholder="e.g. Add 2kg when 3x12 is easy" onchange="updEx(${ex.uid},'progression',this.value)">
+      </div>
+      <div class="pe-video" style="margin-top:3px"><label>🎬 Video link (YouTube / Shorts)</label>
+        <input type="text" value="${ex.videoUrl||''}" placeholder="Paste a YouTube or Shorts link" onchange="updExVideo(${ex.uid},this.value)" style="direction:ltr">
+        <span id="vidok_${ex.uid}" style="font-size:11px;color:${ex.videoUrl && ytVideoId(ex.videoUrl) ? '#2FD4F5' : (ex.videoUrl ? '#e06a5a' : '#8B98A5')}">${ex.videoUrl ? (ytVideoId(ex.videoUrl) ? '✓ Video attached to this exercise' : '⚠ Not a valid YouTube link') : 'Optional — attaches directly to this exercise'}</span>
       </div>
     </div>`).join('')}</div>`;
 }
