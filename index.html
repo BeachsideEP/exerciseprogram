@@ -2068,7 +2068,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
         </select>
     </div>
     <div class="fg" style="grid-column:1/-1"><label>Clinical Description</label><textarea id="ee_desc" rows="3"></textarea></div>
-      <div class="fg" style="grid-column:1/-1"><label>YouTube Video URL <span style="font-weight:400;color:var(--text-l)">(optional)</span></label><input id="ee_video" type="text" class="yt-input" placeholder="https://www.youtube.com/watch?v=…"></div>
+      <div class="fg" style="grid-column:1/-1"><label>YouTube Video URL <span style="font-weight:400;color:var(--text-l)">(optional)</span></label><input oninput="var _v=document.getElementById('eeVidHint'); if(_v){_v.textContent = ytVideoId(this.value)? '✓ valid video link' : (this.value?'⚠ not a valid YouTube link':''); _v.style.color = ytVideoId(this.value)?'#2FD4F5':'#e06a5a';}" id="ee_video" type="text" class="yt-input" placeholder="https://www.youtube.com/watch?v=…"><span id="eeVidHint" style="font-size:11px;display:block;margin-top:2px"></span></div>
     <div class="fg" style="grid-column:1/-1">
       <label>Primary Muscles <span style="font-weight:400;color:var(--text-l)">(hold Ctrl/Cmd to select multiple)</span></label>
       <select id="ee_muscles" multiple style="height:120px;padding:4px">
@@ -3657,15 +3657,33 @@ async function pushLibraryToCloud() {
     });
     if (!r.ok) {
       var errText = await r.text();
-      // If still RLS error, try PATCH instead
-      if (errText.includes('42501') || errText.includes('row-level security')) {
-        await fetch(SUPA_URL + '/rest/v1/library?id=eq.bep_library', {
-          method: 'PATCH', headers: headers,
+      // RLS failure means our token was stale (library writes require a fresh
+      // @beachsideep.com.au auth token). Refresh and retry once via PATCH.
+      if (errText.includes('42501') || errText.includes('row-level security') || r.status === 401) {
+        var freshOk = false;
+        try {
+          if (typeof refreshAuthToken === 'function') { await refreshAuthToken(); freshOk = true; }
+        } catch(eRt) {}
+        var tok2 = authToken();
+        var r2 = await fetch(SUPA_URL + '/rest/v1/library?id=eq.bep_library', {
+          method: 'PATCH',
+          headers: { 'Content-Type':'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + tok2, 'Prefer':'return=minimal' },
           body: JSON.stringify({ data: { exercises: customExercises, photos: customPhotos }, updated_at: new Date().toISOString() })
         });
+        if (!r2.ok) {
+          if (typeof toast === 'function') toast('Video saved on this device but could not sync to the cloud — please check you are signed in, then edit and save again.', 'err');
+          return false;
+        }
+      } else {
+        if (typeof toast === 'function') toast('Library sync failed — changes are saved locally only.', 'err');
+        return false;
       }
     }
-  } catch(e) {}
+    return true;
+  } catch(e) {
+    if (typeof toast === 'function') toast('Library sync error — saved locally only. Check your connection.', 'err');
+    return false;
+  }
 }
 
 async function pullLibraryFromCloud() {
@@ -4619,7 +4637,15 @@ function addCustomExercise() {
 }
 
 function openEditEx(id) {
-  const ex = getAllExercises().find(e => String(e.id) === String(id)); if (!ex) return;
+  var _all = getAllExercises();
+  var ex = _all.find(e => String(e.id) === String(id));
+  // After a built-in is overridden, its id becomes override_<id> and the
+  // built-in is filtered out — so also match the override and by name.
+  if (!ex) ex = _all.find(e => String(e.id) === 'override_' + String(id));
+  if (!ex) { var _byName = document.getElementById('eeEditName'); }
+  if (!ex) return;
+  // Remember the resolved id so save updates the SAME entry.
+  var _rid = document.getElementById('eeEditId'); if (_rid) _rid.value = ex.id;
   sv('ee_name', ex.name); sv('ee_cat', ex.cat); sv('ee_desc', ex.desc||''); sv('ee_video', ex.videoUrl||'');
   // Pre-select muscles in multi-select
   setTimeout(function() {
@@ -4653,8 +4679,10 @@ function openEditEx(id) {
 function saveExEdit() {
   const id = document.getElementById('eeEditId').value;
   const allEx = getAllExercises();
-  let ex = allEx.find(e => String(e.id) === String(id));
-  if (!ex) return;
+  let ex = allEx.find(e => String(e.id) === String(id))
+        || allEx.find(e => String(e.id) === 'override_' + String(id))
+        || allEx.find(e => e.name && e.name.toLowerCase().trim() === (v('ee_name')||'').toLowerCase().trim());
+  if (!ex) { toast('Could not find that exercise to save', 'err'); return; }
   const oldName = ex.name;
   const newName = v('ee_name').trim() || ex.name;
   // Update fields
@@ -4710,7 +4738,19 @@ function saveExEdit() {
   }
   renderLib(); renderCatChips(); renderDropZone(); updatePreview();
   closeM('editExM');
-  toast(`${newName} updated`, 'ok');
+  // Honest confirmation: verify the video actually landed in the library entry
+  // we just saved, so "saved" never lies.
+  var _saved = customExercises.find(function(e){
+    return e.name && e.name.toLowerCase().trim() === newName.toLowerCase().trim();
+  });
+  var _vidWanted = v('ee_video').trim();
+  if (_vidWanted && (!_saved || (_saved.videoUrl||'') !== _vidWanted)) {
+    toast(`${newName} saved, re-syncing video…`, 'ok');
+    // force the override to carry the video and push again
+    if (_saved) { _saved.videoUrl = _vidWanted; saveCustomEx(); }
+  } else {
+    toast(`${newName} updated`, 'ok');
+  }
 }
 
 function deleteCustomEx() {
