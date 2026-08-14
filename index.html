@@ -3606,6 +3606,50 @@ function mergeLibraries(cloudList, localList) {
   });
   return out;
 }
+// Atomically attach a video to ONE library exercise: read the LIVE cloud library,
+// set just this exercise's videoUrl, write back. This avoids the whole-library
+// overwrite race — with 14 concurrent sessions, a stale device pushing the whole
+// library could otherwise revert a freshly-saved video. Falls back to a normal
+// push if the targeted write can't complete.
+async function saveVideoForExercise(exName, videoUrl) {
+  if (!exName) return false;
+  try {
+    var token = authToken();
+    try { if ((!token || token === SUPA_KEY) && typeof refreshAuthToken === 'function') { await refreshAuthToken(); token = authToken(); } } catch(eR) {}
+    var headers = { 'Content-Type':'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token };
+    // 1. read the current cloud library
+    var gr = await fetch(SUPA_URL + '/rest/v1/library?id=eq.bep_library&select=data', { headers: headers });
+    if (!gr.ok) return false;
+    var rows = await gr.json();
+    var data = (rows && rows[0] && rows[0].data) ? rows[0].data : { exercises: [], photos: {} };
+    var list = data.exercises || [];
+    // 2. set the video on the matching exercise (by normalised name), creating an override entry if absent
+    var key = (typeof normNameKey === 'function') ? normNameKey(exName) : exName.toLowerCase();
+    var found = false;
+    list.forEach(function(e) {
+      if (!e || !e.name) return;
+      if (((typeof normNameKey==='function')?normNameKey(e.name):e.name.toLowerCase()) === key) { e.videoUrl = videoUrl; found = true; }
+    });
+    if (!found) list.push({ id: 'video_' + Date.now(), name: exName, videoUrl: videoUrl });
+    data.exercises = list;
+    // 3. write back with a fresh timestamp
+    var pr = await fetch(SUPA_URL + '/rest/v1/library?id=eq.bep_library', {
+      method: 'PATCH',
+      headers: Object.assign({}, headers, { 'Prefer':'return=minimal' }),
+      body: JSON.stringify({ data: data, updated_at: new Date().toISOString() })
+    });
+    if (!pr.ok) return false;
+    // 4. reflect locally so the practitioner sees it immediately
+    try {
+      var localEx = customExercises.find(function(e){ return e.name && ((typeof normNameKey==='function')?normNameKey(e.name):e.name.toLowerCase()) === key; });
+      if (localEx) localEx.videoUrl = videoUrl;
+      else customExercises.push({ id:'video_'+Date.now(), name: exName, videoUrl: videoUrl });
+      saveCustomEx();
+    } catch(eL) {}
+    return true;
+  } catch(e) { return false; }
+}
+
 async function pushLibraryToCloud() {
   if (!currentUser) return;
   try {
@@ -4620,6 +4664,7 @@ function addCustomExercise() {
   customExercises.push(ex);
   if (photo) { customPhotos[name] = photo; saveCustomPhotos(); }
   saveCustomEx();
+  if (ex.videoUrl) { try { saveVideoForExercise(ex.name, ex.videoUrl); } catch(eV) {} }
   renderLib(); renderCatChips();
   var _lc = document.getElementById('libCnt'); if (_lc) _lc.textContent = getAllExercises().length;
   // Reset form
@@ -4744,10 +4789,13 @@ function saveExEdit() {
     return e.name && e.name.toLowerCase().trim() === newName.toLowerCase().trim();
   });
   var _vidWanted = v('ee_video').trim();
-  if (_vidWanted && (!_saved || (_saved.videoUrl||'') !== _vidWanted)) {
-    toast(`${newName} saved, re-syncing video…`, 'ok');
-    // force the override to carry the video and push again
-    if (_saved) { _saved.videoUrl = _vidWanted; saveCustomEx(); }
+  if (_vidWanted) {
+    // Use the atomic per-exercise video write so a stale device pushing the
+    // whole library can't revert it moments later.
+    saveVideoForExercise(newName, _vidWanted).then(function(ok){
+      if (ok) { toast(`${newName} video saved`, 'ok'); if (typeof renderLib==='function') renderLib(); }
+      else { toast(`${newName} saved locally — video sync failed, check you're signed in`, 'err'); }
+    });
   } else {
     toast(`${newName} updated`, 'ok');
   }
