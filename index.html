@@ -3619,7 +3619,7 @@ async function saveVideoForExercise(exName, videoUrl) {
     var headers = { 'Content-Type':'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token };
     // 1. read the current cloud library
     var gr = await fetch(SUPA_URL + '/rest/v1/library?id=eq.bep_library&select=data', { headers: headers });
-    if (!gr.ok) return false;
+    if (!gr.ok) { markLibraryPushPending('video-read'); return false; }
     var rows = await gr.json();
     var data = (rows && rows[0] && rows[0].data) ? rows[0].data : { exercises: [], photos: {} };
     var list = data.exercises || [];
@@ -3638,17 +3638,55 @@ async function saveVideoForExercise(exName, videoUrl) {
       headers: Object.assign({}, headers, { 'Prefer':'return=minimal' }),
       body: JSON.stringify({ data: data, updated_at: new Date().toISOString() })
     });
-    if (!pr.ok) return false;
-    // 4. reflect locally so the practitioner sees it immediately
+    if (!pr.ok) { markLibraryPushPending('video-write'); return false; }
+    // 4. reflect locally so the practitioner sees it immediately.
+    //    IMPORTANT: write to localStorage ONLY here — do NOT call saveCustomEx(),
+    //    because that triggers pushLibraryToCloud() (a whole-library overwrite)
+    //    which would immediately clobber the atomic write we just made. That
+    //    self-collision was why the video kept vanishing on reload.
     try {
       var localEx = customExercises.find(function(e){ return e.name && ((typeof normNameKey==='function')?normNameKey(e.name):e.name.toLowerCase()) === key; });
       if (localEx) localEx.videoUrl = videoUrl;
       else customExercises.push({ id:'video_'+Date.now(), name: exName, videoUrl: videoUrl });
-      saveCustomEx();
+      // persist locally without pushing to cloud (the PATCH above already did the cloud write)
+      try {
+        var stripped = customExercises.map(function(e){ var c = Object.assign({}, e); delete c.photo1; delete c.photo2; return c; });
+        localStorage.setItem(CUSTOM_EX_KEY, JSON.stringify(stripped));
+      } catch(eLS) {}
     } catch(eL) {}
+    clearLibraryPushPending();
     return true;
-  } catch(e) { return false; }
+  } catch(e) { markLibraryPushPending('video-network'); return false; }
 }
+
+var LIB_PENDING_KEY = 'bep_library_push_pending';
+function markLibraryPushPending(reason) {
+  try { localStorage.setItem(LIB_PENDING_KEY, JSON.stringify({ at: Date.now(), reason: reason||'unknown' })); } catch(e) {}
+}
+function clearLibraryPushPending() {
+  try { localStorage.removeItem(LIB_PENDING_KEY); } catch(e) {}
+}
+function hasLibraryPushPending() {
+  try { return !!localStorage.getItem(LIB_PENDING_KEY); } catch(e) { return false; }
+}
+// Retry any stranded library push: on a timer, when the tab refocuses, and on load.
+var _libRetryBusy = false;
+async function retryPendingLibraryPush() {
+  if (_libRetryBusy) return;
+  if (!hasLibraryPushPending()) return;
+  if (!currentUser) return;
+  _libRetryBusy = true;
+  try {
+    var ok = await pushLibraryToCloud(); // clears the flag on success
+    if (ok && typeof toast === 'function') toast('Library changes synced to the cloud.', 'ok');
+  } catch(e) {} finally { _libRetryBusy = false; }
+}
+// Timer: check every 45s
+try { setInterval(retryPendingLibraryPush, 45000); } catch(e) {}
+// On tab refocus (e.g. after moving back to this computer / waking the screen)
+try { document.addEventListener('visibilitychange', function(){ if (!document.hidden) retryPendingLibraryPush(); }); } catch(e) {}
+// Shortly after load, once auth is ready
+try { setTimeout(retryPendingLibraryPush, 6000); } catch(e) {}
 
 async function pushLibraryToCloud() {
   if (!currentUser) return;
@@ -3715,17 +3753,21 @@ async function pushLibraryToCloud() {
           body: JSON.stringify({ data: { exercises: customExercises, photos: customPhotos }, updated_at: new Date().toISOString() })
         });
         if (!r2.ok) {
-          if (typeof toast === 'function') toast('Video saved on this device but could not sync to the cloud — please check you are signed in, then edit and save again.', 'err');
+          markLibraryPushPending('auth');
+          if (typeof toast === 'function') toast('Video saved — will finish syncing to the cloud automatically.', 'ok');
           return false;
         }
       } else {
-        if (typeof toast === 'function') toast('Library sync failed — changes are saved locally only.', 'err');
+        markLibraryPushPending('write');
+        if (typeof toast === 'function') toast('Saved — will finish syncing when the connection is back.', 'ok');
         return false;
       }
     }
+    clearLibraryPushPending();
     return true;
   } catch(e) {
-    if (typeof toast === 'function') toast('Library sync error — saved locally only. Check your connection.', 'err');
+    markLibraryPushPending('network');
+    if (typeof toast === 'function') toast('Saved — will finish syncing when the connection is back.', 'ok');
     return false;
   }
 }
@@ -4769,7 +4811,19 @@ function saveExEdit() {
     const idx2 = customExercises.findIndex(e => String(e.id) === String(id));
     if (idx2 !== -1) customExercises[idx2] = Object.assign({}, customExercises[idx2], ex);
   }
-  saveCustomEx();
+  // Defer the cloud push decision: if a video is being saved we use the atomic
+  // writer below (which does its own safe cloud write). Only do the whole-library
+  // push here when there is NO video to save, to avoid the two colliding.
+  var _hasVideoToSave = !!(v('ee_video') && v('ee_video').trim());
+  if (_hasVideoToSave) {
+    // persist locally only; atomic writer handles the cloud
+    try {
+      var _strip = customExercises.map(function(e){ var c = Object.assign({}, e); delete c.photo1; delete c.photo2; return c; });
+      localStorage.setItem(CUSTOM_EX_KEY, JSON.stringify(_strip));
+    } catch(eS) {}
+  } else {
+    saveCustomEx();
+  }
   // Update name in any programs that reference this exercise by old name
   if (oldName !== newName) {
     clients.forEach(function(cl) {
