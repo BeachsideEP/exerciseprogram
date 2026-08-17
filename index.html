@@ -8335,8 +8335,9 @@ function cvClearSession() {
 
 // ── HOME SCREEN ──
 function renderCVHome() {
-  // Show onboarding on first visit
-  setTimeout(function() { cvShowOnboarding(); }, 1000);
+  // Onboarding tutorial removed — clients are shown through the app in person,
+  // so the "Welcome to your Exercise Program" walkthrough is not needed.
+  // (cvShowOnboarding remains defined but is no longer triggered.)
   var el = document.getElementById('cvHomeContent');
   if (!el) { setTimeout(renderCVHome, 200); return; }
   if (!cvData) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-light)"><div style="font-size:32px;margin-bottom:8px">&#9201;</div><p>Loading...</p></div>'; setTimeout(renderCVHome, 500); return; }
@@ -11268,8 +11269,11 @@ function cvOpenExDetail(exIdx) {
   overlay.className = 'cv-ex-detail';
   overlay.id = 'cvExDetailOverlay';
 
+  // Video intentionally omitted from this detail view — this section shows
+  // exercise RESULTS/history only. Videos live on the exercise card's own
+  // "Watch Video" button, so they're not duplicated here.
   var videoHTML = '';
-  if (videoId) {
+  if (false) {
     videoHTML = '<div class="cv-ex-detail-video" onclick="cvPlayExVideo(\'' + videoId + '\')">' +
       '<img src="' + thumbSrc + '" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'">' +
       '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">' +
