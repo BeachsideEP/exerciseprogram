@@ -8442,6 +8442,20 @@ function renderCVHome() {
     h += badge('&#128293;', thisWeek, 'This Week', thisWeek > 0 ? '#f59e0b' : 'var(--text-light)');
     h += '</div>';
 
+    // ── Announcements (top of page, just below the trophy/streak row) ──
+    if (window._announcements && window._announcements.length) {
+      h += '<div style="margin-bottom:20px">';
+      window._announcements.forEach(function(ann) {
+        h += '<div class="announce-box" style="margin-bottom:8px">';
+        h += '<div class="announce-hdr"><span class="announce-icon">&#128226;</span>';
+        h += '<span class="announce-title">From Beachside EP</span></div>';
+        h += '<div class="announce-body">' + ann.text.replace(/</g,'&lt;') + '</div>';
+        h += '<div class="announce-date">' + ann.date + '</div>';
+        h += '</div>';
+      });
+      h += '</div>';
+    }
+
     // Health metrics
     h += '<div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Health Tracking</div>';
     h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;width:100%;min-width:0">';
@@ -8490,19 +8504,7 @@ function renderCVHome() {
       '</button>';
     h += '</div>';
 
-    // ── Announcements (inside clinic card, at the bottom) ──
-    if (window._announcements && window._announcements.length) {
-      h += '<div style="margin-top:14px;padding-top:14px;border-top:1px solid #1F2A33">';
-      window._announcements.forEach(function(ann) {
-        h += '<div class="announce-box" style="margin-bottom:8px">';
-        h += '<div class="announce-hdr"><span class="announce-icon">&#128226;</span>';
-        h += '<span class="announce-title">From Beachside EP</span></div>';
-        h += '<div class="announce-body">' + ann.text.replace(/</g,'&lt;') + '</div>';
-        h += '<div class="announce-date">' + ann.date + '</div>';
-        h += '</div>';
-      });
-      h += '</div>';
-    }
+    // (Announcements moved to top of page, just below the trophy/streak row.)
     h += '</div>';
 
     // ── Achievements slider ──
