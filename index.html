@@ -1524,13 +1524,17 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <div class="hr-title">&#128200; Health Data</div>
   </div>
   <div class="hr-body">
-    <select class="hr-select" id="hrMetricSel" onchange="renderHealthChart()">
+    <select class="hr-select" id="hrMetricSel" onchange="renderHealthChart(); hrUpdatePlaceholder();">
       <option value="weight">Weight (kg)</option>
       <option value="bp">Blood Pressure</option>
       <option value="bg">Blood Glucose (mmol/L)</option>
       <option value="hr">Heart Rate (bpm)</option>
       <option value="sleep">Sleep (hrs)</option>
     </select>
+    <div style="display:flex;gap:8px;margin:10px 0 14px">
+      <input id="hrAddInput" type="text" placeholder="Add a new reading…" style="flex:1;background:#0F1419;border:1px solid #22303A;border-radius:10px;padding:11px 12px;color:#E6EDF3;font-size:14px;min-width:0">
+      <button data-key="weight" onclick="hrAddReading(this)" style="background:linear-gradient(135deg,#2FD4F5,#1FBAD6);color:#04232B;border:none;border-radius:10px;padding:11px 16px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap">Add</button>
+    </div>
     <div class="hr-period-row">
       <button class="hr-period active" data-months="1" onclick="hrSetPeriod(1,this)">1 Month</button>
       <button class="hr-period" data-months="3" onclick="hrSetPeriod(3,this)">3 Months</button>
@@ -8472,7 +8476,7 @@ function renderCVHome() {
       return s;
     }
     h += qbtn('&#128170;', 'My Workouts', "cvSwitchTab('workouts')", true);
-    h += qbtn('&#128197;', 'Book a Class', "cvShowBooking()", false);
+    h += qbtn('&#128197;', 'Book a Class', "cvOpenClasses()", false);
     h += qbtn('&#128172;', 'Message Clinic', "cvSwitchTab('messages')", false);
     h += qbtn('&#10084;', 'Health Check-in', "openHealthReview()", false);
     h += '</div>';
@@ -8897,6 +8901,30 @@ function cvSaveOwnWorkout() {
   cvHideWorkoutModal();
   showCVCongrats(cvData.first, true, []);
   setTimeout(function() { cvSwitchTab('home'); }, 1500);
+}
+
+function hrUpdatePlaceholder() {
+  var sel = document.getElementById('hrMetricSel');
+  var inp = document.getElementById('hrAddInput');
+  if (!sel || !inp) return;
+  var labels = { weight:'Add weight (kg)…', bp:'Add blood pressure e.g. 120/80…', bg:'Add glucose (mmol/L)…', hr:'Add heart rate (bpm)…', sleep:'Add sleep (hrs)…' };
+  inp.placeholder = labels[sel.value] || 'Add a new reading…';
+}
+
+function hrAddReading(btn) {
+  // Use the currently-selected metric from the Health Data dropdown as the key,
+  // wire the input as the button's previousElementSibling (cvLogHealthKey reads that),
+  // save, then refresh the chart + entries.
+  var sel = document.getElementById('hrMetricSel');
+  var key = sel ? sel.value : 'weight';
+  btn.setAttribute('data-key', key);
+  var input = document.getElementById('hrAddInput');
+  if (!input || !input.value.trim()) return;
+  // cvLogHealthKey expects the input to be btn.previousElementSibling. The layout
+  // places the input immediately before the button, so this holds.
+  cvLogHealthKey(btn);
+  input.value = '';
+  if (typeof renderHealthChart === 'function') renderHealthChart();
 }
 
 function cvLogHealthKey(btn) {
