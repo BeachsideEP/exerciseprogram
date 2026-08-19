@@ -8426,24 +8426,27 @@ function renderCVHome() {
     h += '<div class="cv-home-wave"><svg viewBox="0 0 375 80" xmlns="http://www.w3.org/2000/svg"><path d="M0,40 C60,80 120,0 187,40 C254,80 314,0 375,40 L375,80 L0,80 Z" fill="#2FD4F5"/></svg></div>';
     h += '<div class="cv-home-content">';
     h += '<div style="font-size:22px;font-weight:800;color:var(--ocean-deep);margin-bottom:2px;font-family:Georgia,serif;padding:0 2px">' + greeting + ', ' + cvData.first + '!</div>';
-    h += '<div style="font-size:12px;color:var(--text-light);margin-bottom:16px">Your health at a glance</div>';
+    h += '<div style="height:4px"></div>';
 
-    // Badges
-    h += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px">';
-    function badge(icon, val, lbl, color) {
-      return '<div style="flex-shrink:0;background:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.08);min-width:100px">' +
-        '<div style="font-size:24px;margin-bottom:4px">' + icon + '</div>' +
-        '<div style="font-size:20px;font-weight:800;color:' + (color||'var(--ocean-deep)') + ';line-height:1">' + val + '</div>' +
-        '<div style="font-size:10px;color:var(--text-light);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-top:3px">' + lbl + '</div>' +
-        '</div>';
+    // ── Trophy strip (Day Streak / Sessions / This Week) ──
+    h += '<div style="font-size:11px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Your progress</div>';
+    h += '<div style="display:flex;gap:8px;margin-bottom:20px">';
+    function troph(icon, val, lbl, colr) {
+      var s = '<div style="flex:1;background:#12181D;border:1px solid #1F2A33;border-radius:12px;padding:13px 8px;text-align:center">';
+      s += '<div style="font-size:14px;margin-bottom:2px">' + icon + '</div>';
+      s += '<div style="font-size:21px;font-weight:800;color:' + colr + '">' + val + '</div>';
+      s += '<div style="font-size:9.5px;color:#8B949E;font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-top:3px">' + lbl + '</div>';
+      s += '</div>';
+      return s;
     }
-    h += badge('&#127942;', streak, 'Day Streak', streak > 0 ? 'var(--teal)' : 'var(--text-light)');
-    h += badge('&#128170;', totalSessions, 'Total Sessions', 'var(--ocean)');
-    h += badge('&#128293;', thisWeek, 'This Week', thisWeek > 0 ? '#f59e0b' : 'var(--text-light)');
+    h += troph('&#128293;', streak, 'Day Streak', '#5BBFAA');
+    h += troph('&#127942;', totalSessions, 'Sessions', '#2FD4F5');
+    h += troph('&#128197;', thisWeek, 'This Week', '#E8735A');
     h += '</div>';
 
-    // ── Announcements (top of page, just below the trophy/streak row) ──
+    // ── Announcements ──
     if (window._announcements && window._announcements.length) {
+      h += '<div style="font-size:11px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Announcements</div>';
       h += '<div style="margin-bottom:20px">';
       window._announcements.forEach(function(ann) {
         h += '<div class="announce-box" style="margin-bottom:8px">';
@@ -8456,86 +8459,32 @@ function renderCVHome() {
       h += '</div>';
     }
 
-    // Health metrics
-    h += '<div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Health Tracking</div>';
-    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;width:100%;min-width:0">';
-
-    function metricCard(icon, lbl, entry, unit, key, placeholder, inputType) {
-      var val = entry ? entry.val : '—';
-      var time = entry ? entry.date : '';
-      return '<div style="background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(28,43,53,.07);min-width:0;overflow:hidden">' +
-        '<div style="font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">' + icon + ' ' + lbl + '</div>' +
-        '<div style="font-size:22px;font-weight:800;color:var(--ocean-deep);line-height:1">' + val + '<span style="font-size:11px;color:var(--text-light);margin-left:2px">' + unit + '</span></div>' +
-        (time ? '<div style="font-size:9px;color:var(--text-light);margin-top:2px">' + time + '</div>' : '') +
-        '<div style="display:flex;gap:6px;margin-top:8px">' +
-          '<input data-key="' + key + '" type="' + inputType + '" inputmode="' + (key === 'bp' ? 'text' : (inputType === 'number' ? 'decimal' : 'text')) + '" placeholder="' + placeholder + '" style="flex:1;padding:6px 8px;border:1.5px solid var(--sand-dark);border-radius:6px;font-size:12px;outline:none;background:var(--sand);min-width:0">' +
-          '<button data-key="' + key + '" onclick="cvLogHealthKey(this)" style="padding:6px 10px;border-radius:6px;border:none;background:var(--ocean);color:#fff;font-size:13px;font-weight:700;cursor:pointer">+</button>' +
-        '</div></div>';
+    // ── Quick actions ──
+    h += '<div style="font-size:11px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Quick actions</div>';
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">';
+    function qbtn(icon, lbl, action, primary) {
+      var bg = primary ? 'background:linear-gradient(135deg,#2FD4F5,#1FBAD6);border:none;' : 'background:#12181D;border:1px solid #1F2A33;';
+      var col = primary ? '#04232B' : '#FFFFFF';
+      var s = '<div onclick="' + action + '" style="' + bg + 'border-radius:14px;padding:16px 12px;text-align:center;cursor:pointer;color:' + col + '">';
+      s += '<div style="font-size:22px;margin-bottom:6px">' + icon + '</div>';
+      s += '<div style="font-size:12.5px;font-weight:700;color:' + col + '">' + lbl + '</div>';
+      s += '</div>';
+      return s;
     }
-
-    h += metricCard('&#9878;', 'Weight', lw, 'kg', 'weight', '70', 'number');
-    h += metricCard('&#10084;', 'Blood Pressure', lb, '', 'bp', '120/80', 'text');
-    h += metricCard('&#128164;', 'Blood Glucose', lg, 'mmol', 'bg', '5.0', 'number');
-    h += metricCard('&#9829;', 'Heart Rate', lh, 'bpm', 'hr', '72', 'number');
-    h += metricCard('&#128308;', 'Sleep', ls, 'hrs', 'sleep', '8', 'number');
-    h += '<div onclick="openHealthReview()" style="background:#12181D;border-radius:12px;padding:16px 14px;border:1.5px solid #1F2A33;display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:10px">' +
-      '<div><div style="font-size:13px;font-weight:700;color:#2FD4F5;margin-bottom:2px">&#128200; Review Health Data</div>' +
-      '<div style="font-size:13px;color:#FFFFFF">View trends over 1, 3 or 6 months</div></div>' +
-      '<div style="color:#2FD4F5;font-size:20px">&#8250;</div>' +
-      '</div>';
+    h += qbtn('&#128170;', 'My Workouts', "cvSwitchTab('workouts')", true);
+    h += qbtn('&#128197;', 'Book a Class', "cvShowBooking()", false);
+    h += qbtn('&#128172;', 'Message Clinic', "cvSwitchTab('messages')", false);
+    h += qbtn('&#10084;', 'Health Check-in', "openHealthReview()", false);
     h += '</div>';
-
-    // (Log a Workout button removed from home screen per clinic request)
 
     // ── Clinic contact ──
-    h += '<div style="margin-top:24px;background:#12181D;border-radius:14px;padding:16px 18px;border:1px solid #1F2A33">';
-    h += '<div style="font-size:13px;font-weight:700;color:var(--ocean-deep);margin-bottom:12px;font-family:Georgia,serif">Beachside Exercise Physiology</div>';
-    h += '<a href="tel:0409051260" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--sand-dark);text-decoration:none">' +
-      '<div style="width:36px;height:36px;border-radius:50%;background:var(--ocean-pale);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">&#128222;</div>' +
-      '<div><div style="font-size:13px;font-weight:600;color:var(--ocean)">Call Clinic</div><div style="font-size:11px;color:var(--text-light)">0409 051 260</div></div>' +
-      '</a>';
-    h += '<a href="mailto:admin@beachsideep.com.au" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--sand-dark);text-decoration:none;-webkit-tap-highlight-color:transparent">' +
-      '<div style="width:36px;height:36px;border-radius:50%;background:var(--ocean-pale);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">&#9993;</div>' +
-      '<div><div style="font-size:13px;font-weight:600;color:var(--ocean)">Email Clinic</div><div style="font-size:11px;color:var(--text-light)">admin@beachsideep.com.au</div></div>' +
-      '</a>';
-    h += '<button onclick="cvShowBooking()" style="display:flex;align-items:center;gap:10px;padding:10px 0;width:100%;background:none;border:none;cursor:pointer;text-align:left">' +
-      '<div style="width:36px;height:36px;border-radius:50%;background:var(--teal-light,#e6f7f4);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">&#128197;</div>' +
-      '<div><div style="font-size:13px;font-weight:600;color:#2FD4F5">Book an Appointment</div><div style="font-size:11px;color:var(--text-light)">Online booking</div></div>' +
-      '</button>';
+    h += '<div style="font-size:11px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Beachside EP</div>';
+    h += '<div style="background:#12181D;border:1px solid #1F2A33;border-radius:14px;padding:8px;display:flex;gap:8px">';
+    h += '<a href="tel:0409051260" style="flex:1;text-decoration:none;text-align:center;padding:12px 6px;border-radius:10px;background:#162026;color:#C9D1D9;font-weight:600;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:5px"><span style="font-size:17px">&#128222;</span>Call</a>';
+    h += '<a href="mailto:admin@beachsideep.com.au" style="flex:1;text-decoration:none;text-align:center;padding:12px 6px;border-radius:10px;background:#162026;color:#C9D1D9;font-weight:600;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:5px"><span style="font-size:17px">&#9993;</span>Email</a>';
+    h += '<a href="https://www.google.com/maps/search/?api=1&query=Beachside+Exercise+Physiology+Mordialloc" target="_blank" style="flex:1;text-decoration:none;text-align:center;padding:12px 6px;border-radius:10px;background:#162026;color:#C9D1D9;font-weight:600;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:5px"><span style="font-size:17px">&#128205;</span>Find us</a>';
     h += '</div>';
 
-    // (Announcements moved to top of page, just below the trophy/streak row.)
-    h += '</div>';
-
-    // ── Achievements slider ──
-    var earnedCount = calcAchievements(allLog, ownW, streak).filter(function(b){return b.earned;}).length;
-    h += '<div style="padding:0 16px 16px">';
-    h += '<div style="font-size:11px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">&#127942; Achievements <span style="color:#2FD4F5;font-weight:800">' + earnedCount + '</span></div>';
-    // Combined achievements + milestones slider
-    var earnedMs = cvGetEarnedMilestones();
-    h += '<div style="padding:0 16px 16px">';
-    h += '<div style="font-size:11px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Achievements & Milestones</div>';
-    h += '<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none">';
-    // Achievements (existing badges)
-    var badges = calcAchievements(allLog, ownW, streak);
-    badges.filter(function(b){return b.earned;}).forEach(function(b) {
-      h += '<div style="flex-shrink:0;background:#12181D;border:1px solid #1F2A33;border-radius:12px;padding:10px 14px;text-align:center;min-width:80px">';
-      h += '<div style="font-size:24px;margin-bottom:4px">' + (b.icon||'🏅') + '</div>';
-      h += '<div style="font-size:10px;font-weight:600;color:#C9D1D9;white-space:nowrap">' + b.name + '</div>';
-      h += '</div>';
-    });
-    // Milestones
-    earnedMs.forEach(function(m) {
-      h += '<div style="flex-shrink:0;background:#12181D;border:1px solid #2FD4F5;border-radius:12px;padding:10px 14px;text-align:center;min-width:80px">';
-      h += '<div style="font-size:24px;margin-bottom:4px">' + m.icon + '</div>';
-      h += '<div style="font-size:10px;font-weight:600;color:#2FD4F5;white-space:nowrap">' + m.title.split('!')[0] + '</div>';
-      h += '</div>';
-    });
-    // Empty state
-    if (!badges.filter(function(b){return b.earned;}).length && !earnedMs.length) {
-      h += '<div style="flex-shrink:0;background:#12181D;border:1px dashed #26323A;border-radius:12px;padding:12px 16px;color:#8B949E;font-size:12px">Complete workouts to earn badges</div>';
-    }
-    h += '</div></div>';
     h += '</div>';
 
     el.innerHTML = h;
