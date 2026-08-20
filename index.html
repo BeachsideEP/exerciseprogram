@@ -3238,7 +3238,8 @@ function cvCollectExerciseHistory(exName) {
   if (!cvData || !cvData.programs) return out;
   var key = normNameKey(exName);
   cvData.programs.forEach(function(p) {
-    (p.log || []).forEach(function(entry) {
+if (!p) return;
+        (p.log || []).forEach(function(entry) {
       if (!entry || !entry.text) return;
       var segs = String(entry.text).split(' | ');
       segs.forEach(function(seg) {
@@ -4005,6 +4006,7 @@ function confirmMergeClient() {
 
   // Merge programs from source into target
   (sourceCl.programs || []).forEach(function(prog) {
+    if (!prog) return;
     // Rename if title conflicts
     var existingTitles = (targetCl.programs || []).map(function(p) { return p.title; });
     var title = prog.title;
@@ -4832,7 +4834,8 @@ function saveExEdit() {
   if (oldName !== newName) {
     clients.forEach(function(cl) {
       (cl.programs || []).forEach(function(p) {
-        (p.exercises || []).forEach(function(pex) {
+if (!p) return;
+                (p.exercises || []).forEach(function(pex) {
           if (pex.name === oldName) pex.name = newName;
         });
       });
@@ -5498,7 +5501,8 @@ async function pushClientToCloud(cl) {
   // This keeps client rows ~20KB instead of 2MB each
   cl = JSON.parse(JSON.stringify(cl)); // deep clone so we don't mutate in-memory
   (cl.programs || []).forEach(function(p) {
-    (p.exercises || []).forEach(function(ex) {
+if (!p) return;
+        (p.exercises || []).forEach(function(ex) {
       delete ex.photo1;
       delete ex.photo2;
       delete ex.photo;
@@ -8354,6 +8358,7 @@ function renderCVHome() {
     // ── Stats ──
     var allLog = [];
     (cvData.programs || []).forEach(function(p) {
+      if (!p) return;
       (p.log || []).forEach(function(e) { if (e.clientSubmitted) allLog.push(e); });
     });
     var ownW = cvOwnWorkouts || [];
@@ -8698,7 +8703,8 @@ function renderCVCalendar() {
 
   // Build sessionsByDate keyed by YYYY-MM-DD
   (cvData.programs || []).forEach(function(p) {
-    (p.log || []).forEach(function(e) {
+if (!p) return;
+        (p.log || []).forEach(function(e) {
       if (!e.clientSubmitted) return;
       var d = normDate(e.date);
       if (!d) return;
@@ -10002,7 +10008,8 @@ function toggleDashboard() {
                    soon    ? '<span class="rev-badge soon">Due soon</span>' : '';
         var lastLog = '';
         (cl.programs || []).forEach(function(p) {
-          (p.log || []).forEach(function(e) { if (e.date > lastLog) lastLog = e.date; });
+if (!p) return;
+                    (p.log || []).forEach(function(e) { if (e.date > lastLog) lastLog = e.date; });
         });
         return '<div class="dash-row" onclick="document.getElementById(\'clientSel\').value=\'' + cl.id + '\';selectClient();toggleDashboard()">' +
           '<div class="dash-row-name">' + cl.first + ' ' + cl.last + badge + '</div>' +
@@ -10549,7 +10556,8 @@ function renderComplianceTab() {
     // Use program creation date as reference if no sessions yet
     var progCreatedDate = null;
     (cl.programs||[]).forEach(function(p) {
-      if (p.id) {
+if (!p) return;
+            if (p.id) {
         // p.id is 'p_TIMESTAMP...' - extract timestamp
         var ts = parseInt((p.id||'').replace('p_',''));
         if (!isNaN(ts) && ts > 1000000000000) {
@@ -10727,7 +10735,8 @@ function exportClientCSV() {
   lines.push(csvRow(['Date','Time','Program','Feeling','Exercise','Sets','Reps','Load (kg)','Hold (s)','Rest (s)','Notes']));
 
   (cl.programs || []).forEach(function(prog) {
-    (prog.log || []).forEach(function(entry) {
+if (!prog) return;
+        (prog.log || []).forEach(function(entry) {
       if (!entry.clientSubmitted) return;
       var dateFull = entry.date || '';
       var datePart = dateFull.split(',')[0].trim();
