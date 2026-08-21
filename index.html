@@ -5556,7 +5556,26 @@ async function syncClients() {
     if (!r.ok) {
       var errText = await r.text().catch(function(){return '';});
       if (errText.includes('57014') || errText.includes('timeout')) { setSyncStatus('ok'); return; }
-      setSyncStatus('err'); return;
+      // Auth failure (expired token): refresh once and retry so the sync self-heals
+      // instead of getting stuck on a red "Sync Error" until a manual sign-in.
+      if (r.status === 401 || errText.includes('JWT') || errText.includes('expired')) {
+        var _refreshed = false;
+        try { if (typeof refreshAuthToken === 'function') { await refreshAuthToken(); _refreshed = true; } } catch(eR) {}
+        if (_refreshed) {
+          try {
+            var _rc = new AbortController();
+            var _rt = setTimeout(function(){ _rc.abort(); }, 15000);
+            var r2 = await fetch(SUPA_URL + '/rest/v1/clients?select=id,updated_at&limit=500', {
+              headers: supaHeaders(), signal: _rc.signal
+            });
+            clearTimeout(_rt);
+            if (r2.ok) { r = r2; }
+            else { setSyncStatus('err'); return; }
+          } catch(eRetry) { setSyncStatus('err'); return; }
+        } else { setSyncStatus('err'); return; }
+      } else {
+        setSyncStatus('err'); return;
+      }
     }
 
     const manifest = await r.json();
