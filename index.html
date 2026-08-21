@@ -3812,29 +3812,32 @@ var PROG_EX_KEEP = ['uid','name','sets','reps','hold','rest','load','notes','pro
 // reload the app pushed the stripped copies back to Supabase, silently wiping
 // videos off program exercises. A URL is ~60 bytes; keeping it is essentially free.
 
-function slimClientsForStorage(cls) {
-  // Reduce localStorage size by:
-  // 1. Stripping library-lookupable fields from exercises (cat, desc, muscles, video, id)
-  // 2. Trimming session logs to last 30 entries per program (full history stays in Supabase)
-  // Supabase always gets the FULL data - localStorage is just a local cache
+function slimClientsForStorage(cls, aggressive) {
+  // Reduce localStorage size by stripping library-lookupable exercise fields and
+  // trimming logs. Supabase always holds the FULL data — localStorage is just a cache.
+  // When 'aggressive' (localStorage nearly full), trim much harder so the write fits.
+  var logKeep = aggressive ? 5 : 30;
   return cls.map(function(cl) {
+    if (!cl) return cl;
     var slim = Object.assign({}, cl);
     slim.programs = (cl.programs || []).map(function(p) {
+      if (!p) return p;
       var sp = Object.assign({}, p);
-      // Slim exercises - keep only user-editable fields
       sp.exercises = (p.exercises || []).map(function(ex) {
         var se = {};
         PROG_EX_KEEP.forEach(function(k) { if (ex[k] !== undefined) se[k] = ex[k]; });
         return se;
       });
-      // Trim logs - keep last 30 entries (full log in Supabase)
-      if (sp.log && sp.log.length > 30) {
-        sp.log = sp.log.slice(-30);
+      if (sp.log && sp.log.length > logKeep) {
+        sp.log = sp.log.slice(-logKeep);
       }
       return sp;
     });
-    // Also trim safetyLog to last 50 entries
-    if (slim.safetyLog && slim.safetyLog.length > 50) {
+    if (aggressive) {
+      // Drop bulky caches entirely under pressure — all recoverable from cloud.
+      delete slim.safetyLog;
+      delete slim.outcomes;
+    } else if (slim.safetyLog && slim.safetyLog.length > 50) {
       slim.safetyLog = slim.safetyLog.slice(-50);
     }
     return slim;
@@ -5618,7 +5621,13 @@ async function syncClients() {
             if (existing > -1) clients[existing] = row.data;
             else clients.push(row.data);
           });
-          localStorage.setItem(DB_KEY, JSON.stringify(slimClientsForStorage(clients)));
+          try {
+            localStorage.setItem(DB_KEY, JSON.stringify(slimClientsForStorage(clients)));
+          } catch(_qe) {
+            // localStorage full — cloud is the source of truth, so don't fail the
+            // sync. Try a leaner copy; if that also fails, carry on in memory.
+            try { localStorage.setItem(DB_KEY, JSON.stringify(slimClientsForStorage(clients, true))); } catch(_qe2) {}
+          }
           renderClientDropdown();
         }
         setSyncStatus('ok');
@@ -5756,6 +5765,10 @@ async function syncClients() {
     setSyncStatus('ok');
   } catch(e) {
     if (e.name === 'AbortError') { setSyncStatus('ok'); return; }
+    // A full-localStorage quota error must not surface as a sync failure —
+    // the data is safely in the cloud. Only genuine network/server failures
+    // should show the red badge.
+    if (e && (e.name === 'QuotaExceededError' || /quota/i.test(e.message || ''))) { setSyncStatus('ok'); return; }
     setSyncStatus('err');
   }
 }
