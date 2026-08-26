@@ -5884,17 +5884,11 @@ async function loadClientView(user) {
 }
 
 function getExIllusStr(ex) {
-  // 1. A thumbnail the practitioner has manually set for this exercise (via the
-  //    library manager's photo upload) always wins - the deliberate override.
-  if (ex && ex.name && customPhotos && customPhotos[ex.name]) {
-    return '<img src="' + customPhotos[ex.name] + '" style="width:100%;height:100%;object-fit:cover;display:block">';
-  }
-  // Older program exercises that still carry their own inline photo field.
-  if (ex && ex.photo) return '<img src="' + ex.photo + '" style="width:100%;height:100%;object-fit:cover;display:block">';
-
-  // 2. No custom override - derive a thumbnail straight from the exercise's own
-  //    video. Check the program exercise's own field first, then fall back to
-  //    the shared library (matched by normalised name), the same lookup the
+  // 1. If this exercise has a video, its thumbnail always comes from that
+  //    video - this takes priority over any older reference photo, since the
+  //    video is the current source of truth for what the exercise looks like.
+  //    Check the program exercise's own field first, then fall back to the
+  //    shared library (matched by normalised name), the same lookup the
   //    "Watch Exercise Video" button uses - so the thumbnail always matches
   //    whatever video will actually play.
   var vUrl = (ex && (ex.videoUrl || ex.video)) || '';
@@ -5917,8 +5911,16 @@ function getExIllusStr(ex) {
     return '<img src="https://img.youtube.com/vi/' + _vid + '/hqdefault.jpg" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:8px">';
   }
 
-  // 3. No video yet - unchanged fallback to the hand-drawn illustration, then
-  //    the generic default icon.
+  // 2. No video - fall back to a manually-set reference photo for this
+  //    exercise, if one exists (set via the library manager's photo upload).
+  if (ex && ex.name && customPhotos && customPhotos[ex.name]) {
+    return '<img src="' + customPhotos[ex.name] + '" style="width:100%;height:100%;object-fit:cover;display:block">';
+  }
+  // Older program exercises that still carry their own inline photo field.
+  if (ex && ex.photo) return '<img src="' + ex.photo + '" style="width:100%;height:100%;object-fit:cover;display:block">';
+
+  // 3. Neither a video nor a saved photo - unchanged fallback to the
+  //    hand-drawn illustration, then the generic default icon.
   if (typeof EXERCISE_SVG_MAP !== 'undefined' && EXERCISE_SVG_MAP[ex.name]) return EXERCISE_SVG_MAP[ex.name];
   return '<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="60" fill="#D4EAF3" rx="6"/><circle cx="30" cy="10" r="4" fill="#1A7BA4"/><path d="M30 14 L30 30" stroke="#1A7BA4" stroke-width="2.5" stroke-linecap="round"/></svg>';
 }
