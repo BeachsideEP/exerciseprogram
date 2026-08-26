@@ -5891,7 +5891,14 @@ function getExIllusStr(ex) {
   //    shared library (matched by normalised name), the same lookup the
   //    "Watch Exercise Video" button uses - so the thumbnail always matches
   //    whatever video will actually play.
-  var vUrl = (ex && (ex.videoUrl || ex.video)) || '';
+  // Only the current "videoUrl" field on the program's own copy is treated
+  // as authoritative here - this mirrors the "Watch Exercise Video" button's
+  // own logic exactly. An older "video" field left over on the program copy
+  // is deliberately NOT trusted yet, because the shared library may since
+  // have been updated with a newer video under videoUrl; checking video too
+  // early here would show a stale thumbnail even though the button (which
+  // already skips straight to the library in that case) plays the new one.
+  var vUrl = (ex && ex.videoUrl) || '';
   if (!vUrl && ex && ex.name && typeof normNameKey === 'function') {
     var _exKey = normNameKey(ex.name);
     var _customV = (typeof customExercises !== 'undefined' ? customExercises : []).find(function(le) {
@@ -5906,6 +5913,10 @@ function getExIllusStr(ex) {
       if (_libV) vUrl = _libV.videoUrl || _libV.video || '';
     }
   }
+  // Last resort: an older "video" field on the program's own copy, only used
+  // if the exercise couldn't be found in the shared library at all (e.g. it
+  // was later renamed or removed there).
+  if (!vUrl && ex && ex.video) vUrl = ex.video;
   var _vid = (typeof ytVideoId === 'function') ? ytVideoId(vUrl) : null;
   if (_vid) {
     return '<img src="https://img.youtube.com/vi/' + _vid + '/hqdefault.jpg" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:8px">';
