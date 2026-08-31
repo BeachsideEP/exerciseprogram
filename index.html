@@ -2744,7 +2744,6 @@ const EXTRA_EXERCISES = [
   // ── CARDIO ──
   {id:'c1',name:'Stationary Bike',cat:'Cardio',desc:'Cycle at moderate intensity maintaining comfortable resistance.',sets:'1',reps:'20 min',hold:'',rest:'',muscles:'Cardiovascular,Quadriceps,Calves',video:'https://www.youtube.com/watch?v=UxhygPgrQjc'},
   {id:'c2',name:'Recumbent Bike',cat:'Cardio',desc:'Seated cycling with back support. Low joint stress.',sets:'1',reps:'15 min',hold:'',rest:'',muscles:'Cardiovascular,Quadriceps,Hamstrings',video:''},
-  {id:'c3',name:'Seated Row Machine',cat:'Cardio',desc:'Pull handles to lower chest at moderate intensity for endurance.',sets:'3',reps:'15',hold:'',rest:'60s',muscles:'Rhomboids,Latissimus Dorsi,Biceps',video:''},
   {id:'c4',name:'Step Machine',cat:'Cardio',desc:'Step at steady pace maintaining upright posture.',sets:'1',reps:'10 min',hold:'',rest:'',muscles:'Cardiovascular,Glutes,Quadriceps,Calves',video:''},
   {id:'c5',name:'Nordic Walking',cat:'Cardio',desc:'Walk using poles for additional upper body engagement and stability.',sets:'1',reps:'20 min',hold:'',rest:'',muscles:'Cardiovascular,Deltoids,Balance',video:''},
 
@@ -6587,6 +6586,7 @@ async function cvSubmit() {
   var _saveSucceeded = false;
   var _attempt = 0;
   var _lastError = '';
+  var _authFailed = false;
 
   while (_attempt < 2 && !_saveSucceeded) {
     _attempt++;
@@ -6658,6 +6658,18 @@ async function cvSubmit() {
         _saveSucceeded = true;
       } else {
         _lastError = 'HTTP ' + _sr.status;
+        // A 401/403 here means the session token is expired or invalid, not a
+        // connectivity problem - retrying with the SAME dead token will just
+        // fail the same way every time (this is what silently trapped a
+        // client for days: endless "check your connection" retries while the
+        // real fix, signing back in, was never surfaced). Try one silent
+        // token refresh before the retry so a merely-expired (but still
+        // refreshable) token recovers on its own without the client having
+        // to do anything.
+        if ((_sr.status === 401 || _sr.status === 403)) {
+          _authFailed = true;
+          try { await refreshAuthToken(); } catch(eR) {}
+        }
         if (_attempt < 2) await new Promise(function(res) { setTimeout(res, 1500); });
       }
     } catch (e) {
@@ -6673,6 +6685,12 @@ async function cvSubmit() {
     cvState = {}; cvFeeling = ''; cvComment = ''; cvSafetyDone = false; cvRPE = 5;
     showCVCongrats(cvData.first, false, detectPBs(prog));
     cvSwitchTab('home');
+  } else if (_authFailed) {
+    // The refresh attempt above didn't fix it either - this needs a fresh
+    // sign-in, not another tap of Submit. Say so plainly instead of blaming
+    // the connection, and keep the local backup so nothing is lost once
+    // they're signed back in.
+    toast('Your session has expired. Please sign out and sign back in, then submit this workout again — nothing has been lost.', 'err');
   } else {
     // Genuinely failed after retry - tell the user honestly, do NOT show success,
     // and keep cvState intact so nothing is lost. The pending backup stays in
@@ -9102,6 +9120,30 @@ function cvCloseBooking() { var el=document.getElementById('cvBookingModal'); if
 // ════════════════════════════════════════════════════
 
 // Extract YouTube video ID from any YouTube URL format
+// Parses this app's log-entry date strings (e.g. "25 Aug 2026 at 05:58 pm" or
+// "9 Jul 2026 at 03:56 pm"). The browser's native `new Date(...)` cannot read
+// this format at all - it silently returns Invalid Date for every one of
+// these timestamps - so anything that compared or sorted log dates using
+// plain `new Date(e.date)`, or compared the raw strings directly with `>`,
+// was never actually comparing by date. Use this everywhere a log entry's
+// date needs to be compared, sorted, or checked against a range.
+function parseLogDate(str) {
+  if (!str) return null;
+  var s = String(str).split(',')[0].trim();
+  var MONTHS = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+  var parts = s.replace(/\./g, '').split(/[\s\/\-]+/).filter(Boolean);
+  var d, m, y;
+  if (parts.length >= 3 && isNaN(parts[1])) {
+    d = parseInt(parts[0]); m = MONTHS[parts[1].toLowerCase().slice(0,3)]; y = parseInt(parts[2]);
+  } else if (parts.length >= 3 && parts[0].length <= 2) {
+    d = parseInt(parts[0]); m = parseInt(parts[1]) - 1; y = parseInt(parts[2]);
+  } else if (parts.length >= 3 && parts[0].length === 4) {
+    y = parseInt(parts[0]); m = parseInt(parts[1]) - 1; d = parseInt(parts[2]);
+  }
+  if (isNaN(d) || isNaN(m) || isNaN(y) || m === undefined) return null;
+  return new Date(y, m, d);
+}
+
 function ytVideoId(url) {
   if (!url) return null;
   url = url.trim();
@@ -10082,9 +10124,13 @@ function toggleDashboard() {
         var badge = overdue ? '<span class="rev-badge overdue">Overdue</span>' :
                    soon    ? '<span class="rev-badge soon">Due soon</span>' : '';
         var lastLog = '';
+        var lastLogDate = null;
         (cl.programs || []).forEach(function(p) {
-if (!p) return;
-                    (p.log || []).forEach(function(e) { if (e.date > lastLog) lastLog = e.date; });
+          if (!p) return;
+          (p.log || []).forEach(function(e) {
+            var d = parseLogDate(e.date);
+            if (d && (!lastLogDate || d > lastLogDate)) { lastLogDate = d; lastLog = e.date; }
+          });
         });
         return '<div class="dash-row" onclick="document.getElementById(\'clientSel\').value=\'' + cl.id + '\';selectClient();toggleDashboard()">' +
           '<div class="dash-row-name">' + cl.first + ' ' + cl.last + badge + '</div>' +
@@ -10565,7 +10611,7 @@ function renderComplianceTab() {
   var thirtyAgo = new Date(now); thirtyAgo.setDate(now.getDate()-30);
   var sevenAgo  = new Date(now); sevenAgo.setDate(now.getDate()-7);
 
-  function normDateC(s) { if (!s) return null; var d = new Date(s); return isNaN(d)?null:d; }
+  var normDateC = parseLogDate;
 
   var activeClients = clients.filter(function(c){ return !c.archived; });
 
@@ -11493,7 +11539,7 @@ function renderDashboard() {
   var thirtyAgo  = new Date(now); thirtyAgo.setDate(now.getDate()-30);
   var today      = now.toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'});
 
-  function normD(s) { if(!s) return null; var d=new Date(s); return isNaN(d)?null:d; }
+  var normD = parseLogDate;
 
   var activeClients = clients.filter(function(c){ return !c.archived; });
 
