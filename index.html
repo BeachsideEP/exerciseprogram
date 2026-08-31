@@ -4619,7 +4619,7 @@ function emTab(btn, tabId) {
 
 function renderEmList() {
   const q = document.getElementById('emSrch').value.toLowerCase();
-  const list = getAllExercises().filter(ex => ex.name.toLowerCase().includes(q) || ex.cat.toLowerCase().includes(q));
+  const list = getAllExercises().filter(ex => (ex.name||'').toLowerCase().includes(q) || (ex.cat||'').toLowerCase().includes(q));
   const isCustom = id => customExercises.some(e => e.id === id);
   document.getElementById('emList').innerHTML = list.slice(0, 50).map(ex => `
     <div class="em-card">
@@ -8004,7 +8004,7 @@ function cvSubListHTML(idx, query) {
   var pool = (typeof getAllExercises === 'function' ? getAllExercises() : EXERCISES).filter(function(ex) {
     if (ex.name === currentEx.name) return false;
     if (!q) return ex.cat === currentEx.cat;
-    return ex.name.toLowerCase().indexOf(q) !== -1 || ex.cat.toLowerCase().indexOf(q) !== -1;
+    return ex.name.toLowerCase().indexOf(q) !== -1 || (ex.cat||'').toLowerCase().indexOf(q) !== -1;
   }).slice(0, 8);
   if (!pool.length) return '<div style="padding:8px;font-size:13px;color:#FFFFFF">No matches found</div>';
   return pool.map(function(ex) {
