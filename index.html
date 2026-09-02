@@ -4469,8 +4469,19 @@ function updEx(uid, field, val) {
     // prescribed one (see loadPlaceholder) - clearing lastLoad here means
     // that hint now falls through to this new prescribed weight instead,
     // exactly as if the client had no history for it yet.
+    // Changing the prescribed weight or reps should override what the client
+    // sees next, not sit invisibly behind their last-logged number. Both
+    // hints normally prefer the client's own last-logged value over the
+    // prescribed one (see loadPlaceholder/repsPlaceholder) - clearing the
+    // matching "last" field here means that hint now falls through to this
+    // new prescribed value instead, exactly as if the client had no history
+    // for it yet. This way whichever was set most recently - the client
+    // during a session, or the practitioner here - is what's shown.
     if (field === 'load' && String(newVal) !== String(ex.load || '') && ex.lastLoad) {
       delete ex.lastLoad;
+    }
+    if (field === 'reps' && String(newVal) !== String(ex.reps || '') && ex.lastReps) {
+      delete ex.lastReps;
     }
     ex[field] = newVal;
     // Stamp so sync keeps local version
