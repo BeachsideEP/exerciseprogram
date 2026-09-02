@@ -4462,7 +4462,17 @@ function updEx(uid, field, val) {
   const ex = p.exercises.find(e => e.uid === uid);
   if (ex) {
     // Clean doubled units as they're typed ("30kgkg" -> "30kg")
-    ex[field] = (typeof val === 'string') ? collapseUnits(val) : val;
+    const newVal = (typeof val === 'string') ? collapseUnits(val) : val;
+    // Changing the prescribed weight should override what the client sees
+    // next, not sit invisibly behind their last-logged number. The client's
+    // weight hint normally prefers their own last-logged weight over the
+    // prescribed one (see loadPlaceholder) - clearing lastLoad here means
+    // that hint now falls through to this new prescribed weight instead,
+    // exactly as if the client had no history for it yet.
+    if (field === 'load' && String(newVal) !== String(ex.load || '') && ex.lastLoad) {
+      delete ex.lastLoad;
+    }
+    ex[field] = newVal;
     // Stamp so sync keeps local version
     const clU = getClient(); if (clU) clU._localUpdatedAt = new Date().toISOString();
     // Lightweight refresh: rebuild ONLY the preview pane, debounced. Previously
