@@ -3343,11 +3343,15 @@ function cvGetClassBookings() {
   var fromData = (cvData && cvData.classBookings) || [];
   var mirror = [];
   try { mirror = JSON.parse(localStorage.getItem('bep_class_bk_' + (cvData && cvData.id)) || '[]'); } catch(e) {}
+  var all = fromData.concat(mirror).filter(function(b) { return b && b.date; });
+  // Dedupe by date only (not date+time) and prefer whichever was saved most
+  // recently, so a leftover pair of entries for the same class (e.g. one
+  // saved with a blank time, one saved moments later with the time filled
+  // in) collapses to a single, correct booking instead of showing both.
+  all.sort(function(a, b) { return new Date(b.addedAt || 0) - new Date(a.addedAt || 0); });
   var seen = {}, out = [];
-  fromData.concat(mirror).forEach(function(b) {
-    if (!b || !b.date) return;
-    var k = b.date + '|' + (b.time || '');
-    if (!seen[k]) { seen[k] = 1; out.push(b); }
+  all.forEach(function(b) {
+    if (!seen[b.date]) { seen[b.date] = 1; out.push(b); }
   });
   return out;
 }
@@ -3361,10 +3365,11 @@ function cvFmtTime(t) {
 function cvOpenClassPrompt() {
   var d = document.getElementById('cvClassDate');
   var t = document.getElementById('cvClassTime');
-  if (d && !d.value) {
-    var now = new Date();
-    d.value = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
-  }
+  // Deliberately left blank rather than pre-filled with today's date: this
+  // popup can't know what date was actually picked inside Cliniko's booking
+  // widget (cross-origin), so a silent "today" default risks being accepted
+  // unnoticed for a class booked on a different day. Leaving it empty forces
+  // an actual choice every time.
   if (t) t.value = t.value || '';
   var mm = document.getElementById('cvClassM');
   if (mm) mm.classList.add('open');
@@ -3382,16 +3387,18 @@ async function cvSaveClassBookingsToCloud() {
     var rows = await freshResp.json();
     if (!rows || !rows.length || !rows[0].data) return false;
     var fresh = rows[0].data;
-    // union merge so two devices can't clobber each other
+    // union merge so two devices can't clobber each other - keyed by date
+    // only (not date+time), preferring whichever side saved most recently,
+    // so the same class never ends up as two separate calendar entries.
+    var all = (fresh.classBookings || []).concat(cvData.classBookings || []).filter(function(b) { return b && b.date; });
+    all.sort(function(a, b) { return new Date(b.addedAt || 0) - new Date(a.addedAt || 0); });
     var seen = {}, merged = [];
-    (fresh.classBookings || []).concat(cvData.classBookings || []).forEach(function(b) {
-      if (!b || !b.date) return;
-      var k = b.date + '|' + (b.time || '');
-      if (!seen[k]) { seen[k] = 1; merged.push(b); }
+    all.forEach(function(b) {
+      if (!seen[b.date]) { seen[b.date] = 1; merged.push(b); }
     });
     // apply deletions: anything the user removed locally is marked in _removed
     var removed = window._cvRemovedClassKeys || {};
-    merged = merged.filter(function(b) { return !removed[b.date + '|' + (b.time || '')]; });
+    merged = merged.filter(function(b) { return !removed[b.date]; });
     fresh.classBookings = merged;
     cvData.classBookings = merged;
     var r = await fetch(SUPA_URL + '/rest/v1/clients', {
@@ -3406,10 +3413,21 @@ function cvConfirmClassBooking() {
   var d = (document.getElementById('cvClassDate') || {}).value || '';
   var t = (document.getElementById('cvClassTime') || {}).value || '';
   if (!d) { alert('Please pick the class date'); return; }
+  if (!t) { alert('Please pick the class time'); return; }
   if (!cvData.classBookings) cvData.classBookings = [];
-  var k = d + '|' + t;
-  var dup = cvData.classBookings.some(function(b) { return (b.date + '|' + (b.time||'')) === k; });
-  if (!dup) cvData.classBookings.push({ date: d, time: t, title: 'Exercise Class', addedAt: new Date().toISOString() });
+  // Keyed by date only, not date+time: saving again for a date that's
+  // already booked now UPDATES that booking's time instead of creating a
+  // second, confusing entry for the same class. This is what was actually
+  // happening before - filling the time in after an earlier blank-time save
+  // (or vice versa) silently added a duplicate rather than correcting it,
+  // which is why it looked like saving "failed".
+  var existing = cvData.classBookings.find(function(b) { return b.date === d; });
+  if (existing) {
+    existing.time = t;
+    existing.addedAt = new Date().toISOString();
+  } else {
+    cvData.classBookings.push({ date: d, time: t, title: 'Exercise Class', addedAt: new Date().toISOString() });
+  }
   try { localStorage.setItem('bep_class_bk_' + cvData.id, JSON.stringify(cvData.classBookings)); } catch(e) {}
   closeM('cvClassM');
   var dd = document.getElementById('cvClassDate'); if (dd) dd.value = '';
@@ -3421,9 +3439,9 @@ function cvConfirmClassBooking() {
 function cvRemoveClassBooking(date, time) {
   if (!confirm('Remove this class from your calendar?')) return;
   if (!window._cvRemovedClassKeys) window._cvRemovedClassKeys = {};
-  window._cvRemovedClassKeys[date + '|' + (time || '')] = 1;
+  window._cvRemovedClassKeys[date] = 1;
   cvData.classBookings = (cvData.classBookings || []).filter(function(b) {
-    return (b.date + '|' + (b.time || '')) !== (date + '|' + (time || ''));
+    return b.date !== date;
   });
   try { localStorage.setItem('bep_class_bk_' + cvData.id, JSON.stringify(cvData.classBookings)); } catch(e) {}
   try { renderCVCalendar(); } catch(e) {}
