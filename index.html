@@ -1871,6 +1871,10 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <div class="fg"><label>Last Name *</label><input id="nc_last" type="text" placeholder="Last name"></div>
     <div class="fg"><label>Date of Birth</label><input id="nc_dob" type="date"></div>
     <div class="fg"><label>Client Email</label><input id="nc_email" type="email" placeholder="client@email.com"></div>
+    <div class="fg" style="grid-column:1/-1">
+      <label>Access ends <span style="font-weight:400;color:var(--text-l)">(leave blank for ongoing access)</span></label>
+      <input id="nc_access" type="date">
+    </div>
     <input type="hidden" id="nc_clin" value="">
     <input type="hidden" id="nc_goal" value="">
     <input type="hidden" id="nc_review" value="">
@@ -1901,6 +1905,14 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <div class="fg"><label>Review Date</label><input id="ec_review" type="date"></div>
     <div class="fg"><label>Phone</label><input id="ec_phone" type="text"></div>
     <div class="fg" style="grid-column:1/-1"><label>Client Email (for login link)</label><input id="ec_email" type="email" placeholder="client@email.com"></div>
+    <div class="fg" style="grid-column:1/-1">
+      <label>Access ends <span style="font-weight:400;color:var(--text-l)">(leave blank for ongoing access)</span></label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="ec_access" type="date" style="flex:1">
+        <button type="button" class="btn btn-outline btn-sm" onclick="ecSetAccessWeeksOut(4)">+4 weeks</button>
+        <button type="button" class="btn btn-outline btn-sm" onclick="sv('ec_access','')">Clear</button>
+      </div>
+    </div>
     <div style="grid-column:1/-1"><button class="btn btn-outline btn-sm" onclick="sendClientLink()">&#9993; Send Login Link</button></div>
   </div>
   <div class="modal-footer">
@@ -3951,7 +3963,7 @@ function createClient() {
   const first = v('nc_first').trim(), last = v('nc_last').trim();
   if (!first) { toast('Enter a first name', 'err'); return; }
   const email = v('nc_email') || '';
-  const cl = { id:'c_'+Date.now(), first, last, email, dob:v('nc_dob'), clinician:v('nc_clin'), goal:v('nc_goal'), review:v('nc_review'), phone:v('nc_phone'), requireSafetyCheck: true, programs:[mkProg('Home Exercise Program')] };
+  const cl = { id:'c_'+Date.now(), first, last, email, dob:v('nc_dob'), clinician:v('nc_clin'), goal:v('nc_goal'), review:v('nc_review'), phone:v('nc_phone'), requireSafetyCheck: true, accessUntil: v('nc_access') || null, programs:[mkProg('Home Exercise Program')] };
   clients.unshift(cl); saveDB();
   // Push to Supabase immediately so it persists across all devices
   pushClientToCloud(cl);
@@ -3966,14 +3978,22 @@ function openEditClient() {
   sv('ec_first',cl.first); sv('ec_last',cl.last); sv('ec_dob',cl.dob);
   sv('ec_clin',cl.clinician); sv('ec_goal',cl.goal); sv('ec_review',cl.review||''); sv('ec_phone',cl.phone||'');
   sv('ec_email',cl.email||'');
+  sv('ec_access', cl.accessUntil || '');
   var ecSafety = document.getElementById('ec_safety');
   if (ecSafety) ecSafety.checked = cl.requireSafetyCheck !== false;
+}
+
+function ecSetAccessWeeksOut(weeks) {
+  var d = new Date();
+  d.setDate(d.getDate() + weeks * 7);
+  sv('ec_access', d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'));
 }
 
 function saveClientEdit() {
   const cl = getClient(); if (!cl) return;
   cl.first=v('ec_first'); cl.last=v('ec_last'); cl.dob=v('ec_dob');
   cl.clinician=v('ec_clin'); cl.goal=v('ec_goal'); cl.review=v('ec_review'); cl.phone=v('ec_phone');
+  cl.accessUntil = v('ec_access') || null;
   var newEmail = (v('ec_email')||'').trim();
   if (newEmail) cl.email = newEmail; // only update email if field has a value
   var ecSafetyEl = document.getElementById('ec_safety');
@@ -5860,7 +5880,26 @@ async function loadClientView(user) {
         if (r1.ok) { const d1 = await r1.json(); if (d1 && d1.length) rows = d1; }
       } catch(e1) {}
     }
-        if (!rows || !rows.length) throw new Error('Could not load data');
+        if (!rows || !rows.length) {
+      // No row came back from any lookup. This looks identical whether the
+      // client was never set up, OR their access has ended - RLS makes an
+      // expired client's row invisible to them either way. Ask the one
+      // question this safely can answer (without ever exposing their actual
+      // data once access has ended) so the right message shows.
+      var accessStatus = 'not_found';
+      try {
+        var rStatus = await fetch(SUPA_URL + '/rest/v1/rpc/client_access_status', {
+          method: 'POST', headers: fetchHeaders, body: JSON.stringify({ check_email: user.email })
+        });
+        if (rStatus.ok) accessStatus = await rStatus.json();
+      } catch (eStatus) {}
+      if (accessStatus === 'expired') {
+        var expEl = document.getElementById('cvHomeContent') || document.getElementById('cvBody');
+        if (expEl) expEl.innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#128274;</div><p style="color:var(--teal);font-weight:600">Your access has ended</p><p style="font-size:12px;color:var(--text-light)">Please contact Beachside Exercise Physiology if you\'d like to continue.</p></div>';
+        return;
+      }
+      throw new Error('Could not load data');
+    }
     const allClients = rows.map(function(row) { return row.data || row; }).filter(Boolean);
     // If we fetched by cached ID, that single row IS the match
     var match = (cachedId && allClients.length === 1) ? allClients[0] : 
