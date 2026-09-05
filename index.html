@@ -1869,16 +1869,11 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   <div class="form-grid" style="gap:8px">
     <div class="fg"><label>First Name *</label><input id="nc_first" type="text" placeholder="First name"></div>
     <div class="fg"><label>Last Name *</label><input id="nc_last" type="text" placeholder="Last name"></div>
-    <div class="fg"><label>Date of Birth</label><input id="nc_dob" type="date"></div>
     <div class="fg"><label>Client Email</label><input id="nc_email" type="email" placeholder="client@email.com"></div>
     <div class="fg" style="grid-column:1/-1">
       <label>Access ends <span style="font-weight:400;color:var(--text-l)">(leave blank for ongoing access)</span></label>
       <input id="nc_access" type="date">
     </div>
-    <input type="hidden" id="nc_clin" value="">
-    <input type="hidden" id="nc_goal" value="">
-    <input type="hidden" id="nc_review" value="">
-    <input type="hidden" id="nc_phone" value="">
   </div>
   <div class="modal-footer">
     <button class="btn btn-outline" onclick="closeM('newClientM')">Cancel</button>
@@ -1892,8 +1887,6 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   <div class="form-grid" style="gap:8px">
     <div class="fg"><label>First Name</label><input id="ec_first" type="text"></div>
     <div class="fg"><label>Last Name</label><input id="ec_last" type="text"></div>
-    <div class="fg"><label>Date of Birth</label><input id="ec_dob" type="date"></div>
-    <div class="fg"><label>Clinician</label><select id="ec_clin"><option value="">Select…</option><option>Braeden King</option><option>Sierra Bulauan</option><option>Samadi Mallawa</option><option>Meg Benger</option><option>Sharon Chand</option></select></div>
     <div class="fg" style="grid-column:1/-1">
       <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
         <input type="checkbox" id="ec_safety" style="width:16px;height:16px;accent-color:var(--ocean)">
@@ -1901,9 +1894,6 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
       </label>
       <div style="font-size:10px;color:var(--text-l);margin-top:3px">When enabled, client must complete BP/BGL/HR check before each workout</div>
     </div>
-    <div class="fg" style="grid-column:1/-1"><label>Goal / Diagnosis</label><input id="ec_goal" type="text"></div>
-    <div class="fg"><label>Review Date</label><input id="ec_review" type="date"></div>
-    <div class="fg"><label>Phone</label><input id="ec_phone" type="text"></div>
     <div class="fg" style="grid-column:1/-1"><label>Client Email (for login link)</label><input id="ec_email" type="email" placeholder="client@email.com"></div>
     <div class="fg" style="grid-column:1/-1">
       <label>Access ends <span style="font-weight:400;color:var(--text-l)">(leave blank for ongoing access)</span></label>
@@ -3963,7 +3953,7 @@ function createClient() {
   const first = v('nc_first').trim(), last = v('nc_last').trim();
   if (!first) { toast('Enter a first name', 'err'); return; }
   const email = v('nc_email') || '';
-  const cl = { id:'c_'+Date.now(), first, last, email, dob:v('nc_dob'), clinician:v('nc_clin'), goal:v('nc_goal'), review:v('nc_review'), phone:v('nc_phone'), requireSafetyCheck: true, accessUntil: v('nc_access') || null, programs:[mkProg('Home Exercise Program')] };
+  const cl = { id:'c_'+Date.now(), first, last, email, requireSafetyCheck: true, accessUntil: v('nc_access') || null, programs:[mkProg('Home Exercise Program')] };
   clients.unshift(cl); saveDB();
   // Push to Supabase immediately so it persists across all devices
   pushClientToCloud(cl);
@@ -3975,8 +3965,7 @@ function createClient() {
 
 function openEditClient() {
   const cl = getClient(); if (!cl) return;
-  sv('ec_first',cl.first); sv('ec_last',cl.last); sv('ec_dob',cl.dob);
-  sv('ec_clin',cl.clinician); sv('ec_goal',cl.goal); sv('ec_review',cl.review||''); sv('ec_phone',cl.phone||'');
+  sv('ec_first',cl.first); sv('ec_last',cl.last);
   sv('ec_email',cl.email||'');
   sv('ec_access', cl.accessUntil || '');
   var ecSafety = document.getElementById('ec_safety');
@@ -3991,8 +3980,7 @@ function ecSetAccessWeeksOut(weeks) {
 
 function saveClientEdit() {
   const cl = getClient(); if (!cl) return;
-  cl.first=v('ec_first'); cl.last=v('ec_last'); cl.dob=v('ec_dob');
-  cl.clinician=v('ec_clin'); cl.goal=v('ec_goal'); cl.review=v('ec_review'); cl.phone=v('ec_phone');
+  cl.first=v('ec_first'); cl.last=v('ec_last');
   cl.accessUntil = v('ec_access') || null;
   var newEmail = (v('ec_email')||'').trim();
   if (newEmail) cl.email = newEmail; // only update email if field has a value
@@ -10196,11 +10184,6 @@ function toggleDashboard() {
     if (list) {
       var now = new Date();
       list.innerHTML = clients.map(function(cl) {
-        var review = cl.review ? new Date(cl.review) : null;
-        var overdue = review && review < now;
-        var soon = review && !overdue && (review - now) < 7*24*60*60*1000;
-        var badge = overdue ? '<span class="rev-badge overdue">Overdue</span>' :
-                   soon    ? '<span class="rev-badge soon">Due soon</span>' : '';
         var lastLog = '';
         var lastLogDate = null;
         (cl.programs || []).forEach(function(p) {
@@ -10211,8 +10194,8 @@ function toggleDashboard() {
           });
         });
         return '<div class="dash-row" onclick="document.getElementById(\'clientSel\').value=\'' + cl.id + '\';selectClient();toggleDashboard()">' +
-          '<div class="dash-row-name">' + cl.first + ' ' + cl.last + badge + '</div>' +
-          '<div class="dash-row-meta">' + (cl.clinician || '') + (lastLog ? ' · Last: ' + lastLog.split(',')[0] : ' · No sessions') + '</div>' +
+          '<div class="dash-row-name">' + cl.first + ' ' + cl.last + '</div>' +
+          '<div class="dash-row-meta">' + (lastLog ? 'Last: ' + lastLog.split(',')[0] : 'No sessions') + '</div>' +
         '</div>';
       }).join('') || '<div style="color:var(--text-light);font-size:12px;padding:8px">No clients yet</div>';
     }
@@ -11677,17 +11660,6 @@ function renderDashboard() {
     return !(cl.programs||[]).some(function(p){ return (p.exercises||[]).length > 0; });
   }).slice(0,5);
 
-  // ── Clinician workload ──
-  var byClinic = {};
-  activeClients.forEach(function(cl) {
-    var c = cl.clinician || 'Unassigned';
-    if (!byClinic[c]) byClinic[c] = { total:0, active:0 };
-    byClinic[c].total++;
-    var allLog = [];
-    (cl.programs||[]).forEach(function(p){ (p.log||[]).forEach(function(e){ if(e.clientSubmitted) allLog.push(e); }); });
-    if (allLog.concat(cl.ownWorkouts||[]).some(function(e){ var d=normD(e.date); return d&&d>=sevenAgo; })) byClinic[c].active++;
-  });
-
   // ── Quick add client button ──
     var quickActions = '';
   quickActions += '<div style="display:flex;gap:10px;margin-bottom:16px">';
@@ -11773,22 +11745,6 @@ function renderDashboard() {
     }).join('') +
     '</div>' : '';
 
-  // ── Clinician workload ──
-  var clinicHTML = Object.keys(byClinic).length > 1 ?
-    '<div class="dash-section">' +
-    '<div class="dash-section-hdr">Team Workload</div>' +
-    Object.keys(byClinic).map(function(name) {
-      var c = byClinic[name];
-      var pct = c.total ? Math.round(c.active/c.total*100) : 0;
-      return '<div class="dash-row">' +
-        '<div style="font-size:13px;font-weight:600;color:#FFFFFF;flex:1">' + name + '</div>' +
-        '<div style="font-size:13px;color:#FFFFFF;margin-right:12px">' + c.total + ' clients</div>' +
-        '<div style="width:80px;height:5px;background:#1F2A33;border-radius:3px;overflow:hidden">' +
-          '<div style="width:'+pct+'%;height:100%;background:#5BBFAA;border-radius:3px"></div></div>' +
-      '</div>';
-    }).join('') +
-    '</div>' : '';
-
   // ── Date header ──
   var header = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">' +
     '<div>' +
@@ -11798,7 +11754,7 @@ function renderDashboard() {
     '<button onclick="renderDashboard()" style="background:#1F2A33;border:1px solid #26323A;color:#8B949E;padding:7px 12px;border-radius:8px;font-size:12px;cursor:pointer">↻ Refresh</button>' +
   '</div>';
 
-  el.innerHTML = header + quickActions + statCards + recentHTML + atRiskHTML + noProgHTML + clinicHTML;
+  el.innerHTML = header + quickActions + statCards + recentHTML + atRiskHTML + noProgHTML;
   // Add click handlers to all dash-row elements
   el.querySelectorAll('.dash-row[data-cid]').forEach(function(row) {
     row.addEventListener('click', function() {
