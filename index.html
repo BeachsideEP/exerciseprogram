@@ -4037,7 +4037,7 @@ function confirmMergeClient() {
   (sourceCl.programs || []).forEach(function(prog) {
     if (!prog) return;
     // Rename if title conflicts
-    var existingTitles = (targetCl.programs || []).map(function(p) { return p.title; });
+    var existingTitles = (targetCl.programs || []).filter(Boolean).map(function(p) { return p.title; });
     var title = prog.title;
     var counter = 1;
     while (existingTitles.includes(title)) {
@@ -5764,6 +5764,7 @@ async function syncClients() {
                 // Base = LOCAL (keeps practitioner's edited weights/reps/notes).
                 // Merge in any cloud programs we don't have, and union newer logs.
                 (cloudCl.programs||[]).forEach(function(cp) {
+                  if (!cp) return;
                   if (_tomb.indexOf(cp.id) !== -1) return;
                   var lp = (localCl.programs||[]).find(function(x){return x.id===cp.id;});
                   if (!lp) { (localCl.programs = localCl.programs || []).push(cp); return; }
@@ -5782,12 +5783,14 @@ async function syncClients() {
                 // Cloud is genuinely newer — take cloud as base, but still keep
                 // local-only programs and union local logs (original behaviour).
                 (localCl.programs||[]).forEach(function(lp) {
+                  if (!lp) return;
                   if (_tomb.indexOf(lp.id) !== -1) return;
                   if (!cloudCl.programs.find(function(cp){return cp.id===lp.id;})) {
                     cloudCl.programs.push(lp);
                   }
                 });
                 (cloudCl.programs||[]).forEach(function(cp) {
+                  if (!cp) return;
                   var lp = (localCl.programs||[]).find(function(x){return x.id===cp.id;});
                   if (!lp || !lp.log || !lp.log.length) return;
                   if (!cp.log) cp.log = [];
@@ -11690,7 +11693,7 @@ var SESSION_MSGS = {
 function cvCheckMilestones() {
   if (!cvData) return;
   var allLog = [];
-  (cvData.programs||[]).forEach(function(p){(p.log||[]).forEach(function(e){if(e.clientSubmitted)allLog.push(e);});});
+  (cvData.programs||[]).forEach(function(p){ if (!p) return; (p.log||[]).forEach(function(e){if(e.clientSubmitted)allLog.push(e);});});
   var combined = allLog.concat(cvOwnWorkouts||[]);
   // Streak calc
   var now2 = new Date(); now2.setHours(0,0,0,0);
