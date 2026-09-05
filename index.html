@@ -1644,6 +1644,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <button class="btn btn-ghost btn-sm" onclick="openArchiveModal()">📦 Archive</button>
     <button class="btn btn-ghost btn-sm" onclick="openDashboardModal()">🏠 Dashboard</button>
     <button class="btn btn-ghost btn-sm" onclick="openComplianceModal()">📊 Compliance</button>
+    <button class="btn btn-ghost btn-sm" onclick="openErrorLogModal()">⚠️ Error Log</button>
     <button class="btn btn-ghost btn-sm" onclick="openMessagesModal()" id="msgBtn">💬 Messages<span id="msgUnreadBadge" class="chat-unread-badge" style="display:none">0</span></button>
     <button class="btn btn-ghost btn-sm" id="signOutBtn" onclick="signOut()" style="display:none">Sign Out</button>
   </div>
@@ -1792,6 +1793,20 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
       <button onclick="closeM('complianceM')" style="background:none;border:none;color:#8B949E;font-size:20px;cursor:pointer;padding:4px 8px;border-radius:6px">✕</button>
     </div>
     <div id="complianceContent" style="max-height:75vh;overflow-y:auto;padding:16px"></div>
+  </div>
+</div>
+
+<!-- ERROR LOG MODAL -->
+<div class="overlay" id="errorLogM" onclick="closeBg(event,'errorLogM')">
+  <div class="modal" style="max-width:760px;width:96%;background:#0D1A24;border:1px solid #1F2A33;border-radius:16px;padding:0;overflow:hidden">
+    <div style="background:#0B1820;padding:18px 22px;border-bottom:1px solid #1F2A33;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:17px;font-weight:700;color:#FFFFFF">⚠️ Error Log</div>
+        <div style="font-size:13px;color:#FFFFFF;margin-top:2px">Failed saves and syncs, most recent first</div>
+      </div>
+      <button onclick="closeM('errorLogM')" style="background:none;border:none;color:#8B949E;font-size:20px;cursor:pointer;padding:4px 8px;border-radius:6px">✕</button>
+    </div>
+    <div id="errorLogContent" style="max-height:75vh;overflow-y:auto;padding:16px"></div>
   </div>
 </div>
 
@@ -3385,9 +3400,9 @@ function cvOnClassBookingConfirmed() {
 async function cvSaveClassBookingsToCloud() {
   try {
     var freshResp = await fetch(SUPA_URL + '/rest/v1/clients?select=data&id=eq.' + cvData.id, { headers: supaHeaders() });
-    if (!freshResp.ok) return false;
+    if (!freshResp.ok) { logAppError(cvData.id, cvData.email, 'class_booking_save', 'Fetch fresh data failed: HTTP ' + freshResp.status); return false; }
     var rows = await freshResp.json();
-    if (!rows || !rows.length || !rows[0].data) return false;
+    if (!rows || !rows.length || !rows[0].data) { logAppError(cvData.id, cvData.email, 'class_booking_save', 'No client row returned'); return false; }
     var fresh = rows[0].data;
     // union merge so two devices can't clobber each other - keyed by date
     // only (not date+time), preferring whichever side saved most recently,
@@ -3408,8 +3423,9 @@ async function cvSaveClassBookingsToCloud() {
       headers: supaHeaders(),
       body: JSON.stringify({ id: cvData.id, data: fresh, updated_at: new Date().toISOString() })
     });
+    if (!r.ok) logAppError(cvData.id, cvData.email, 'class_booking_save', 'Final save failed: HTTP ' + r.status);
     return r.ok;
-  } catch(e) { return false; }
+  } catch(e) { logAppError(cvData.id, cvData.email, 'class_booking_save', e.message || 'Unknown error'); return false; }
 }
 function cvConfirmClassBooking() {
   var d = (document.getElementById('cvClassDate') || {}).value || '';
@@ -5194,6 +5210,25 @@ function authToken() {
   return token || SUPA_KEY;
 }
 
+// Records a failed save/sync to a quiet log the practitioner can review later
+// (Dashboard > Error Log), instead of it only ever being a toast the client
+// saw and forgot about. Deliberately fire-and-forget: logging a failure must
+// never itself be able to block or fail the thing that failed.
+function logAppError(clientId, clientEmail, context, message) {
+  try {
+    fetch(SUPA_URL + '/rest/v1/error_log', {
+      method: 'POST',
+      headers: supaHeaders(),
+      body: JSON.stringify({
+        client_id: clientId || null,
+        client_email: clientEmail || null,
+        context: context,
+        message: String(message || '').slice(0, 500)
+      })
+    }).catch(function(){});
+  } catch (e) {}
+}
+
 function supaHeaders(extra) {
   return Object.assign({
     'Content-Type': 'application/json',
@@ -6757,11 +6792,13 @@ async function cvSubmit() {
     // the connection, and keep the local backup so nothing is lost once
     // they're signed back in.
     toast('Your session has expired. Please sign out and sign back in, then submit this workout again — nothing has been lost.', 'err');
+    logAppError(cvData.id, cvData.email, 'session_submit', 'Auth failure - refresh did not recover: ' + _lastError);
   } else {
     // Genuinely failed after retry - tell the user honestly, do NOT show success,
     // and keep cvState intact so nothing is lost. The pending backup stays in
     // localStorage so we can retry automatically next time they open the app.
     toast('Could not save your workout (' + _lastError + '). Check your connection and tap Submit again — nothing has been lost.', 'err');
+    logAppError(cvData.id, cvData.email, 'session_submit', _lastError);
   }
 }
 
@@ -10174,8 +10211,9 @@ function toggleDashboard() {
     var stats = document.getElementById('dashStats');
     var list = document.getElementById('dashList');
     if (stats) {
-      var total = clients.length;
-      var withProg = clients.filter(function(c) { return c.programs && c.programs.length; }).length;
+      var activeOnly = clients.filter(function(c) { return !c.archived; });
+      var total = activeOnly.length;
+      var withProg = activeOnly.filter(function(c) { return c.programs && c.programs.length; }).length;
       stats.innerHTML =
         '<div class="dash-stat"><div class="ds-val">' + total + '</div><div class="ds-lbl">Clients</div></div>' +
         '<div class="dash-stat"><div class="ds-val">' + withProg + '</div><div class="ds-lbl">With programs</div></div>' +
@@ -10183,7 +10221,7 @@ function toggleDashboard() {
     }
     if (list) {
       var now = new Date();
-      list.innerHTML = clients.map(function(cl) {
+      list.innerHTML = clients.filter(function(cl) { return !cl.archived; }).map(function(cl) {
         var lastLog = '';
         var lastLogDate = null;
         (cl.programs || []).forEach(function(p) {
@@ -10652,6 +10690,48 @@ function openDashboardModal() {
   renderDashboard();
 }
 
+var ERROR_LOG_CONTEXT_LABELS = {
+  session_submit: 'Workout submission',
+  class_booking_save: 'Calendar booking'
+};
+
+function openErrorLogModal() {
+  openM('errorLogM');
+  renderErrorLog();
+}
+
+async function renderErrorLog() {
+  var el = document.getElementById('errorLogContent');
+  if (!el) return;
+  el.innerHTML = '<div style="padding:20px;text-align:center;color:#8B949E;font-size:13px">Loading…</div>';
+  try {
+    var r = await fetch(SUPA_URL + '/rest/v1/error_log?select=*&order=created_at.desc&limit=100', { headers: supaHeaders() });
+    if (!r.ok) { el.innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;font-size:13px">Could not load the error log (HTTP ' + r.status + ').</div>'; return; }
+    var rows = await r.json();
+    if (!rows || !rows.length) {
+      el.innerHTML = '<div style="padding:30px 20px;text-align:center;color:#8B949E;font-size:13px">No errors logged — saves and syncs have been going through fine.</div>';
+      return;
+    }
+    el.innerHTML = rows.map(function(row) {
+      var cl = clients.find(function(c) { return c.id === row.client_id; });
+      var who = cl ? (cl.first + ' ' + cl.last) : (row.client_email || 'Unknown client');
+      var label = ERROR_LOG_CONTEXT_LABELS[row.context] || row.context;
+      var when = '';
+      try { when = new Date(row.created_at).toLocaleString('en-AU', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }); } catch(e) { when = row.created_at; }
+      return '<div style="border-bottom:1px solid #1F2A33;padding:10px 4px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">' +
+          '<div style="font-size:14px;font-weight:700;color:#FFFFFF">' + who + '</div>' +
+          '<div style="font-size:11px;color:#8B949E;white-space:nowrap">' + when + '</div>' +
+        '</div>' +
+        '<div style="font-size:12px;color:#F4B942;margin-top:2px">' + label + '</div>' +
+        '<div style="font-size:12px;color:#C9D1D9;margin-top:2px">' + (row.message || '') + '</div>' +
+      '</div>';
+    }).join('');
+  } catch (e) {
+    el.innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;font-size:13px">Could not load the error log: ' + (e.message||'') + '</div>';
+  }
+}
+
 function openComplianceModal() {
   openM('complianceM');
   renderComplianceTab();
@@ -10765,7 +10845,17 @@ if (!p) return;
              totalExercises,progAge,healthEntries,lastWeight,status };
   });
 
-  rows.sort(function(a,b){ return (a.daysSince===null?9999:a.daysSince)-(b.daysSince===null?9999:b.daysSince); });
+  // Sort so the clients needing attention surface immediately: Inactive first,
+  // then At Risk, then Active - and within each group, longest since their
+  // last session first. Previously this sorted the other way (most recently
+  // active first), which buried exactly the clients you'd want to spot.
+  var statusPriority = { inactive: 0, 'at-risk': 1, active: 2 };
+  rows.sort(function(a,b){
+    var pa = statusPriority[a.status], pb = statusPriority[b.status];
+    if (pa !== pb) return pa - pb;
+    var da = a.daysSince===null?9999:a.daysSince, db = b.daysSince===null?9999:b.daysSince;
+    return db - da;
+  });
 
   var statusColors = {active:'#5BBFAA','at-risk':'#f59e0b',inactive:'#ef4444'};
   var statusLabels = {active:'Active','at-risk':'At Risk',inactive:'Inactive'};
