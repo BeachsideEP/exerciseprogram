@@ -6150,7 +6150,11 @@ function renderCV() {
     if (isOpen) {
 
       if (ex.notes) h += '<div style="font-size:10px;color:var(--ocean);margin-bottom:10px;font-style:italic">&#128203; ' + ex.notes + '</div>';
-      h += '<input type="text" data-ex="' + i + '" data-field="clientNote" value="' + (ex.clientNote ? ex.clientNote.replace(/"/g,'&quot;') : '') + '" placeholder="Your setup note — e.g. cable height 3, bench angle 45\u00b0" style="width:100%;box-sizing:border-box;background:#1F2A33;border:1.5px solid #26323A;border-radius:8px;color:#FFFFFF;font-size:11px;font-style:italic;padding:6px 9px;margin-bottom:10px;outline:none" oninput="cvSetClientNote(' + i + ',this.value)">';
+      h += '<div style="display:flex;gap:6px;align-items:center;margin-bottom:4px">' +
+        '<input type="text" id="cvNoteInput' + i + '" data-ex="' + i + '" data-field="clientNote" value="' + (ex.clientNote ? ex.clientNote.replace(/"/g,'&quot;') : '') + '" placeholder="Your setup note — e.g. cable height 3, bench angle 45\u00b0" style="flex:1;box-sizing:border-box;background:#1F2A33;border:1.5px solid #26323A;border-radius:8px;color:#FFFFFF;font-size:11px;font-style:italic;padding:6px 9px;outline:none" oninput="cvSetClientNote(' + i + ',this.value)">' +
+        '<button onclick="cvSaveClientNoteNow(' + i + ')" style="flex-shrink:0;background:#1F2A33;border:1.5px solid #2FD4F5;color:#2FD4F5;font-size:10px;font-weight:700;padding:6px 10px;border-radius:8px;cursor:pointer">Save</button>' +
+      '</div>' +
+      '<div id="cvNoteStatus' + i + '" style="font-size:10px;min-height:13px;margin-bottom:6px"></div>';
       // YouTube video button — check customExercises FIRST (overrides), then ALL_EXERCISES
       var exVideoUrl = ex.videoUrl || '';
       if (!exVideoUrl) {
@@ -6349,6 +6353,43 @@ var _cascadeTimers = {};
 function cvSetClientNote(exIdx, val) {
   if (!cvState[exIdx]) cvState[exIdx] = {};
   cvState[exIdx].clientNote = val;
+}
+
+async function cvSaveClientNoteNow(exIdx) {
+  var inp = document.getElementById('cvNoteInput' + exIdx);
+  var statusEl = document.getElementById('cvNoteStatus' + exIdx);
+  if (!inp) return;
+  var val = inp.value;
+  var prog = cvData && cvData.programs && cvData.programs[cvProgIdx];
+  var ex = prog && prog.exercises && prog.exercises[exIdx];
+  if (!ex) return;
+  ex.clientNote = val;
+  if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.style.color = '#8B949E'; }
+  try {
+    var freshResp = await fetch(SUPA_URL + '/rest/v1/clients?select=data&id=eq.' + cvData.id, { headers: supaHeaders() });
+    if (!freshResp.ok) throw new Error('HTTP ' + freshResp.status);
+    var rows = await freshResp.json();
+    if (!rows || !rows.length || !rows[0].data) throw new Error('No client row returned');
+    var fresh = rows[0].data;
+    var freshProg = (fresh.programs || []).find(function(p) { return p && p.id === prog.id; }) || (fresh.programs || [])[cvProgIdx];
+    if (freshProg && freshProg.exercises && freshProg.exercises[exIdx]) {
+      freshProg.exercises[exIdx].clientNote = val;
+    }
+    var r = await fetch(SUPA_URL + '/rest/v1/clients', {
+      method: 'POST',
+      headers: supaHeaders(),
+      body: JSON.stringify({ id: cvData.id, data: fresh, updated_at: new Date().toISOString() })
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    if (statusEl) {
+      statusEl.textContent = 'Saved';
+      statusEl.style.color = '#5BBFAA';
+      setTimeout(function() { if (statusEl) statusEl.textContent = ''; }, 2500);
+    }
+  } catch (e) {
+    logAppError(cvData.id, cvData.email, 'client_note_save', e.message || 'Unknown error');
+    if (statusEl) { statusEl.textContent = 'Could not save — try again'; statusEl.style.color = '#E67E22'; }
+  }
 }
 
 function cvSetRow(exIdx, setIdx, field, val) {
