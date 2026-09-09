@@ -3827,7 +3827,7 @@ async function pullLibraryFromCloud() {
   } catch(e) {}
 }
 // Fields kept in localStorage per program exercise (small, user-editable)
-var PROG_EX_KEEP = ['uid','name','sets','reps','hold','rest','load','notes','progression','superset','lastReps','lastLoad','_done','videoUrl','video'];
+var PROG_EX_KEEP = ['uid','name','sets','reps','hold','rest','load','notes','clientNote','progression','superset','lastReps','lastLoad','_done','videoUrl','video'];
 // 'videoUrl'/'video' were previously stripped here as "library-lookupable" — but after a
 // reload the app pushed the stripped copies back to Supabase, silently wiping
 // videos off program exercises. A URL is ~60 bytes; keeping it is essentially free.
@@ -4614,7 +4614,7 @@ function updatePreviewPaneOnly() {
     html += `<div class="prev-div"></div>`;
     html += p.exercises.map((ex,i) => {
       const ps = [ex.sets?`${ex.sets} sets`:'',ex.reps?`${ex.reps} reps`:'',ex.hold||'',ex.load||'',ex.rest?`Rest: ${ex.rest}`:''].filter(Boolean).join(' · ');
-      return `<div class="prev-ex"><div class="prev-ex-nm">${i+1}. ${ex.name}</div><div class="prev-ex-p">${ps||'—'}</div>${ex.notes?`<div class="prev-ex-n">📋 ${ex.notes}</div>`:''}</div>`;
+      return `<div class="prev-ex"><div class="prev-ex-nm">${i+1}. ${ex.name}</div><div class="prev-ex-p">${ps||'—'}</div>${ex.notes?`<div class="prev-ex-n">📋 ${ex.notes}</div>`:''}${ex.clientNote?`<div class="prev-ex-n" style="color:#5BBFAA">📌 Client: ${ex.clientNote}</div>`:''}</div>`;
     }).join('');
   } else { html += `<div class="prev-empty" style="margin-top:9px">Add exercises above</div>`; }
   var pane = document.getElementById('prevPane');
@@ -4647,7 +4647,7 @@ function updatePreview() {
     html += `<div class="prev-div"></div>`;
     html += p.exercises.map((ex,i) => {
       const ps = [ex.sets?`${ex.sets} sets`:'',ex.reps?`${ex.reps} reps`:'',ex.hold||'',ex.load||'',ex.rest?`Rest: ${ex.rest}`:''].filter(Boolean).join(' · ');
-      return `<div class="prev-ex"><div class="prev-ex-nm">${i+1}. ${ex.name}</div><div class="prev-ex-p">${ps||'—'}</div>${ex.notes?`<div class="prev-ex-n">📋 ${ex.notes}</div>`:''}</div>`;
+      return `<div class="prev-ex"><div class="prev-ex-nm">${i+1}. ${ex.name}</div><div class="prev-ex-p">${ps||'—'}</div>${ex.notes?`<div class="prev-ex-n">📋 ${ex.notes}</div>`:''}${ex.clientNote?`<div class="prev-ex-n" style="color:#5BBFAA">📌 Client: ${ex.clientNote}</div>`:''}</div>`;
     }).join('');
   } else { html += `<div class="prev-empty" style="margin-top:9px">Add exercises above</div>`; }
   document.getElementById('prevPane').innerHTML = html;
@@ -6150,6 +6150,7 @@ function renderCV() {
     if (isOpen) {
 
       if (ex.notes) h += '<div style="font-size:10px;color:var(--ocean);margin-bottom:10px;font-style:italic">&#128203; ' + ex.notes + '</div>';
+      h += '<input type="text" data-ex="' + i + '" data-field="clientNote" value="' + (ex.clientNote ? ex.clientNote.replace(/"/g,'&quot;') : '') + '" placeholder="Your setup note — e.g. cable height 3, bench angle 45\u00b0" style="width:100%;box-sizing:border-box;background:#1F2A33;border:1.5px solid #26323A;border-radius:8px;color:#FFFFFF;font-size:11px;font-style:italic;padding:6px 9px;margin-bottom:10px;outline:none" oninput="cvSetClientNote(' + i + ',this.value)">';
       // YouTube video button — check customExercises FIRST (overrides), then ALL_EXERCISES
       var exVideoUrl = ex.videoUrl || '';
       if (!exVideoUrl) {
@@ -6344,6 +6345,11 @@ function cvTickSet(exIdx, setIdx) {
 
 // Debounce timers for cascade - one per exercise+field
 var _cascadeTimers = {};
+
+function cvSetClientNote(exIdx, val) {
+  if (!cvState[exIdx]) cvState[exIdx] = {};
+  cvState[exIdx].clientNote = val;
+}
 
 function cvSetRow(exIdx, setIdx, field, val) {
   if (!cvState[exIdx]) cvState[exIdx] = {};
@@ -6602,6 +6608,7 @@ async function cvSubmit() {
     }
     if (lastRepsArr.length) ex.lastReps = lastRepsArr[lastRepsArr.length - 1];
     if (lastLoadsArr.length) ex.lastLoad = lastLoadsArr[lastLoadsArr.length - 1];
+    if (st.clientNote !== undefined) ex.clientNote = st.clientNote;
   });
 
   // Build rich per-exercise detail AND update prescribed values
