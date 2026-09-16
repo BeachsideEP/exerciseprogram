@@ -6371,10 +6371,13 @@ async function cvSaveClientNoteNow(exIdx) {
     var rows = await freshResp.json();
     if (!rows || !rows.length || !rows[0].data) throw new Error('No client row returned');
     var fresh = rows[0].data;
-    var freshProg = (fresh.programs || []).find(function(p) { return p && p.id === prog.id; }) || (fresh.programs || [])[cvProgIdx];
-    if (freshProg && freshProg.exercises && freshProg.exercises[exIdx]) {
-      freshProg.exercises[exIdx].clientNote = val;
-    }
+    // Match by stable id first (position can drift if programs/exercises were
+    // reordered since this device last synced) - this is the same pattern
+    // already used elsewhere in the sync code, for the same reason.
+    var freshProg = (fresh.programs || []).find(function(p) { return p && prog.id && p.id === prog.id; }) || (fresh.programs || [])[cvProgIdx];
+    var freshEx = freshProg && freshProg.exercises ?
+      (freshProg.exercises.find(function(e) { return e && ex.uid && e.uid === ex.uid; }) || freshProg.exercises[exIdx]) : null;
+    if (freshEx) freshEx.clientNote = val;
     var r = await fetch(SUPA_URL + '/rest/v1/clients', {
       method: 'POST',
       headers: supaHeaders(),
@@ -6677,9 +6680,10 @@ async function cvSubmit() {
       }
     }
 
-    // Update the prescribed reps/load to last completed set values
-    if (lastReps.length) ex.lastReps = lastReps[lastReps.length - 1];
-    if (lastLoads.length) ex.lastLoad = lastLoads[lastLoads.length - 1];
+    // Note: lastReps/lastLoads here also include prescribed-fallback values
+    // (for building the wording below) - the real, typed-only last values
+    // were already saved onto ex.lastReps/ex.lastLoad earlier in this same
+    // submission, and must not be overwritten by a fallback value here.
 
     var line = ex.name + ' [' + tickedSets + '/' + totalSets + ' sets]';
     if (setRows.length) line += ': ' + setRows.join(', ');
