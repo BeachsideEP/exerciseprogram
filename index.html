@@ -3407,6 +3407,26 @@ function cvEstimateStrength(weight, reps) {
 // fallback values the client never actually entered, not real performance.
 // A "(last)" weight tag IS counted - it reflects a genuinely recorded past
 // weight, just not retyped that specific session.
+// Counts every session this exercise was completed at all - regardless of
+// whether real numbers were typed in. Showing up and ticking the sets off
+// is a genuine achievement on its own, separate from whether the weight or
+// reps ever changed, and deserves its own recognition rather than being
+// lumped in with "not enough data".
+function cvGetExerciseAttendanceCount(exerciseName) {
+  var count = 0;
+  (cvData.programs || []).forEach(function(p) {
+    if (!p || p.archived) return;
+    (p.log || []).forEach(function(l) {
+      if (!l || !l.text) return;
+      var segments = l.text.split(' | ');
+      for (var i = 0; i < segments.length; i++) {
+        if (segments[i].indexOf(exerciseName + ' [') === 0) { count++; break; }
+      }
+    });
+  });
+  return count;
+}
+
 function cvGetExerciseSessions(exerciseName) {
   var sessions = [];
   (cvData.programs || []).forEach(function(p) {
@@ -3423,8 +3443,14 @@ function cvGetExerciseSessions(exerciseName) {
       var m, best = null;
       while ((m = setRe.exec(seg))) {
         var repsFake = !!m[2], weightTag = m[4] || '';
-        if (repsFake) continue;
-        if (weightTag.indexOf('prescribed') !== -1) continue;
+        var weightGenuine = !!m[3] && weightTag.indexOf('prescribed') === -1;
+        // A set counts as real progress if EITHER reps or weight reflects
+        // genuine engagement that session - not both. A fixed-rep-target,
+        // progressive-weight protocol (reps never changes by design, weight
+        // does) is just as real as the reverse, and excluding it entirely
+        // because reps always matches the prescribed target would wrongly
+        // discard genuine weight progression.
+        if (repsFake && !weightGenuine) continue;
         var w = m[3] ? parseFloat(m[3]) : 0;
         var r = parseFloat(m[1]);
         var est = cvEstimateStrength(w, r);
@@ -3473,6 +3499,9 @@ function cvOpenProgress() {
       var up = sessions[sessions.length - 1].est > sessions[0].est * 1.03;
       if (up) { label = 'Trending up'; color = '#5BBFAA'; arrow = '&#8593; '; }
       else { label = 'Steady'; }
+    } else {
+      var attendance = cvGetExerciseAttendanceCount(ex.name);
+      if (attendance >= 3) { dim = false; label = 'Consistent'; color = '#2FD4F5'; arrow = '&#128293; '; }
     }
     html += '<div onclick="cvOpenProgressDetail(\'' + ex.name.replace(/'/g, "\\'") + '\')" style="cursor:pointer;background:var(--cv-input-bg,#0F1419);border-radius:12px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center' + (dim ? ';opacity:0.6' : '') + '">' +
       '<div><div style="color:var(--cv-text,#E8EEF3);font-size:13px;font-weight:700">' + ex.name + '</div>' +
@@ -3495,8 +3524,18 @@ function cvOpenProgressDetail(exerciseName) {
   if (!body) return;
   var sessions = cvGetExerciseSessions(exerciseName);
   if (sessions.length < 3) {
-    body.innerHTML = '<div style="color:var(--cv-text,#E8EEF3);font-size:15px;font-weight:700;margin-bottom:10px">' + exerciseName + '</div>' +
-      '<p style="font-size:13px;color:var(--cv-text-3,#8B98A5)">Log a few more sessions on this exercise to start building your progress story.</p>';
+    var attendance = cvGetExerciseAttendanceCount(exerciseName);
+    if (attendance >= 3) {
+      body.innerHTML = '<div style="color:var(--cv-text,#E8EEF3);font-size:15px;font-weight:700;margin-bottom:14px">' + exerciseName + '</div>' +
+        '<div style="background:var(--cv-input-bg,#0F1419);border-radius:10px;padding:14px 12px;margin-bottom:8px;text-align:center">' +
+          '<div style="font-size:26px;margin-bottom:6px">&#128293;</div>' +
+          '<div style="color:var(--cv-text,#E8EEF3);font-size:13px;font-weight:700">You\'ve completed this ' + attendance + ' times</div>' +
+          '<div style="color:var(--cv-text-3,#8B98A5);font-size:11.5px;margin-top:4px">Showing up consistently is exactly what builds results \u2014 that\'s an achievement in itself.</div>' +
+        '</div>';
+    } else {
+      body.innerHTML = '<div style="color:var(--cv-text,#E8EEF3);font-size:15px;font-weight:700;margin-bottom:10px">' + exerciseName + '</div>' +
+        '<p style="font-size:13px;color:var(--cv-text-3,#8B98A5)">Log a few more sessions on this exercise to start building your progress story.</p>';
+    }
     return;
   }
   var w = 240, h = 65, pad = 4;
