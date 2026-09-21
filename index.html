@@ -3531,6 +3531,21 @@ function cvOpenProgressDetail(exerciseName) {
   body.innerHTML = html;
 }
 
+// Removes one exercise's entry from cvState (which is keyed by position in
+// the exercise list) and shifts every later exercise's state down by one to
+// stay aligned with the list after the splice - so deleting one exercise
+// only loses that exercise's own ticked sets, not everyone else's.
+function cvRemoveStateAt(idx) {
+  var newState = {};
+  Object.keys(cvState).forEach(function(k) {
+    var n = parseInt(k, 10);
+    if (isNaN(n)) return;
+    if (n < idx) newState[n] = cvState[n];
+    else if (n > idx) newState[n - 1] = cvState[n];
+  });
+  cvState = newState;
+}
+
 function cvOpenClassPrompt() {
   var d = document.getElementById('cvClassDate');
   var t = document.getElementById('cvClassTime');
@@ -10090,7 +10105,7 @@ function renderCVCustomWorkout() {
       h += '<div style="font-size:15px;font-weight:700;color:#FFFFFF">' + ex.name + '</div>';
       h += '<div style="font-size:13px;color:#FFFFFF;margin-top:2px">' + totalSessionSets + ' sets' + (ex.reps ? ' × ' + ex.reps : '') + (setsDone > 0 ? ' <span style="color:#5BBFAA;font-weight:700">' + setsDone + '/' + totalSessionSets + ' done</span>' : '') + '</div>';
       h += '</div>';
-      h += '<button onclick="cvCustomExercises.splice(' + i + ',1);cvState={};renderCV()" style="background:none;border:none;color:#8B949E;font-size:20px;cursor:pointer;padding:4px">&#215;</button>';
+      h += '<button onclick="cvCustomExercises.splice(' + i + ',1);cvRemoveStateAt(' + i + ');renderCV()" style="background:none;border:none;color:#8B949E;font-size:20px;cursor:pointer;padding:4px">&#215;</button>';
       h += '</div>';
 
       // Set table - always open
