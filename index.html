@@ -3472,6 +3472,7 @@ function cvGetCurrentExercises() {
     if (!p || p.archived) return;
     (p.exercises || []).forEach(function(ex) {
       if (!ex || !ex.name || seen[ex.name]) return;
+      if (ex.cat === 'Cardio') return;
       seen[ex.name] = true;
       list.push(ex);
     });
