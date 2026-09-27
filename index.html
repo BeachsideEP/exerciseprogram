@@ -4326,6 +4326,16 @@ function selectClient() {
   document.getElementById('noClientMsg').style.display = cl ? 'none' : '';
   document.getElementById('editClientBtn').style.display = cl ? '' : 'none';
   if (cl) {
+    // Picking a client - from the Clients-list row, the search box, or
+    // anywhere else selectClient() is reached from - always exits the
+    // full-page Clients/Dashboard view so the library and program builder
+    // are available again. Previously only the Clients-list row's own
+    // onclick closed the dashboard, so picking a client via the search
+    // box left it covering the workspace with no way to add exercises.
+    var appEl = document.querySelector('#viewApp .app');
+    if (appEl) appEl.classList.remove('dash-open');
+    var dp = document.getElementById('dashPanel'); if (dp) dp.style.display = 'none';
+    var dashBtnEl = document.getElementById('dashBtn'); if (dashBtnEl) dashBtnEl.classList.remove('active');
     if (!cl.programs.length) cl.programs.push(mkProg('Home Exercise Program'));
     currentProgId = firstActiveProgId(cl);
     renderProgTabs(); loadProg(); updatePreview();
@@ -5944,7 +5954,12 @@ function onAuthSuccess(user) {
       renderCatChips();
       var _lc = document.getElementById('libCnt'); if (_lc) _lc.textContent = getAllExercises().length;
     });
-    syncClients();
+    // syncClients() is async - the dashboard we just opened may have shown
+    // "0 clients / No clients yet" from whatever was cached locally at that
+    // instant. Re-render it once the sync resolves (renderDashboardPanel()
+    // is a no-op if the panel's since been closed) so the real numbers
+    // appear without the practitioner having to close and reopen it.
+    syncClients().then(function() { renderDashboardPanel(); });
     syncTemplates();
     setInterval(syncClients, 180000); // 3 min - less aggressive
     // One-time cleanup: strip photos from program exercises in Supabase
@@ -10709,68 +10724,79 @@ function toggleDashboard() {
   // Dashboard is a full page: hide the library/preview columns and any
   // open client program while it's showing, matching the standalone
   // Dashboard screen in the redesign (rather than a panel squeezed above
-  // the usual 3-column workspace). Closing it (incl. picking a client
-  // from the list, which calls selectClient() then toggleDashboard())
+  // the usual 3-column workspace). Closing it (incl. picking a client,
+  // which now closes the dashboard itself from inside selectClient())
   // just restores the normal workspace.
   var appEl = document.querySelector('#viewApp .app');
   if (appEl) appEl.classList.toggle('dash-open', !showing);
   if (!showing) {
     var cd = document.getElementById('clientDetails'); if (cd) cd.style.display = 'none';
-    // Populate dashboard with client list
-    var stats = document.getElementById('dashStats');
-    var list = document.getElementById('dashList');
-    var now = new Date(); now.setHours(0,0,0,0);
-    var activeOnly = clients.filter(function(c) { return !c.archived; });
+    renderDashboardPanel();
+  }
+}
 
-    // Attention status per client, same thresholds as the Compliance tab
-    // (renderComplianceTab): active <=14 days since last session, at-risk
-    // <=35, otherwise inactive - so this list sorts worst-first too.
-    var statusPriority = { inactive: 0, 'at-risk': 1, active: 2 };
-    var rows = activeOnly.map(function(cl) {
-      var lastLog = '', lastLogDate = null;
-      (cl.programs || []).forEach(function(pr) {
-        if (!pr) return;
-        (pr.log || []).forEach(function(e) {
-          var d = parseLogDate(e.date);
-          if (d && (!lastLogDate || d > lastLogDate)) { lastLogDate = d; lastLog = e.date; }
-        });
+// Populates the stat cards + client list inside the Clients/Dashboard
+// panel. Split out of toggleDashboard() so it can also be re-run after
+// syncClients() finishes (see onAuthSuccess) - the panel now opens
+// automatically right after sign-in, before the cloud sync that fills in
+// clients has necessarily finished, so without this it could show
+// "0 clients / No clients yet" until manually closed and reopened.
+function renderDashboardPanel() {
+  var p = document.getElementById('dashPanel');
+  if (!p || p.style.display === 'none' || p.style.display === '') return;
+  var stats = document.getElementById('dashStats');
+  var list = document.getElementById('dashList');
+  var now = new Date(); now.setHours(0,0,0,0);
+  var activeOnly = clients.filter(function(c) { return !c.archived; });
+
+  // Attention status per client, same thresholds as the Compliance tab
+  // (renderComplianceTab): active <=14 days since last session, at-risk
+  // <=35, otherwise inactive - so this list sorts worst-first too.
+  var statusPriority = { inactive: 0, 'at-risk': 1, active: 2 };
+  var rows = activeOnly.map(function(cl) {
+    var lastLog = '', lastLogDate = null;
+    (cl.programs || []).forEach(function(pr) {
+      if (!pr) return;
+      (pr.log || []).forEach(function(e) {
+        var d = parseLogDate(e.date);
+        if (d && (!lastLogDate || d > lastLogDate)) { lastLogDate = d; lastLog = e.date; }
       });
-      var daysSince = lastLogDate ? Math.floor((now - lastLogDate) / (1000*60*60*24)) : null;
-      var status = daysSince === null ? 'at-risk' : (daysSince <= 14 ? 'active' : daysSince <= 35 ? 'at-risk' : 'inactive');
-      return { cl: cl, lastLog: lastLog, daysSince: daysSince, status: status };
     });
-    rows.sort(function(a, b) {
-      var pa = statusPriority[a.status], pb = statusPriority[b.status];
-      if (pa !== pb) return pa - pb;
-      var da = a.daysSince===null ? 9999 : a.daysSince, db = b.daysSince===null ? 9999 : b.daysSince;
-      return db - da;
-    });
+    var daysSince = lastLogDate ? Math.floor((now - lastLogDate) / (1000*60*60*24)) : null;
+    var status = daysSince === null ? 'at-risk' : (daysSince <= 14 ? 'active' : daysSince <= 35 ? 'at-risk' : 'inactive');
+    return { cl: cl, lastLog: lastLog, daysSince: daysSince, status: status };
+  });
+  rows.sort(function(a, b) {
+    var pa = statusPriority[a.status], pb = statusPriority[b.status];
+    if (pa !== pb) return pa - pb;
+    var da = a.daysSince===null ? 9999 : a.daysSince, db = b.daysSince===null ? 9999 : b.daysSince;
+    return db - da;
+  });
 
-    if (stats) {
-      var total = activeOnly.length;
-      var withProg = activeOnly.filter(function(c) { return c.programs && c.programs.length; }).length;
-      var needsAttn = rows.filter(function(r) { return r.status !== 'active'; }).length;
-      stats.innerHTML =
-        '<div class="dash-stat"><div class="ds-val">' + total + '</div><div class="ds-lbl">Clients</div></div>' +
-        '<div class="dash-stat"><div class="ds-val">' + withProg + '</div><div class="ds-lbl">With programs</div></div>' +
-        '<div class="dash-stat"><div class="ds-val">' + needsAttn + '</div><div class="ds-lbl">Needs attention</div></div>';
-    }
-    if (list) {
-      var pillClass = { active: 'dash-pill-active', 'at-risk': 'dash-pill-risk', inactive: 'dash-pill-inactive' };
-      var pillLabel = { active: 'Active', 'at-risk': 'At risk', inactive: 'Inactive' };
-      list.innerHTML = rows.map(function(r) {
-        var cl = r.cl;
-        var initials = ((cl.first||'').charAt(0) + (cl.last||'').charAt(0)).toUpperCase();
-        return '<div class="dash-row" onclick="document.getElementById(\'clientSel\').value=\'' + cl.id + '\';selectClient();toggleDashboard()">' +
-          '<div class="dash-avatar">' + initials + '</div>' +
-          '<div style="flex:1;min-width:0">' +
-            '<div class="dash-row-name">' + cl.first + ' ' + cl.last + '</div>' +
-            '<div class="dash-row-meta">' + (r.lastLog ? 'Last: ' + r.lastLog.split(',')[0] : 'No sessions logged') + '</div>' +
-          '</div>' +
-          '<span class="dash-pill ' + pillClass[r.status] + '">' + pillLabel[r.status] + '</span>' +
-        '</div>';
-      }).join('') || '<div style="color:var(--text-light);font-size:12px;padding:8px">No clients yet</div>';
-    }
+  if (stats) {
+    var total = activeOnly.length;
+    var withProg = activeOnly.filter(function(c) { return c.programs && c.programs.length; }).length;
+    var needsAttn = rows.filter(function(r) { return r.status !== 'active'; }).length;
+    stats.innerHTML =
+      '<div class="dash-stat"><div class="ds-val">' + total + '</div><div class="ds-lbl">Clients</div></div>' +
+      '<div class="dash-stat"><div class="ds-val">' + withProg + '</div><div class="ds-lbl">With programs</div></div>' +
+      '<div class="dash-stat"><div class="ds-val">' + needsAttn + '</div><div class="ds-lbl">Needs attention</div></div>';
+  }
+  if (list) {
+    var pillClass = { active: 'dash-pill-active', 'at-risk': 'dash-pill-risk', inactive: 'dash-pill-inactive' };
+    var pillLabel = { active: 'Active', 'at-risk': 'At risk', inactive: 'Inactive' };
+    list.innerHTML = rows.map(function(r) {
+      var cl = r.cl;
+      var initials = ((cl.first||'').charAt(0) + (cl.last||'').charAt(0)).toUpperCase();
+      return '<div class="dash-row" onclick="document.getElementById(\'clientSel\').value=\'' + cl.id + '\';selectClient()">' +
+        '<div class="dash-avatar">' + initials + '</div>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div class="dash-row-name">' + cl.first + ' ' + cl.last + '</div>' +
+          '<div class="dash-row-meta">' + (r.lastLog ? 'Last: ' + r.lastLog.split(',')[0] : 'No sessions logged') + '</div>' +
+        '</div>' +
+        '<span class="dash-pill ' + pillClass[r.status] + '">' + pillLabel[r.status] + '</span>' +
+      '</div>';
+    }).join('') || '<div style="color:var(--text-light);font-size:12px;padding:8px">No clients yet</div>';
   }
 }
 
