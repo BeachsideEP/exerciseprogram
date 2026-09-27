@@ -1727,6 +1727,12 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     </div>
   </div>
 
+  <div id="cvTabHabits" style="display:none">
+    <div id="cvHabitsContent" style="width:100%;overflow-x:hidden;padding:16px">
+      <div class="cv-empty"><div class="cv-empty-icon">&#9201;</div><p>Loading...</p></div>
+    </div>
+  </div>
+
   <div id="cvTabAi" style="display:none"></div>
   <!-- BOTTOM TABS -->
   <div class="cv-tabs">
@@ -1743,15 +1749,15 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       Calendar
     </button>
-  
+
+    <button class="cv-tab" id="cvTabBtnHabits" onclick="cvSwitchTab('habits')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.35-9.5-9.5C1 7 3 4 6.5 4c2 0 3.5 1 5.5 3 2-2 3.5-3 5.5-3C21 4 23 7 21.5 11.5 19.5 16.65 12 21 12 21z"/></svg>
+      Habits
+    </button>
+
     <button class="cv-tab" id="cvTabBtnMessages" onclick="cvSwitchTab('messages')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       <span style="font-size:10px;margin-top:2px">Chat</span>
-    </button>
-
-    <button class="cv-tab" id="cvTabBtnAi" onclick="cvOpenClasses()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg>
-      <span class="cv-tab-label">CLASSES</span>
     </button>
     </div>
   </div>
@@ -1790,6 +1796,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <button class="side-link" onclick="openM('savedM')"><span class="sl-ic">📂</span>Programs</button>
     <button class="side-link" onclick="openM('templatesM')"><span class="sl-ic">&#128196;</span>Templates</button>
     <button class="side-link" onclick="openComplianceModal()"><span class="sl-ic">📊</span>Compliance</button>
+    <button class="side-link" onclick="openLifestyleModal()"><span class="sl-ic">🌱</span>Lifestyle</button>
     <button class="side-link" onclick="openErrorLogModal()"><span class="sl-ic">⚠️</span>Error Log</button>
     <button class="side-link" onclick="openMessagesModal()" id="msgBtn"><span class="sl-ic">💬</span>Messages<span id="msgUnreadBadge" class="chat-unread-badge" style="display:none">0</span></button>
     <button class="side-link" onclick="openArchiveModal()"><span class="sl-ic">📦</span>Archive</button>
@@ -1954,6 +1961,20 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
       <button onclick="closeM('complianceM')" style="background:none;border:none;color:#8B949E;font-size:20px;cursor:pointer;padding:4px 8px;border-radius:6px">✕</button>
     </div>
     <div id="complianceContent" style="max-height:75vh;overflow-y:auto;padding:16px"></div>
+  </div>
+</div>
+
+<!-- LIFESTYLE MODAL -->
+<div class="overlay" id="lifestyleM" onclick="closeBg(event,'lifestyleM')">
+  <div class="modal" style="max-width:760px;width:96%;background:#0D1A24;border:1px solid #1F2A33;border-radius:16px;padding:0;overflow:hidden">
+    <div style="background:#0B1820;padding:18px 22px;border-bottom:1px solid #1F2A33;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:17px;font-weight:700;color:#FFFFFF">🌱 Lifestyle Coaching</div>
+        <div style="font-size:13px;color:#FFFFFF;margin-top:2px">Daily habits &amp; wearable sync, last 7 days</div>
+      </div>
+      <button onclick="closeM('lifestyleM')" style="background:none;border:none;color:#8B949E;font-size:20px;cursor:pointer;padding:4px 8px;border-radius:6px">✕</button>
+    </div>
+    <div id="lifestyleContent" style="max-height:75vh;overflow-y:auto;padding:16px"></div>
   </div>
 </div>
 
@@ -6425,6 +6446,11 @@ async function loadClientView(user) {
       var storedHealth = localStorage.getItem('cv_health_' + match.id);
       if (storedHealth) cvHealthData = JSON.parse(storedHealth);
     } catch(e) {}
+    // Load habits - prefer cvData.habitsData (from Supabase), fall back to localStorage
+    try {
+      var storedHabits = localStorage.getItem('cv_habits_' + match.id);
+      cvHabitsData = (match.habitsData && Object.keys(match.habitsData).length) ? match.habitsData : (storedHabits ? JSON.parse(storedHabits) : {});
+    } catch(e) { cvHabitsData = {}; }
     // Load own workouts - prefer cvData.ownWorkouts (from Supabase), fall back to localStorage
     var storedWorkouts = [];
     try { storedWorkouts = JSON.parse(localStorage.getItem('cv_own_workouts_' + match.id) || '[]'); } catch(e) {}
@@ -8960,6 +8986,161 @@ var cvCalMonth = new Date().getMonth();
 var cvCalYear = new Date().getFullYear();
 var cvHealthData = {}; // {weight:[], bp:[], bg:[], sleep:[], hr:[]}
 var cvOwnWorkouts = []; // [{date, type, duration, note}]
+var cvHabitsData = {}; // { 'YYYY-MM-DD': { water: 3, movement: true, mindfulness: true, sleep: false } }
+var HABIT_DEFS = [
+  { key: 'water', icon: '&#128167;', label: 'Water', type: 'counter', target: 8, unit: 'glasses' },
+  { key: 'movement', icon: '&#128694;', label: 'Movement', type: 'toggle', sub: 'Any walk or activity today' },
+  { key: 'mindfulness', icon: '&#129497;', label: 'Mindfulness', type: 'toggle', sub: '5 minutes, any time' },
+  { key: 'sleep', icon: '&#127772;', label: 'Wind-down routine', type: 'toggle', sub: 'Screens off before bed' }
+];
+
+function cvTodayKey(offsetDays) {
+  var d = new Date();
+  if (offsetDays) d.setDate(d.getDate() + offsetDays);
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+}
+
+// A day counts as "complete" toward the streak once at least 3 of the 4
+// habits are satisfied (water at/above target counts as satisfied).
+function cvHabitDayComplete(dayData) {
+  if (!dayData) return false;
+  var met = 0;
+  HABIT_DEFS.forEach(function(h) {
+    if (h.type === 'counter') { if ((dayData[h.key] || 0) >= h.target) met++; }
+    else if (dayData[h.key]) met++;
+  });
+  return met >= 3;
+}
+
+function cvHabitStreak() {
+  var streak = 0;
+  for (var i = 0; i < 90; i++) {
+    var key = cvTodayKey(-i);
+    if (cvHabitDayComplete(cvHabitsData[key])) streak++;
+    else if (i === 0) continue; // today not finished yet shouldn't zero out yesterday's streak
+    else break;
+  }
+  return streak;
+}
+
+function cvToggleHabit(key) {
+  var today = cvTodayKey();
+  if (!cvHabitsData[today]) cvHabitsData[today] = {};
+  cvHabitsData[today][key] = !cvHabitsData[today][key];
+  cvSaveHabits();
+  renderCVHabits();
+}
+
+function cvLogWater(delta) {
+  var today = cvTodayKey();
+  if (!cvHabitsData[today]) cvHabitsData[today] = {};
+  var target = HABIT_DEFS[0].target;
+  cvHabitsData[today].water = Math.max(0, Math.min(target, (cvHabitsData[today].water || 0) + delta));
+  cvSaveHabits();
+  renderCVHabits();
+}
+
+function cvSaveHabits() {
+  try { localStorage.setItem('cv_habits_' + cvData.id, JSON.stringify(cvHabitsData)); } catch(e) {}
+  cvData.habitsData = cvHabitsData;
+  fetch(SUPA_URL + '/rest/v1/clients?select=data&id=eq.' + cvData.id, { headers: supaHeaders() })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(rows) {
+      var saveData = cvData;
+      if (rows && rows.length && rows[0].data) {
+        var fresh = rows[0].data;
+        fresh.habitsData = cvHabitsData;
+        cvData = fresh;
+        saveData = fresh;
+      }
+      return fetch(SUPA_URL + '/rest/v1/clients', {
+        method: 'POST',
+        headers: supaHeaders(),
+        body: JSON.stringify({ id: saveData.id, data: saveData, updated_at: new Date().toISOString() })
+      });
+    }).catch(function() {});
+  if (typeof clients !== 'undefined' && Array.isArray(clients)) {
+    var localIdx = clients.findIndex(function(c) { return c.id === cvData.id; });
+    if (localIdx !== -1) {
+      clients[localIdx] = JSON.parse(JSON.stringify(cvData));
+      if (typeof saveDB === 'function') saveDB();
+    }
+  }
+}
+
+function renderCVHabits() {
+  var el = document.getElementById('cvHabitsContent');
+  if (!el) return;
+  var today = cvTodayKey();
+  var todayData = cvHabitsData[today] || {};
+  var streak = cvHabitStreak();
+
+  var h = '';
+
+  // ── Wearable connect card ──
+  h += '<div style="display:flex;align-items:center;gap:12px;background:#12181D;border:1px solid #1F2A33;border-radius:14px;padding:14px;margin-bottom:20px">' +
+    '<div style="font-size:20px;flex-shrink:0">&#128241;</div>' +
+    '<div><div style="font-size:13px;font-weight:600;color:#FFFFFF">Apple Health &amp; Android Health connections — coming soon</div>' +
+    '<div style="font-size:11.5px;color:#8B949E;margin-top:2px">Auto-fill for steps, sleep &amp; heart rate is planned for our iOS/Android app.</div></div></div>';
+
+  // ── Today's habits ──
+  h += '<div style="font-size:11px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Today\'s habits</div>';
+  h += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">';
+  HABIT_DEFS.forEach(function(hab) {
+    if (hab.type === 'counter') {
+      var val = todayData[hab.key] || 0;
+      var done = val >= hab.target;
+      h += '<div style="display:flex;align-items:center;gap:12px;background:#12181D;border:1px solid #1F2A33;border-radius:12px;padding:10px 12px">' +
+        '<div style="width:32px;height:32px;border-radius:9px;background:#0D1A24;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">' + hab.icon + '</div>' +
+        '<div style="flex-grow:1"><div style="font-size:13px;font-weight:600;color:#FFFFFF">' + hab.label + ' — ' + val + ' / ' + hab.target + ' ' + hab.unit + '</div>' +
+        (done ? '<div style="font-size:11px;color:#5BBFAA;margin-top:1px">Target hit &#10003;</div>' : '<div style="font-size:11px;color:#8B949E;margin-top:1px">Tap to log a glass</div>') + '</div>' +
+        '<button onclick="cvLogWater(-1)" style="width:28px;height:28px;border-radius:50%;border:1px solid #1F2A33;background:#162026;color:#C9D1D9;font-size:15px;cursor:pointer">&minus;</button>' +
+        '<button onclick="cvLogWater(1)" style="width:28px;height:28px;border-radius:50%;border:none;background:#2FD4F5;color:#04232B;font-size:15px;font-weight:700;cursor:pointer">+</button>' +
+        '</div>';
+    } else {
+      var isDone = !!todayData[hab.key];
+      h += '<div onclick="cvToggleHabit(\'' + hab.key + '\')" style="display:flex;align-items:center;gap:12px;background:#12181D;border:1px solid #1F2A33;border-radius:12px;padding:10px 12px;cursor:pointer">' +
+        '<div style="width:32px;height:32px;border-radius:9px;background:#0D1A24;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">' + hab.icon + '</div>' +
+        '<div style="flex-grow:1"><div style="font-size:13px;font-weight:600;color:#FFFFFF">' + hab.label + '</div>' +
+        '<div style="font-size:11px;color:#8B949E;margin-top:1px">' + hab.sub + '</div></div>' +
+        '<div style="width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;font-weight:700;' +
+        (isDone ? 'background:#5BBFAA;color:#04232B' : 'background:#0D1A24;border:1.5px solid #1F2A33;color:#8B949E') + '">' + (isDone ? '&#10003;' : '') + '</div>' +
+        '</div>';
+    }
+  });
+  h += '</div>';
+
+  // ── Streak ──
+  if (streak > 0) {
+    h += '<div style="display:flex;align-items:center;gap:10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:14px;padding:12px 14px;margin-bottom:20px;font-size:13px;font-weight:600;color:#f59e0b">' +
+      '&#128293; ' + streak + '-day streak — keep it going!</div>';
+  }
+
+  // ── 7-day trend ──
+  h += '<div style="font-size:11px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">This week</div>';
+  h += '<div style="display:flex;align-items:flex-end;gap:7px;height:64px;background:#12181D;border:1px solid #1F2A33;border-radius:12px;padding:10px 12px 8px">';
+  var dayLabels = ['S','M','T','W','T','F','S'];
+  for (var i = 6; i >= 0; i--) {
+    var dKey = cvTodayKey(-i);
+    var dData = cvHabitsData[dKey] || {};
+    var met = 0;
+    HABIT_DEFS.forEach(function(hb) {
+      if (hb.type === 'counter') { if ((dData[hb.key] || 0) >= hb.target) met++; }
+      else if (dData[hb.key]) met++;
+    });
+    var pct = Math.round((met / HABIT_DEFS.length) * 100);
+    var barH = Math.max(4, pct * 0.36);
+    var isToday = i === 0;
+    var dow = new Date(dKey + 'T00:00:00').getDay();
+    h += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end">' +
+      '<div style="width:100%;border-radius:4px 4px 2px 2px;background:' + (isToday ? '#2FD4F5' : '#1F2A33') + ';height:' + barH + 'px"></div>' +
+      '<div style="font-size:9px;color:#8B949E;font-weight:600">' + dayLabels[dow] + '</div></div>';
+  }
+  h += '</div>';
+
+  el.innerHTML = h;
+}
 
 function cvSwitchTab(tab) {
   // Don't switch to anna accidentally if user is typing in an input
@@ -8972,7 +9153,7 @@ function cvSwitchTab(tab) {
   if (tab === 'messages') {
     setTimeout(function() { if (typeof cvInitChat === 'function') cvInitChat(); }, 100);
   }
-  ['home','workouts','calendar','ai','messages'].forEach(function(t) {
+  ['home','workouts','calendar','habits','ai','messages'].forEach(function(t) {
     var content = document.getElementById('cvTab' + t.charAt(0).toUpperCase() + t.slice(1));
     var btn = document.getElementById('cvTabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
     if (content) {
@@ -8994,6 +9175,7 @@ function cvSwitchTab(tab) {
     else if (!cvState || !Object.keys(cvState).length) { renderCV(); cvStartTimer(); }
   }
   if (tab === 'calendar') renderCVCalendar();
+  if (tab === 'habits') renderCVHabits();
   if (tab === 'ai') renderAnnaTab();
   cvSaveSession(); // persist position for Android recovery
 }
@@ -11521,6 +11703,99 @@ if (!p) return;
       if (cid) selectClientById(cid);
     });
   });
+}
+
+function openLifestyleModal() {
+  openM('lifestyleM');
+  renderLifestyleTab();
+  var content = document.getElementById('lifestyleContent');
+  if (content) {
+    content.onclick = function(e) {
+      var row = e.target.closest('.lifestyle-row');
+      if (row && row.dataset.cid) selectClientById(row.dataset.cid);
+    };
+  }
+}
+
+function renderLifestyleTab() {
+  var el = document.getElementById('lifestyleContent');
+  if (!el) return;
+
+  var activeClients = clients.filter(function(c){ return !c.archived; });
+
+  var rows = activeClients.map(function(cl) {
+    var hd = cl.habitsData || {};
+    var completeDays = 0, lastLog = null, anyLogged = false;
+    for (var i = 0; i < 7; i++) {
+      var key = cvTodayKey(-i);
+      if (hd[key]) {
+        anyLogged = true;
+        if (!lastLog) lastLog = key;
+        if (cvHabitDayComplete(hd[key])) completeDays++;
+      }
+    }
+    var pct = Math.round((completeDays / 7) * 100);
+    // Streak against this client's own habitsData (mirrors cvHabitStreak's logic)
+    var streak = 0;
+    for (var s = 0; s < 90; s++) {
+      var sKey = cvTodayKey(-s);
+      if (cvHabitDayComplete(hd[sKey])) streak++;
+      else if (s === 0) continue;
+      else break;
+    }
+    var daysSinceLog = lastLog ? Math.floor((new Date(cvTodayKey()) - new Date(lastLog)) / (1000*60*60*24)) : null;
+    return { cl: cl, pct: pct, streak: streak, anyLogged: anyLogged, daysSinceLog: daysSinceLog };
+  });
+
+  // Anyone with logged habits first (worst compliance first), never-logged clients last
+  rows.sort(function(a, b) {
+    if (a.anyLogged !== b.anyLogged) return a.anyLogged ? -1 : 1;
+    return a.pct - b.pct;
+  });
+
+  var loggedRows = rows.filter(function(r){ return r.anyLogged; });
+  var avgPct = loggedRows.length ? Math.round(loggedRows.reduce(function(s,r){return s+r.pct;},0)/loggedRows.length) : 0;
+
+  function sumCard(val,label,col) {
+    return '<div style="background:#12181D;border-radius:10px;padding:14px 16px;border:1px solid #1F2A33;text-align:center">' +
+           '<div style="font-size:24px;font-weight:800;color:'+col+'">'+val+'</div>' +
+           '<div style="font-size:13px;color:#FFFFFF;margin-top:3px">'+label+'</div></div>';
+  }
+  var summaryCards = sumCard(loggedRows.length,'Logging habits','#5BBFAA') +
+                      sumCard(avgPct+'%','Avg. compliance (7d)','#2FD4F5') +
+                      sumCard(0,'Wearables connected','#8B949E') +
+                      sumCard(activeClients.length,'Total clients','#FFFFFF');
+
+  var clientRows = rows.map(function(r) {
+    var pctCol = !r.anyLogged ? '#8B949E' : r.pct >= 70 ? '#5BBFAA' : r.pct >= 40 ? '#f59e0b' : '#ef4444';
+    var statusText = !r.anyLogged ? 'Not started' : r.daysSinceLog === 0 ? 'Logged today' : r.daysSinceLog === 1 ? 'Logged yesterday' : r.daysSinceLog + 'd since last log';
+    return '<div data-cid="'+r.cl.id+'" class="lifestyle-row" style="border-bottom:1px solid #1F2A33;cursor:pointer;display:grid;grid-template-columns:1.6fr 110px 90px 130px;align-items:center;padding:12px 16px">' +
+      '<div>' +
+        '<div style="font-size:14px;font-weight:700;color:#FFFFFF">'+r.cl.first+' '+r.cl.last+'</div>' +
+        '<div style="font-size:12.5px;color:#8B949E;margin-top:2px">'+statusText+(r.streak>0?' · &#128293; '+r.streak+'d streak':'')+'</div>' +
+      '</div>' +
+      '<div style="text-align:center">' +
+        (r.anyLogged ?
+          '<div style="display:flex;align-items:center;gap:6px;justify-content:center"><div style="width:44px;height:5px;background:#1F2A33;border-radius:3px;overflow:hidden"><div style="width:'+r.pct+'%;height:100%;background:'+pctCol+'"></div></div><span style="font-size:12px;font-weight:600;color:'+pctCol+'">'+r.pct+'%</span></div>' :
+          '<span style="font-size:12px;color:#8B949E">—</span>') +
+      '</div>' +
+      '<div style="text-align:center;font-size:12px;color:#8B949E">Manual</div>' +
+      '<div style="text-align:right"><span style="font-size:10.5px;font-weight:700;color:#8B949E;background:#8B949E20;padding:3px 9px;border-radius:20px;border:1px solid #8B949E44">Not connected</span></div>' +
+    '</div>';
+  }).join('');
+
+  var html =
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:14px">'+summaryCards+'</div>' +
+    '<div style="font-size:12.5px;color:#8B949E;margin-bottom:14px;line-height:1.5">Habit tracking is manual for now — clients tick off water, movement, mindfulness &amp; wind-down themselves in the app. Apple Health &amp; Android Health auto-sync is planned once we have an iOS/Android app.</div>' +
+    '<div style="background:#12181D;border-radius:10px;overflow:hidden;border:1px solid #1F2A33">' +
+    '<div style="display:grid;grid-template-columns:1.6fr 110px 90px 130px;padding:10px 16px;border-bottom:1px solid #1F2A33;background:#0D1A24">' +
+    '<div style="font-size:13px;font-weight:700;color:#FFFFFF;text-transform:uppercase;letter-spacing:.07em">Client</div>' +
+    '<div style="font-size:13px;font-weight:700;color:#FFFFFF;text-align:center;text-transform:uppercase;letter-spacing:.07em">Compliance</div>' +
+    '<div style="font-size:13px;font-weight:700;color:#FFFFFF;text-align:center;text-transform:uppercase;letter-spacing:.07em">Source</div>' +
+    '<div style="font-size:13px;font-weight:700;color:#FFFFFF;text-align:right;text-transform:uppercase;letter-spacing:.07em">Wearable</div>' +
+    '</div>'+clientRows+'</div>';
+
+  el.innerHTML = html;
 }
 
 function selectClientById(id) {
