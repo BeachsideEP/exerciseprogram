@@ -4816,7 +4816,7 @@ function closeDrawer() { document.getElementById('drawer').classList.remove('ope
 // ══════════════════════════════════════
 function onDragStart(e, id) { dragging = id; setTimeout(() => e.target.classList.add('dragging'), 0); }
 function onDragEnd(e) { e.target.classList.remove('dragging'); }
-function onDragOver(e) { e.preventDefault(); document.getElementById('dropZone').classList.add('drag-over'); }
+function onDragOver(e) { e.preventDefault(); if (dragging) document.getElementById('dropZone').classList.add('drag-over'); }
 function onDragLeave() { document.getElementById('dropZone').classList.remove('drag-over'); }
 function onDrop(e) { e.preventDefault(); document.getElementById('dropZone').classList.remove('drag-over'); if (dragging) { addEx(dragging); dragging = null; } }
 
