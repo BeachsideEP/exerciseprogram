@@ -71,7 +71,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .chip.on,.chip:hover{background:var(--ocean);border-color:var(--ocean);color:#fff}
 .ex-list{flex:1;overflow-y:auto}
 .ex-card{display:flex;align-items:center;gap:6px;padding:6px 8px;border:1.5px solid var(--sand-d);border-radius:7px;margin-bottom:4px;cursor:grab;transition:all .12s;background:#fff;user-select:none}
-.ex-card:hover{border-color:var(--ocean-l);box-shadow:0 2px 8px rgba(28,43,53,.08);transform:translateY(-1px)}
+.ex-card:hover{border-color:var(--ocean-l);box-shadow:0 2px 8px rgba(28,43,53,.08)}
 .ex-card:active{cursor:grabbing;opacity:.5}
 .ex-card.dragging{opacity:.25}
 .ex-thumb{width:34px;height:34px;flex-shrink:0;border-radius:5px;overflow:hidden}
@@ -1573,6 +1573,14 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 #viewApp .pe-more-btn:hover{ text-decoration:underline; }
 #viewApp .pe-more-flag{ color:var(--text-l); font-weight:500; text-transform:none; letter-spacing:0; }
 #viewApp .pe-more{ margin-top:8px; padding-top:8px; border-top:1px dashed var(--sand-d); display:flex; flex-direction:column; gap:5px; }
+
+/* ---------- drag-to-reorder handle (replaces the old ↑/↓ buttons) ---------- */
+#viewApp .pe-drag{ cursor:grab; color:var(--text-l); font-size:14px; line-height:1; padding:2px 2px 2px 0; flex-shrink:0; align-self:center; touch-action:none; }
+#viewApp .pe-drag:hover{ color:var(--ocean); }
+#viewApp .pe-drag:active{ cursor:grabbing; }
+#viewApp .pe.pe-dragging{ opacity:.4; }
+#viewApp .pe.pe-drop-before{ box-shadow:inset 0 3px 0 0 var(--ocean); }
+#viewApp .pe.pe-drop-after{ box-shadow:inset 0 -3px 0 0 var(--ocean); }
 
 /* ---------- exercise manager: card grid (matches Library mockup) ---------- */
 #viewApp .ex-manager-list{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; max-height:420px; }
@@ -4838,6 +4846,60 @@ function moveEx(uid, dir) {
   saveDB(); renderDropZone(); updatePreview();
 }
 
+// ── Reorder exercises within a program by dragging the ⠿ handle ──
+// (replaces the old ↑/↓ buttons). Separate from the library→dropZone
+// "dragging" variable above - that one holds a library exercise id being
+// added; this one holds the uid of an exercise already in the program
+// being reordered, so the two drag gestures don't collide.
+var peDragUid = null;
+function peDragStart(e, uid) {
+  peDragUid = uid;
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', String(uid)); } catch(err) {}
+  var row = e.target.closest('.pe');
+  if (row) {
+    try { e.dataTransfer.setDragImage(row, 16, 16); } catch(err) {}
+    setTimeout(function() { row.classList.add('pe-dragging'); }, 0);
+  }
+}
+function peDragEnd() {
+  document.querySelectorAll('.pe.pe-dragging').forEach(function(el) { el.classList.remove('pe-dragging'); });
+  document.querySelectorAll('.pe.pe-drop-before,.pe.pe-drop-after').forEach(function(el) { el.classList.remove('pe-drop-before','pe-drop-after'); });
+  peDragUid = null;
+}
+function peRowDragOver(e, uid) {
+  if (peDragUid === null || String(peDragUid) === String(uid)) return;
+  e.preventDefault();
+  var row = e.currentTarget;
+  var rect = row.getBoundingClientRect();
+  var before = (e.clientY - rect.top) < rect.height / 2;
+  row.classList.toggle('pe-drop-before', before);
+  row.classList.toggle('pe-drop-after', !before);
+}
+function peRowDragLeave(e) {
+  e.currentTarget.classList.remove('pe-drop-before','pe-drop-after');
+}
+function peRowDrop(e, uid) {
+  e.preventDefault();
+  var row = e.currentTarget;
+  var before = row.classList.contains('pe-drop-before');
+  row.classList.remove('pe-drop-before','pe-drop-after');
+  if (peDragUid === null || String(peDragUid) === String(uid)) return;
+  reorderEx(peDragUid, uid, before);
+  peDragUid = null;
+}
+function reorderEx(dragUid, targetUid, before) {
+  const p = getProg(); if (!p) return;
+  var arr = p.exercises;
+  var fromIdx = arr.findIndex(function(e) { return String(e.uid) === String(dragUid); });
+  if (fromIdx === -1) return;
+  var item = arr.splice(fromIdx, 1)[0];
+  var toIdx = arr.findIndex(function(e) { return String(e.uid) === String(targetUid); });
+  var insertAt = toIdx === -1 ? arr.length : (before ? toIdx : toIdx + 1);
+  arr.splice(insertAt, 0, item);
+  saveDB(); renderDropZone(); updatePreview();
+}
+
 function updExVideo(uid, val) {
   const p = getProg(); if (!p) return;
   const ex = p.exercises.find(e => e.uid === uid);
@@ -4923,8 +4985,9 @@ function renderDropZone() {
     return;
   }
   dz.innerHTML = `<div class="dz-list">${exs.map((ex,i) => `
-    <div class="pe${exs[i-1] && exs[i-1].superset ? ' pe-ss-paired' : ''}">
+    <div class="pe${exs[i-1] && exs[i-1].superset ? ' pe-ss-paired' : ''}" ondragover="peRowDragOver(event,${ex.uid})" ondragleave="peRowDragLeave(event)" ondrop="peRowDrop(event,${ex.uid})">
       <div class="pe-row">
+        <div class="pe-drag" draggable="true" ondragstart="peDragStart(event,${ex.uid})" ondragend="peDragEnd(event)" title="Drag to reorder">⠿</div>
         <div class="pe-num">${i+1}</div>
         <div class="pe-thumb">${getIllus(ex.name, ex.cat)}</div>
         <div class="pe-name-wrap">
@@ -4937,8 +5000,6 @@ function renderDropZone() {
         <div class="pe-field"><label>Load</label><input autocomplete="off" type="text" value="${ex.load}" placeholder="kg/band" onchange="updEx(${ex.uid},'load',this.value)"></div>
         <div class="pe-field"><label>Rest</label><input type="text" value="${ex.rest}" placeholder="60s" onchange="updEx(${ex.uid},'rest',this.value)"></div>
         <div class="pe-ctrl">
-          <button class="mv" onclick="moveEx(${ex.uid},-1)" title="Move up">↑</button>
-          <button class="mv" onclick="moveEx(${ex.uid},1)" title="Move down">↓</button>
           <button class="pe-ss ${ex.superset ? 'ss-active' : ''}" onclick="toggleSuperset('${ex.uid}')" title="Toggle superset with next exercise">SS</button>
           <button class="rm" onclick="removeEx(${ex.uid})" title="Remove exercise">✕</button>
         </div>
@@ -5872,6 +5933,11 @@ function onAuthSuccess(user) {
     showView('practitioner');
     const sb = document.getElementById('signOutBtn');
     if (sb) sb.style.display = '';
+    // Open on the Clients dashboard by default, rather than an empty
+    // workspace with no client picked yet. toggleDashboard() is safe to
+    // call unconditionally here - the dashboard panel always starts
+    // hidden, so this one call opens it.
+    toggleDashboard();
     setSyncStatus('busy');
     pullLibraryFromCloud().then(function() {
       renderLib();
