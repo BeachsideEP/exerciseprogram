@@ -1559,6 +1559,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 #viewApp .app.dash-open .dash-stat-val, #viewApp .app.dash-open .ds-val{ font-size:28px; }
 #viewApp .app.dash-open .dash-stat-lbl, #viewApp .app.dash-open .ds-lbl{ font-size:10.5px; }
 #viewApp .app.dash-open .client-bar{ max-width:1040px; margin:0 auto; width:100%; }
+#viewApp .app.dash-open #backToClientsBtn{ display:none; }
 
 /* ---------- program exercise row (table-style, matches the mockup) ---------- */
 #viewApp .pe-row{ display:flex; align-items:flex-end; gap:10px; flex-wrap:nowrap; }
@@ -1853,6 +1854,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <div id="dashList"></div>
   </div>
   <div class="client-bar">
+    <button class="btn btn-outline btn-sm" id="backToClientsBtn" onclick="toggleDashboard()" title="Back to the Clients dashboard">&#8592; Clients</button>
     <div class="client-search-wrap">
       <input id="clientSearch" type="text" placeholder="&#128269; Search clients…"
         style="width:100%;padding:5px 8px 5px 28px;border:1.5px solid var(--sand-d);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;background:var(--sand)"
