@@ -1546,6 +1546,44 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 /* ---------- exercise manager / library grid pass ---------- */
 #viewApp .ex-card{ border-radius:12px; }
 #viewApp .chip.on{ background:var(--ocean); border-color:var(--ocean); }
+
+/* ---------- Dashboard as a full page (hides the library/preview
+   columns while it's open, instead of sitting above them) ---------- */
+#viewApp .app.dash-open{ grid-template-columns:1fr; }
+#viewApp .app.dash-open .col-left,
+#viewApp .app.dash-open .col-right{ display:none; }
+#viewApp .app.dash-open .col-mid{ max-width:1040px; margin:0 auto; width:100%; }
+#viewApp .app.dash-open .dash-panel{ padding:24px 28px 16px; margin-top:4px; }
+#viewApp .app.dash-open .dash-grid{ gap:14px; margin-bottom:16px; }
+#viewApp .app.dash-open .dash-stat{ padding:18px 14px; }
+#viewApp .app.dash-open .dash-stat-val, #viewApp .app.dash-open .ds-val{ font-size:28px; }
+#viewApp .app.dash-open .dash-stat-lbl, #viewApp .app.dash-open .ds-lbl{ font-size:10.5px; }
+#viewApp .app.dash-open .client-bar{ max-width:1040px; margin:0 auto; width:100%; }
+
+/* ---------- program exercise row (table-style, matches the mockup) ---------- */
+#viewApp .pe-row{ display:flex; align-items:flex-end; gap:10px; flex-wrap:nowrap; }
+#viewApp .pe-name-wrap{ flex:1 1 130px; min-width:100px; padding-bottom:2px; }
+#viewApp .pe-name-wrap .pe-name{ font-size:12px; }
+#viewApp .pe-cat-tag{ font-size:9px; color:var(--text-l); margin-top:1px; text-transform:uppercase; letter-spacing:.03em; }
+#viewApp .pe-field{ width:66px; flex-shrink:0; }
+#viewApp .pe-field label{ font-size:8px; font-weight:700; color:var(--text-l); text-transform:uppercase; letter-spacing:.04em; display:block; margin-bottom:2px; }
+#viewApp .pe-field input{ width:100%; padding:5px 6px; border:1.5px solid var(--sand-d); border-radius:7px; font-size:11px; font-family:'Public Sans',sans-serif; color:var(--text); background:#fff; outline:none; }
+#viewApp .pe-field input:focus{ border-color:var(--ocean-l); }
+#viewApp .pe-more-btn{ margin-top:8px; background:none; border:none; color:var(--ocean); font-size:10.5px; font-weight:600; cursor:pointer; padding:2px 0; font-family:'Public Sans',sans-serif; }
+#viewApp .pe-more-btn:hover{ text-decoration:underline; }
+#viewApp .pe-more-flag{ color:var(--text-l); font-weight:500; text-transform:none; letter-spacing:0; }
+#viewApp .pe-more{ margin-top:8px; padding-top:8px; border-top:1px dashed var(--sand-d); display:flex; flex-direction:column; gap:5px; }
+
+/* ---------- exercise manager: card grid (matches Library mockup) ---------- */
+#viewApp .ex-manager-list{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; max-height:420px; }
+#viewApp .em-card{ display:flex; flex-direction:column; align-items:stretch; gap:0; padding:0; border-radius:12px; overflow:hidden; margin-bottom:0; }
+#viewApp .em-card-thumb{ width:100%; height:74px; border-radius:0; display:flex; align-items:center; justify-content:center; background:var(--ocean-p); }
+#viewApp .em-card-thumb svg, #viewApp .em-card-thumb img{ width:100%; height:100%; object-fit:cover; }
+#viewApp .em-card-info{ padding:8px 10px 2px; }
+#viewApp .em-card-nm{ font-size:12px; }
+#viewApp .em-card-cat{ font-size:10px; }
+#viewApp .em-card-acts{ padding:6px 10px 10px; }
+#viewApp .em-card-acts .btn{ width:100%; justify-content:center; }
 </style>
 </head>
 <body>
@@ -1738,7 +1776,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <div class="side-brand-txt">Beachside EP<span>Practitioner</span></div>
   </div>
   <div class="side-links">
-    <button class="side-link" id="dashBtn" onclick="toggleDashboard()"><span class="sl-ic">&#127968;</span>Dashboard</button>
+    <button class="side-link" id="dashBtn" onclick="toggleDashboard()"><span class="sl-ic">&#128101;</span>Clients</button>
     <button class="side-link" onclick="openM('exMgrM')"><span class="sl-ic">🏋️</span>Exercise Library</button>
     <button class="side-link" onclick="openM('savedM')"><span class="sl-ic">📂</span>Programs</button>
     <button class="side-link" onclick="openM('templatesM')"><span class="sl-ic">&#128196;</span>Templates</button>
@@ -4886,35 +4924,51 @@ function renderDropZone() {
   }
   dz.innerHTML = `<div class="dz-list">${exs.map((ex,i) => `
     <div class="pe${exs[i-1] && exs[i-1].superset ? ' pe-ss-paired' : ''}">
-      <div class="pe-hdr">
+      <div class="pe-row">
         <div class="pe-num">${i+1}</div>
         <div class="pe-thumb">${getIllus(ex.name, ex.cat)}</div>
-        <div class="pe-name">${ex.name}${ex.superset ? '<span class="superset-badge" style="margin-left:6px">SS ↓</span>' : ''}${exs[i-1] && exs[i-1].superset ? '<span class="superset-badge" style="margin-left:6px;background:var(--ocean)">↑ SS</span>' : ''}</div>
+        <div class="pe-name-wrap">
+          <div class="pe-name">${ex.name}${ex.superset ? '<span class="superset-badge" style="margin-left:6px">SS ↓</span>' : ''}${exs[i-1] && exs[i-1].superset ? '<span class="superset-badge" style="margin-left:6px;background:var(--ocean)">↑ SS</span>' : ''}</div>
+          <div class="pe-cat-tag">${ex.cat||''}</div>
+        </div>
+        <div class="pe-field"><label>Sets</label><input type="number" value="${ex.sets}" min="1" max="20" onchange="updEx(${ex.uid},'sets',this.value)"></div>
+        <div class="pe-field"><label>${ex.cat === 'Cardio' ? 'Duration' : 'Reps'}</label><input type="text" value="${ex.reps}" placeholder="${ex.cat === 'Cardio' ? '20 min' : '10-12'}" onchange="updEx(${ex.uid},'reps',this.value)"></div>
+        <div class="pe-field"><label>Hold</label><input type="text" value="${ex.hold}" placeholder="30s" onchange="updEx(${ex.uid},'hold',this.value)"></div>
+        <div class="pe-field"><label>Load</label><input autocomplete="off" type="text" value="${ex.load}" placeholder="kg/band" onchange="updEx(${ex.uid},'load',this.value)"></div>
+        <div class="pe-field"><label>Rest</label><input type="text" value="${ex.rest}" placeholder="60s" onchange="updEx(${ex.uid},'rest',this.value)"></div>
         <div class="pe-ctrl">
-          <button class="mv" onclick="moveEx(${ex.uid},-1)">↑</button>
-          <button class="mv" onclick="moveEx(${ex.uid},1)">↓</button>
+          <button class="mv" onclick="moveEx(${ex.uid},-1)" title="Move up">↑</button>
+          <button class="mv" onclick="moveEx(${ex.uid},1)" title="Move down">↓</button>
           <button class="pe-ss ${ex.superset ? 'ss-active' : ''}" onclick="toggleSuperset('${ex.uid}')" title="Toggle superset with next exercise">SS</button>
-          <button class="rm" onclick="removeEx(${ex.uid})">✕</button>
+          <button class="rm" onclick="removeEx(${ex.uid})" title="Remove exercise">✕</button>
         </div>
       </div>
-      <div class="pe-params">
-        <div class="pp"><label>Sets</label><input type="number" value="${ex.sets}" min="1" max="20" onchange="updEx(${ex.uid},'sets',this.value)"></div>
-        <div class="pp"><label>${ex.cat === 'Cardio' ? 'Duration' : 'Reps'}</label><input type="text" value="${ex.reps}" placeholder="${ex.cat === 'Cardio' ? '20 min' : '10-12'}" onchange="updEx(${ex.uid},'reps',this.value)"></div>
-        <div class="pp"><label>Hold</label><input type="text" value="${ex.hold}" placeholder="30s" onchange="updEx(${ex.uid},'hold',this.value)"></div>
-        <div class="pp"><label>Load</label><input autocomplete="off" type="text" value="${ex.load}" placeholder="kg/band" onchange="updEx(${ex.uid},'load',this.value)"></div>
-        <div class="pp"><label>Rest</label><input type="text" value="${ex.rest}" placeholder="60s" onchange="updEx(${ex.uid},'rest',this.value)"></div>
-      </div>
-      <div class="pe-notes"><label>Technique Notes</label>
-        <input type="text" value="${ex.notes||''}" placeholder="e.g. Keep neutral spine, breathe out on effort" onchange="updEx(${ex.uid},'notes',this.value)">
-      </div>
-      <div class="pe-prog" style="margin-top:3px"><label>Progression / Next Goal</label>
-        <input type="text" value="${ex.progression||''}" placeholder="e.g. Add 2kg when 3x12 is easy" onchange="updEx(${ex.uid},'progression',this.value)">
-      </div>
-      <div class="pe-video" style="margin-top:3px"><label>🎬 Video link (YouTube / Shorts)</label>
-        <input type="text" value="${ex.videoUrl||''}" placeholder="Paste a YouTube or Shorts link" oninput="updExVideo(${ex.uid},this.value)" onchange="updExVideo(${ex.uid},this.value)" onblur="flushExVideo(${ex.uid},this.value)" style="direction:ltr">
-        <span id="vidok_${ex.uid}" style="font-size:11px;color:${ex.videoUrl && ytVideoId(ex.videoUrl) ? '#2FD4F5' : (ex.videoUrl ? '#e06a5a' : '#8B98A5')}">${ex.videoUrl ? (ytVideoId(ex.videoUrl) ? '✓ Video attached to this exercise' : '⚠ Not a valid YouTube link') : 'Optional — attaches directly to this exercise'}</span>
+      <button type="button" class="pe-more-btn" onclick="pgToggleMore(this)"><span class="pe-more-arrow">▾</span> Notes, progression &amp; video${(ex.notes||ex.progression||ex.videoUrl) ? '<span class="pe-more-flag">&nbsp;· added</span>' : ''}</button>
+      <div class="pe-more" style="display:none">
+        <div class="pe-notes"><label>Technique Notes</label>
+          <input type="text" value="${ex.notes||''}" placeholder="e.g. Keep neutral spine, breathe out on effort" onchange="updEx(${ex.uid},'notes',this.value)">
+        </div>
+        <div class="pe-prog" style="margin-top:3px"><label>Progression / Next Goal</label>
+          <input type="text" value="${ex.progression||''}" placeholder="e.g. Add 2kg when 3x12 is easy" onchange="updEx(${ex.uid},'progression',this.value)">
+        </div>
+        <div class="pe-video" style="margin-top:3px"><label>🎬 Video link (YouTube / Shorts)</label>
+          <input type="text" value="${ex.videoUrl||''}" placeholder="Paste a YouTube or Shorts link" oninput="updExVideo(${ex.uid},this.value)" onchange="updExVideo(${ex.uid},this.value)" onblur="flushExVideo(${ex.uid},this.value)" style="direction:ltr">
+          <span id="vidok_${ex.uid}" style="font-size:11px;color:${ex.videoUrl && ytVideoId(ex.videoUrl) ? '#2FD4F5' : (ex.videoUrl ? '#e06a5a' : '#8B98A5')}">${ex.videoUrl ? (ytVideoId(ex.videoUrl) ? '✓ Video attached to this exercise' : '⚠ Not a valid YouTube link') : 'Optional — attaches directly to this exercise'}</span>
+        </div>
       </div>
     </div>`).join('')}</div>`;
+}
+
+// Expand/collapse the Notes/Progression/Video block under a program
+// exercise row. Introduced with the table-style exercise row layout so
+// those less-frequently-used fields don't crowd the sets/reps/load row.
+function pgToggleMore(btn) {
+  var box = btn.parentElement ? btn.parentElement.querySelector('.pe-more') : null;
+  if (!box) return;
+  var open = box.style.display !== 'none';
+  box.style.display = open ? 'none' : 'flex';
+  var arrow = btn.querySelector('.pe-more-arrow');
+  if (arrow) arrow.textContent = open ? '▾' : '▴';
 }
 
 // ══════════════════════════════════════
@@ -10586,7 +10640,16 @@ function toggleDashboard() {
   var showing = p.style.display !== 'none' && p.style.display !== '';
   p.style.display = showing ? 'none' : 'block';
   if (btn) btn.classList.toggle('active', !showing);
+  // Dashboard is a full page: hide the library/preview columns and any
+  // open client program while it's showing, matching the standalone
+  // Dashboard screen in the redesign (rather than a panel squeezed above
+  // the usual 3-column workspace). Closing it (incl. picking a client
+  // from the list, which calls selectClient() then toggleDashboard())
+  // just restores the normal workspace.
+  var appEl = document.querySelector('#viewApp .app');
+  if (appEl) appEl.classList.toggle('dash-open', !showing);
   if (!showing) {
+    var cd = document.getElementById('clientDetails'); if (cd) cd.style.display = 'none';
     // Populate dashboard with client list
     var stats = document.getElementById('dashStats');
     var list = document.getElementById('dashList');
