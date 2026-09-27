@@ -9001,23 +9001,39 @@ function cvTodayKey(offsetDays) {
   return d.toISOString().slice(0, 10);
 }
 
-// A day counts as "complete" toward the streak once at least 3 of the 4
-// habits are satisfied (water at/above target counts as satisfied).
-function cvHabitDayComplete(dayData) {
-  if (!dayData) return false;
+// Merges a client's per-habit overrides (custom target, or disabled) onto the
+// fixed default habit list. prefs looks like { water: {target:10}, movement: {enabled:false} }.
+function cvGetHabitDefs(prefs) {
+  prefs = prefs || {};
+  return HABIT_DEFS.map(function(h) {
+    var p = prefs[h.key] || {};
+    var merged = {};
+    for (var k in h) merged[k] = h[k];
+    if (p.target) merged.target = p.target;
+    merged.enabled = p.enabled !== false;
+    return merged;
+  }).filter(function(h) { return h.enabled; });
+}
+
+// A day counts as "complete" toward the streak once at least 3/4 of that
+// client's active habits are satisfied (water at/above target counts as satisfied).
+function cvHabitDayComplete(dayData, defs) {
+  defs = defs || HABIT_DEFS;
+  if (!dayData || !defs.length) return false;
   var met = 0;
-  HABIT_DEFS.forEach(function(h) {
+  defs.forEach(function(h) {
     if (h.type === 'counter') { if ((dayData[h.key] || 0) >= h.target) met++; }
     else if (dayData[h.key]) met++;
   });
-  return met >= 3;
+  return met >= Math.ceil(defs.length * 0.75);
 }
 
 function cvHabitStreak() {
+  var defs = cvGetHabitDefs(cvData && cvData.habitPrefs);
   var streak = 0;
   for (var i = 0; i < 90; i++) {
     var key = cvTodayKey(-i);
-    if (cvHabitDayComplete(cvHabitsData[key])) streak++;
+    if (cvHabitDayComplete(cvHabitsData[key], defs)) streak++;
     else if (i === 0) continue; // today not finished yet shouldn't zero out yesterday's streak
     else break;
   }
@@ -9035,7 +9051,9 @@ function cvToggleHabit(key) {
 function cvLogWater(delta) {
   var today = cvTodayKey();
   if (!cvHabitsData[today]) cvHabitsData[today] = {};
-  var target = HABIT_DEFS[0].target;
+  var defs = cvGetHabitDefs(cvData && cvData.habitPrefs);
+  var waterDef = defs.find(function(d) { return d.key === 'water'; });
+  var target = waterDef ? waterDef.target : HABIT_DEFS[0].target;
   cvHabitsData[today].water = Math.max(0, Math.min(target, (cvHabitsData[today].water || 0) + delta));
   cvSaveHabits();
   renderCVHabits();
@@ -9075,6 +9093,7 @@ function renderCVHabits() {
   var today = cvTodayKey();
   var todayData = cvHabitsData[today] || {};
   var streak = cvHabitStreak();
+  var myHabitDefs = cvGetHabitDefs(cvData && cvData.habitPrefs);
 
   var h = '';
 
@@ -9087,7 +9106,7 @@ function renderCVHabits() {
   // ── Today's habits ──
   h += '<div style="font-size:11px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Today\'s habits</div>';
   h += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">';
-  HABIT_DEFS.forEach(function(hab) {
+  myHabitDefs.forEach(function(hab) {
     if (hab.type === 'counter') {
       var val = todayData[hab.key] || 0;
       var done = val >= hab.target;
@@ -9125,11 +9144,11 @@ function renderCVHabits() {
     var dKey = cvTodayKey(-i);
     var dData = cvHabitsData[dKey] || {};
     var met = 0;
-    HABIT_DEFS.forEach(function(hb) {
+    myHabitDefs.forEach(function(hb) {
       if (hb.type === 'counter') { if ((dData[hb.key] || 0) >= hb.target) met++; }
       else if (dData[hb.key]) met++;
     });
-    var pct = Math.round((met / HABIT_DEFS.length) * 100);
+    var pct = myHabitDefs.length ? Math.round((met / myHabitDefs.length) * 100) : 0;
     var barH = Math.max(4, pct * 0.36);
     var isToday = i === 0;
     var dow = new Date(dKey + 'T00:00:00').getDay();
@@ -11712,7 +11731,7 @@ function openLifestyleModal() {
   if (content) {
     content.onclick = function(e) {
       var row = e.target.closest('.lifestyle-row');
-      if (row && row.dataset.cid) selectClientById(row.dataset.cid);
+      if (row && row.dataset.cid) renderLifestyleClientDetail(row.dataset.cid);
     };
   }
 }
@@ -11725,13 +11744,14 @@ function renderLifestyleTab() {
 
   var rows = activeClients.map(function(cl) {
     var hd = cl.habitsData || {};
+    var defs = cvGetHabitDefs(cl.habitPrefs);
     var completeDays = 0, lastLog = null, anyLogged = false;
     for (var i = 0; i < 7; i++) {
       var key = cvTodayKey(-i);
       if (hd[key]) {
         anyLogged = true;
         if (!lastLog) lastLog = key;
-        if (cvHabitDayComplete(hd[key])) completeDays++;
+        if (cvHabitDayComplete(hd[key], defs)) completeDays++;
       }
     }
     var pct = Math.round((completeDays / 7) * 100);
@@ -11739,7 +11759,7 @@ function renderLifestyleTab() {
     var streak = 0;
     for (var s = 0; s < 90; s++) {
       var sKey = cvTodayKey(-s);
-      if (cvHabitDayComplete(hd[sKey])) streak++;
+      if (cvHabitDayComplete(hd[sKey], defs)) streak++;
       else if (s === 0) continue;
       else break;
     }
@@ -11769,10 +11789,11 @@ function renderLifestyleTab() {
   var clientRows = rows.map(function(r) {
     var pctCol = !r.anyLogged ? '#8B949E' : r.pct >= 70 ? '#5BBFAA' : r.pct >= 40 ? '#f59e0b' : '#ef4444';
     var statusText = !r.anyLogged ? 'Not started' : r.daysSinceLog === 0 ? 'Logged today' : r.daysSinceLog === 1 ? 'Logged yesterday' : r.daysSinceLog + 'd since last log';
+    var noteCount = (r.cl.habitNotes || []).length;
     return '<div data-cid="'+r.cl.id+'" class="lifestyle-row" style="border-bottom:1px solid #1F2A33;cursor:pointer;display:grid;grid-template-columns:1.6fr 110px 90px 130px;align-items:center;padding:12px 16px">' +
       '<div>' +
         '<div style="font-size:14px;font-weight:700;color:#FFFFFF">'+r.cl.first+' '+r.cl.last+'</div>' +
-        '<div style="font-size:12.5px;color:#8B949E;margin-top:2px">'+statusText+(r.streak>0?' · &#128293; '+r.streak+'d streak':'')+'</div>' +
+        '<div style="font-size:12.5px;color:#8B949E;margin-top:2px">'+statusText+(r.streak>0?' · &#128293; '+r.streak+'d streak':'')+(noteCount?' · &#128221; '+noteCount:'')+'</div>' +
       '</div>' +
       '<div style="text-align:center">' +
         (r.anyLogged ?
@@ -11786,7 +11807,7 @@ function renderLifestyleTab() {
 
   var html =
     '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:14px">'+summaryCards+'</div>' +
-    '<div style="font-size:12.5px;color:#8B949E;margin-bottom:14px;line-height:1.5">Habit tracking is manual for now — clients tick off water, movement, mindfulness &amp; wind-down themselves in the app. Apple Health &amp; Android Health auto-sync is planned once we have an iOS/Android app.</div>' +
+    '<div style="font-size:12.5px;color:#8B949E;margin-bottom:14px;line-height:1.5">Habit tracking is manual for now — clients tick off water, movement, mindfulness &amp; wind-down themselves in the app, or you can log for them below. Apple Health &amp; Android Health auto-sync is planned once we have an iOS/Android app. Click a client to log a habit, adjust their targets, or add a note.</div>' +
     '<div style="background:#12181D;border-radius:10px;overflow:hidden;border:1px solid #1F2A33">' +
     '<div style="display:grid;grid-template-columns:1.6fr 110px 90px 130px;padding:10px 16px;border-bottom:1px solid #1F2A33;background:#0D1A24">' +
     '<div style="font-size:13px;font-weight:700;color:#FFFFFF;text-transform:uppercase;letter-spacing:.07em">Client</div>' +
@@ -11796,6 +11817,149 @@ function renderLifestyleTab() {
     '</div>'+clientRows+'</div>';
 
   el.innerHTML = html;
+}
+
+function llSaveClient(cl) {
+  var idx = clients.findIndex(function(c) { return c.id === cl.id; });
+  if (idx !== -1) clients[idx] = cl;
+  if (typeof saveDB === 'function') saveDB();
+  pushClientToCloud(JSON.parse(JSON.stringify(cl)));
+}
+
+function llToggleHabitFor(cid, key) {
+  var cl = clients.find(function(c) { return c.id === cid; });
+  if (!cl) return;
+  var today = cvTodayKey();
+  if (!cl.habitsData) cl.habitsData = {};
+  if (!cl.habitsData[today]) cl.habitsData[today] = {};
+  cl.habitsData[today][key] = !cl.habitsData[today][key];
+  llSaveClient(cl);
+  renderLifestyleClientDetail(cid);
+}
+
+function llLogWaterFor(cid, delta) {
+  var cl = clients.find(function(c) { return c.id === cid; });
+  if (!cl) return;
+  var today = cvTodayKey();
+  if (!cl.habitsData) cl.habitsData = {};
+  if (!cl.habitsData[today]) cl.habitsData[today] = {};
+  var defs = cvGetHabitDefs(cl.habitPrefs);
+  var waterDef = defs.find(function(d) { return d.key === 'water'; });
+  var target = waterDef ? waterDef.target : HABIT_DEFS[0].target;
+  cl.habitsData[today].water = Math.max(0, Math.min(target, (cl.habitsData[today].water || 0) + delta));
+  llSaveClient(cl);
+  renderLifestyleClientDetail(cid);
+}
+
+function llSaveTargetsFor(cid) {
+  var cl = clients.find(function(c) { return c.id === cid; });
+  if (!cl) return;
+  if (!cl.habitPrefs) cl.habitPrefs = {};
+  HABIT_DEFS.forEach(function(h) {
+    if (!cl.habitPrefs[h.key]) cl.habitPrefs[h.key] = {};
+    if (h.type === 'counter') {
+      var inp = document.getElementById('llTarget_' + h.key);
+      var v = inp ? parseInt(inp.value, 10) : NaN;
+      if (!isNaN(v) && v > 0) cl.habitPrefs[h.key].target = v;
+    }
+    var chk = document.getElementById('llEnabled_' + h.key);
+    if (chk) cl.habitPrefs[h.key].enabled = chk.checked;
+  });
+  llSaveClient(cl);
+  renderLifestyleClientDetail(cid);
+  toast('Habit targets updated', 'ok');
+}
+
+function llAddNoteFor(cid) {
+  var cl = clients.find(function(c) { return c.id === cid; });
+  if (!cl) return;
+  var inp = document.getElementById('llNoteInput');
+  var text = inp ? inp.value.trim() : '';
+  if (!text) return;
+  if (!cl.habitNotes) cl.habitNotes = [];
+  cl.habitNotes.push({ date: new Date().toLocaleString('en-AU', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}), text: text });
+  llSaveClient(cl);
+  renderLifestyleClientDetail(cid);
+}
+
+function renderLifestyleClientDetail(cid) {
+  var el = document.getElementById('lifestyleContent');
+  if (!el) return;
+  var cl = clients.find(function(c) { return c.id === cid; });
+  if (!cl) { renderLifestyleTab(); return; }
+
+  var today = cvTodayKey();
+  var todayData = (cl.habitsData || {})[today] || {};
+  var defs = cvGetHabitDefs(cl.habitPrefs);
+
+  var h = '<div onclick="renderLifestyleTab()" style="cursor:pointer;font-size:12.5px;font-weight:600;color:#2FD4F5;margin-bottom:14px">&#8592; All clients</div>';
+  h += '<div style="font-size:16px;font-weight:700;color:#FFFFFF;margin-bottom:2px">'+cl.first+' '+cl.last+'</div>';
+  h += '<div style="font-size:12.5px;color:#8B949E;margin-bottom:18px">Today, logged on their behalf shows up in their app immediately.</div>';
+
+  // ── Today's habits (practitioner-operated) ──
+  h += '<div style="font-size:11px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Log for today</div>';
+  h += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">';
+  HABIT_DEFS.forEach(function(hab) {
+    var activeDef = defs.find(function(d) { return d.key === hab.key; });
+    var isEnabled = !!activeDef;
+    var target = activeDef ? activeDef.target : hab.target;
+    if (hab.type === 'counter') {
+      var val = todayData[hab.key] || 0;
+      h += '<div style="display:flex;align-items:center;gap:12px;background:#0D1A24;border:1px solid #1F2A33;border-radius:12px;padding:10px 12px;opacity:'+(isEnabled?'1':'.5')+'">' +
+        '<div style="font-size:15px;flex-shrink:0">' + hab.icon + '</div>' +
+        '<div style="flex-grow:1;font-size:13px;font-weight:600;color:#FFFFFF">' + hab.label + ' — ' + val + ' / ' + target + ' ' + hab.unit + (isEnabled?'':' (off for this client)') + '</div>' +
+        '<button onclick="llLogWaterFor(\''+cid+'\',-1)" '+(isEnabled?'':'disabled')+' style="width:26px;height:26px;border-radius:50%;border:1px solid #1F2A33;background:#162026;color:#C9D1D9;font-size:14px;cursor:pointer">&minus;</button>' +
+        '<button onclick="llLogWaterFor(\''+cid+'\',1)" '+(isEnabled?'':'disabled')+' style="width:26px;height:26px;border-radius:50%;border:none;background:#2FD4F5;color:#04232B;font-size:14px;font-weight:700;cursor:pointer">+</button>' +
+        '</div>';
+    } else {
+      var isDone = !!todayData[hab.key];
+      h += '<div onclick="'+(isEnabled?'llToggleHabitFor(\''+cid+'\',\''+hab.key+'\')':'')+'" style="display:flex;align-items:center;gap:12px;background:#0D1A24;border:1px solid #1F2A33;border-radius:12px;padding:10px 12px;cursor:'+(isEnabled?'pointer':'default')+';opacity:'+(isEnabled?'1':'.5')+'">' +
+        '<div style="font-size:15px;flex-shrink:0">' + hab.icon + '</div>' +
+        '<div style="flex-grow:1;font-size:13px;font-weight:600;color:#FFFFFF">' + hab.label + (isEnabled?'':' (off for this client)') + '</div>' +
+        '<div style="width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;font-weight:700;' +
+        (isDone ? 'background:#5BBFAA;color:#04232B' : 'background:#12181D;border:1.5px solid #1F2A33;color:#8B949E') + '">' + (isDone ? '&#10003;' : '') + '</div>' +
+        '</div>';
+    }
+  });
+  h += '</div>';
+
+  // ── Habit targets for this client ──
+  h += '<div style="font-size:11px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Habit targets for this client</div>';
+  h += '<div style="background:#0D1A24;border:1px solid #1F2A33;border-radius:12px;padding:12px;margin-bottom:20px;display:flex;flex-direction:column;gap:10px">';
+  HABIT_DEFS.forEach(function(hab) {
+    var p = (cl.habitPrefs || {})[hab.key] || {};
+    var enabled = p.enabled !== false;
+    h += '<div style="display:flex;align-items:center;gap:10px">' +
+      '<label style="display:flex;align-items:center;gap:6px;flex-grow:1;font-size:12.5px;color:#C9D1D9;cursor:pointer">' +
+      '<input type="checkbox" id="llEnabled_'+hab.key+'" '+(enabled?'checked':'')+' style="accent-color:#2FD4F5">' + hab.label + '</label>';
+    if (hab.type === 'counter') {
+      h += '<input type="number" id="llTarget_'+hab.key+'" value="'+(p.target || hab.target)+'" min="1" style="width:56px;background:#12181D;border:1px solid #1F2A33;border-radius:6px;color:#FFFFFF;padding:5px 8px;font-size:12.5px">' +
+        '<span style="font-size:11px;color:#8B949E">'+hab.unit+'</span>';
+    }
+    h += '</div>';
+  });
+  h += '<button onclick="llSaveTargetsFor(\''+cid+'\')" style="align-self:flex-start;background:#2FD4F5;color:#04232B;border:none;border-radius:8px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer;margin-top:4px">Save targets</button>';
+  h += '</div>';
+
+  // ── Notes ──
+  h += '<div style="font-size:11px;font-weight:700;color:#8B949E;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Notes</div>';
+  h += '<div style="display:flex;gap:8px;margin-bottom:12px">' +
+    '<input type="text" id="llNoteInput" placeholder="Add a note about their lifestyle…" style="flex-grow:1;background:#0D1A24;border:1px solid #1F2A33;border-radius:8px;color:#FFFFFF;padding:8px 10px;font-size:12.5px" onkeydown="if(event.key===\'Enter\'){llAddNoteFor(\''+cid+'\')}">' +
+    '<button onclick="llAddNoteFor(\''+cid+'\')" style="background:#162026;border:1px solid #1F2A33;color:#C9D1D9;border-radius:8px;padding:8px 14px;font-size:12.5px;font-weight:600;cursor:pointer">Add</button></div>';
+  var notes = (cl.habitNotes || []).slice().reverse();
+  if (notes.length) {
+    h += '<div style="display:flex;flex-direction:column;gap:8px">';
+    notes.forEach(function(n) {
+      h += '<div style="background:#0D1A24;border:1px solid #1F2A33;border-radius:10px;padding:10px 12px">' +
+        '<div style="font-size:12.5px;color:#FFFFFF;line-height:1.5">'+String(n.text).replace(/</g,'&lt;')+'</div>' +
+        '<div style="font-size:10.5px;color:#8B949E;margin-top:4px">'+n.date+'</div></div>';
+    });
+    h += '</div>';
+  } else {
+    h += '<div style="font-size:12px;color:#8B949E">No notes yet.</div>';
+  }
+
+  el.innerHTML = h;
 }
 
 function selectClientById(id) {
