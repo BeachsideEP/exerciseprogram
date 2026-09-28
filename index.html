@@ -1852,14 +1852,6 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 
 <!-- CENTRE -->
 <div class="col col-mid">
-  <div class="dash-panel" id="dashPanel">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-      <div class="dash-title" style="margin-bottom:0">&#128101; All Clients</div>
-      <button class="btn btn-outline btn-sm" onclick="openM('announceM')">&#128226; Announcements</button>
-    </div>
-    <div class="dash-grid" id="dashStats"></div>
-    <div id="dashList"></div>
-  </div>
   <div class="client-bar">
     <button class="btn btn-outline btn-sm" id="backToClientsBtn" onclick="toggleDashboard()" title="Back to the Clients dashboard">&#8592; Clients</button>
     <div class="client-search-wrap">
@@ -1875,6 +1867,14 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <select id="clientSel" onchange="selectClient()" style="display:none"><option value="">— Select —</option></select>
     <button class="btn btn-primary btn-sm" onclick="openM('newClientM')">+ New</button>
     <button class="btn btn-outline btn-sm" id="editClientBtn" onclick="openM('editClientM')" style="display:none">&#9998; Edit</button>
+  </div>
+  <div class="dash-panel" id="dashPanel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div class="dash-title" style="margin-bottom:0">&#128101; All Clients</div>
+      <button class="btn btn-outline btn-sm" onclick="openM('announceM')">&#128226; Announcements</button>
+    </div>
+    <div class="dash-grid" id="dashStats"></div>
+    <div id="dashList"></div>
   </div>
   <div id="clientDetails" style="display:none">
     <div class="prog-tabs-bar">
@@ -6342,6 +6342,9 @@ async function syncClients() {
 // ── CLIENT VIEW STATE ──
 var cvWkMode = 'list'; // workouts tab: 'list' (program launcher) | 'active' (session view)
 var cvData = null, cvProgIdx = 0, cvState = {}, cvFeeling = '', cvSafetyDone = false, cvComment = '', cvCustomWorkout = false, cvCustomExercises = [], cvRPE = 5, cvActiveTab = 'home', cvSyncUser = null, cvSyncInterval = null;
+// Program list (expandable accordion): which program row is expanded ('auto' = default to the in-progress one, if any),
+// and which exercise index to scroll to + highlight the next time the active session renders (set by cvGoToExercise).
+var cvExpandedProgIdx = 'auto', cvScrollToExIdx = null;
 
 async function loadClientView(user) {
   // Show loading state in home tab only — never write to cvBody (workouts tab) here
@@ -6618,7 +6621,7 @@ function renderCV() {
     const allDone = tickedSets >= sets;
     const isOpen = true; // always open
 
-    h += '<div class="cv-ex-card' + (allDone ? ' done' : '') + '">';
+    h += '<div class="cv-ex-card' + (allDone ? ' done' : '') + '" id="cvExCard' + i + '">';
     // White card header - thumbnail + name clickable to open detail
     var thumbHTML = getExIllusStr(ex);
     var isCardioEx = ex.cat === 'Cardio';
@@ -6808,6 +6811,22 @@ function renderCV() {
   // Force select to show correct program selected
   var _progSel = document.getElementById('cvProgSel');
   if (_progSel && !cvCustomWorkout) _progSel.value = 'prog_' + cvProgIdx;
+  // Jump straight to a specific exercise if requested (tapping an exercise
+  // name in the expandable program list, via cvGoToExercise) — scroll to its
+  // card and give it a brief highlight so it's obvious where you landed.
+  if (cvScrollToExIdx != null) {
+    var _scrollIdx = cvScrollToExIdx;
+    cvScrollToExIdx = null;
+    var _exCard = document.getElementById('cvExCard' + _scrollIdx);
+    if (_exCard) {
+      setTimeout(function() {
+        _exCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        _exCard.style.transition = 'box-shadow .3s';
+        _exCard.style.boxShadow = '0 0 0 2px #2FD4F5';
+        setTimeout(function(){ _exCard.style.boxShadow = ''; }, 1400);
+      }, 60);
+    }
+  }
 }
 
 function cvSaveState() {
@@ -9395,7 +9414,6 @@ function renderCVHome() {
     }
     h += qbtn('&#128170;', 'My Workouts', "cvSwitchTab('workouts')", true);
     h += qbtn('&#128197;', 'Book a Class', "cvOpenClasses()", false);
-    h += qbtn('&#128172;', 'Message Clinic', "cvSwitchTab('messages')", false);
     h += qbtn('&#10084;', 'Health Check-in', "openHealthReview()", false);
     h += qbtn('&#128200;', 'My Progress', "cvOpenProgress()", false);
     h += '</div>';
@@ -10526,18 +10544,20 @@ function renderCVProgramList() {
     body.innerHTML = '<div class="cv-empty"><div class="cv-empty-icon">&#127945;</div><p>No active programs. Your practitioner will assign one soon.</p></div>';
     return;
   }
+  // Which row is expanded: 'auto' defaults to whichever program is currently
+  // in progress (matches the old grid's amber "resume" highlight); once the
+  // client taps a chevron, cvToggleProgExpand pins it to an explicit index/null.
+  var expandIdx = cvExpandedProgIdx;
+  if (expandIdx === 'auto') expandIdx = (hasState && !cvCustomWorkout) ? cvProgIdx : null;
   var h = '<div style="padding:4px 2px 20px">';
   h += '<div style="font-size:26px;font-weight:800;color:#FFFFFF;margin:4px 0 2px;font-family:Georgia,serif">Start Workout</div>';
   h += '<div style="font-size:13px;color:#8B98A5;margin-bottom:16px">Tap a program to begin</div>';
   h += '<div style="font-size:12px;font-weight:700;color:#8B98A5;letter-spacing:.06em;margin-bottom:8px">MY PROGRAMS (' + activeCount + ')</div>';
-  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+  h += '<div style="display:flex;flex-direction:column;gap:8px">';
   cvData.programs.forEach(function(p, i) {
     if (p.archived) return; // hidden from clients; history still feeds charts/stats
     var resume = hasState && !cvCustomWorkout && i === cvProgIdx;
-    var exs = (p.exercises || []).map(function(e){ return e.name; }).filter(Boolean);
-    var preview = exs.slice(0, 3).join(', ');
-    if (exs.length > 3) preview += ' &amp; ' + (exs.length - 3) + ' more&hellip;';
-    if (!preview) preview = 'No exercises yet';
+    var exs = p.exercises || [];
     var lastDate = '';
     // Client-submitted entries first (incl. legacy ones that predate the
     // clientSubmitted flag but carry clinician:'Client')...
@@ -10545,19 +10565,65 @@ function renderCVProgramList() {
     // ...otherwise ANY dated log entry counts (e.g. in-clinic sessions).
     if (!lastDate) (p.log || []).forEach(function(e) { if (e && e.date) lastDate = e.date; });
     var ago = lastDate ? cvDaysAgoLabel(lastDate) : '';
-    h += '<div onclick="cvStartProgram(' + i + ')" style="background:#12181D;border:1px solid ' + (resume ? '#F4B942' : '#1F2A33') + ';border-radius:14px;padding:14px;cursor:pointer">';
-    h += '<div style="font-size:15px;font-weight:800;color:#FFFFFF;line-height:1.25;margin-bottom:6px">' + (p.title || 'Program ' + (i+1)) + '</div>';
-    if (resume) h += '<div style="display:inline-block;background:#F4B94222;border:1px solid #F4B942;color:#F4B942;font-size:10px;font-weight:700;border-radius:10px;padding:1px 8px;margin-bottom:6px">&#9654; In progress &mdash; tap to resume</div>';
-    h += '<div style="font-size:12px;color:#8B98A5;line-height:1.5">' + preview + '</div>';
-    h += '<div style="font-size:11px;color:#5A6B78;margin-top:8px">' + (ago ? '&#128337; ' + ago : 'Not started yet') + '</div>';
+    var isOpen = expandIdx === i;
+    h += '<div style="background:#12181D;border:1px solid ' + (resume ? '#F4B942' : '#1F2A33') + ';border-radius:14px;overflow:hidden">';
+    h += '<div onclick="cvToggleProgExpand(' + i + ')" style="display:flex;align-items:center;gap:10px;padding:13px 14px;cursor:pointer">';
+    h += '<div style="flex-grow:1;min-width:0">';
+    h += '<div style="font-size:14.5px;font-weight:700;color:#FFFFFF">' + (p.title || 'Program ' + (i+1)) + '</div>';
+    if (resume) {
+      h += '<div style="display:inline-block;margin-top:4px;background:#F4B94222;border:1px solid #F4B942;color:#F4B942;font-size:9.5px;font-weight:700;border-radius:8px;padding:1px 7px">&#9654; In progress &mdash; tap to resume</div>';
+    } else {
+      h += '<div style="font-size:11.5px;color:#8B98A5;margin-top:2px">' + exs.length + ' exercise' + (exs.length === 1 ? '' : 's') + (ago ? ' &middot; ' + ago : (exs.length ? ' &middot; Not started yet' : '')) + '</div>';
+    }
     h += '</div>';
+    h += '<div style="color:#5A6B78;font-size:15px;font-weight:700;transform:rotate(' + (isOpen ? '90deg' : '0deg') + ');transition:transform .15s;flex-shrink:0">&#8250;</div>';
+    h += '</div>'; // end header row
+    if (isOpen) {
+      h += '<div style="border-top:1px solid #1F2A33;padding:6px 8px 10px">';
+      if (!exs.length) {
+        h += '<div style="padding:10px 6px;font-size:12px;color:#5A6B78">No exercises yet</div>';
+      } else {
+        exs.forEach(function(ex, xi) {
+          var _sets = parseInt(ex.sets) || 3;
+          var _isCardio = ex.cat === 'Cardio';
+          var _setsLbl = _isCardio ? (ex.reps || '') : (_sets + ' sets' + (ex.reps ? ' &times; ' + String(ex.reps).replace(/ ?each ?/gi,'').replace(/ ?each side ?/gi,'') : ''));
+          h += '<div onclick="event.stopPropagation();cvGoToExercise(' + i + ',' + xi + ')" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;cursor:pointer">';
+          h += '<div style="width:26px;height:26px;border-radius:7px;background:#1F2A33;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#5BBFAA">&#9654;</div>';
+          h += '<div style="flex-grow:1;font-size:13px;color:#E6E9EC">' + (ex.name || 'Exercise') + '</div>';
+          h += '<div style="font-size:11px;color:#5A6B78">' + _setsLbl + '</div>';
+          h += '</div>';
+        });
+      }
+      h += '<button onclick="event.stopPropagation();cvStartProgram(' + i + ')" style="width:100%;box-sizing:border-box;margin-top:6px;padding:10px;border-radius:10px;border:1px solid #2FD4F5;background:transparent;color:#2FD4F5;font-size:13px;font-weight:700;cursor:pointer">' + (resume ? 'Resume Program' : 'Start Program') + '</button>';
+      h += '</div>';
+    }
+    h += '</div>'; // end card
   });
   h += '</div>';
   h += '<button onclick="cvStartCustomFromList()" style="width:100%;box-sizing:border-box;margin-top:14px;padding:13px;border-radius:12px;border:1px solid #1F2A33;background:#12181D;color:#2FD4F5;font-size:14px;font-weight:700;cursor:pointer">&#127947; Build Your Own Workout</button>';
   h += '</div>';
   body.innerHTML = h;
 }
+function cvToggleProgExpand(i) {
+  var cur = cvExpandedProgIdx;
+  if (cur === 'auto') {
+    var hasState = cvState && Object.keys(cvState).length > 0;
+    cur = (hasState && !cvCustomWorkout) ? cvProgIdx : null;
+  }
+  cvExpandedProgIdx = (cur === i) ? null : i;
+  renderCVProgramList();
+}
 function cvStartProgram(i) {
+  var resuming = (i === cvProgIdx) && !cvCustomWorkout && cvState && Object.keys(cvState).length > 0;
+  cvWkMode = 'active';
+  if (resuming) { renderCV(); cvStartTimer(); cvSaveSession(); return; }
+  cvSelectProg('prog_' + i); // resets state + timer, renders, persists position
+}
+function cvGoToExercise(i, exIdx) {
+  // "Tap an exercise to go straight into the session" — same as starting/
+  // resuming the program, but also tells renderCV() to scroll to and
+  // highlight that exercise's card once the session view renders.
+  cvScrollToExIdx = exIdx;
   var resuming = (i === cvProgIdx) && !cvCustomWorkout && cvState && Object.keys(cvState).length > 0;
   cvWkMode = 'active';
   if (resuming) { renderCV(); cvStartTimer(); cvSaveSession(); return; }
