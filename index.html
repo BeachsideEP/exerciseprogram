@@ -289,6 +289,11 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 /* CLIENT VIEW */
 #viewClient{min-height:100vh;background:#0B0F12}
 .cv-header{background:var(--ocean-deep);color:#fff;padding:0 16px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+/* Sticky in-session bar ("‹ My Workouts" + program name): pinned just below
+   the main header (which is already sticky) so you never lose your way back
+   while scrolling through a long exercise list. Full-bleed dark background
+   so exercise cards don't show through as they scroll underneath it. */
+.cv-sesh-bar{position:sticky;top:52px;z-index:90;background:#0B0F12;margin:0 -10px 12px;padding:10px 10px 8px;box-shadow:0 6px 10px -6px rgba(0,0,0,.5)}
 .cv-logo{display:flex;align-items:center;gap:9px}
 .cv-logo img{height:34px;width:34px;border-radius:50%;object-fit:contain}
 .cv-logo-text{font-family:Georgia,serif;font-size:13px;color:#fff}
@@ -437,6 +442,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   #viewClient .cv-feel{padding:9px 13px;font-size:13px;min-height:44px;display:flex;align-items:center}
   #viewClient .cv-submit{padding:16px;font-size:16px;border-radius:10px}
   #viewClient .cv-header{height:54px;padding:0 14px}
+  #viewClient .cv-sesh-bar{top:54px}
   #viewClient .cv-logo-text{font-size:14px}
   #viewClient .cv-prog-sel select{font-size:14px;padding:9px 10px}
 }
@@ -6544,7 +6550,7 @@ function renderCV() {
   if (cvData && cvData.requireSafetyCheck === false) cvSafetyDone = true;
   // Check custom workout mode FIRST before any cvData checks
   if (cvCustomWorkout) {
-    var _bkBar = '<div style="display:flex;align-items:center;gap:10px;margin:2px 0 12px"><button onclick="cvBackToPrograms()" style="background:#12181D;border:1px solid #1F2A33;color:#C9D1D9;font-size:13px;font-weight:700;cursor:pointer;border-radius:10px;padding:8px 12px;flex-shrink:0">&#8249; My Workouts</button><div style="flex:1;font-size:16px;font-weight:800;color:#FFFFFF">Build Your Own</div></div>';
+    var _bkBar = '<div class="cv-sesh-bar" style="display:flex;align-items:center;gap:10px"><button onclick="cvBackToPrograms()" style="background:#12181D;border:1px solid #1F2A33;color:#C9D1D9;font-size:13px;font-weight:700;cursor:pointer;border-radius:10px;padding:8px 12px;flex-shrink:0">&#8249; My Workouts</button><div style="flex:1;font-size:16px;font-weight:800;color:#FFFFFF">Build Your Own</div></div>';
     document.getElementById('cvBody').innerHTML = _bkBar + renderCVCustomWorkout();
     var _progSel = document.getElementById('cvProgSel');
     if (_progSel) _progSel.value = 'custom';
@@ -6585,8 +6591,9 @@ function renderCV() {
   }
   h += '</div>'; } // end showSafety
 
-  // ── Back to programs bar (replaces the old program dropdown) ──
-  h += '<div style="display:flex;align-items:center;gap:10px;margin:2px 0 12px">';
+  // ── Back to programs bar (replaces the old program dropdown) — sticky, so
+  // it stays put just under the main header while you scroll the exercise list ──
+  h += '<div class="cv-sesh-bar" style="display:flex;align-items:center;gap:10px">';
   h += '<button onclick="cvBackToPrograms()" style="background:#12181D;border:1px solid #1F2A33;color:#C9D1D9;font-size:13px;font-weight:700;cursor:pointer;border-radius:10px;padding:8px 12px;flex-shrink:0">&#8249; My Workouts</button>';
   h += '<div style="flex:1;font-size:16px;font-weight:800;color:#FFFFFF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (prog.title || 'Program') + '</div>';
   h += '</div>';
@@ -7143,8 +7150,7 @@ async function cvRecoverPendingSubmit() {
 }
 
 async function cvSubmit() {
-  var _sessionDuration = cvGetTimerDuration();
-  cvStopTimer();
+  var _sessionSeconds = cvStopTimer(); // elapsed seconds for this session, for the calendar's "time it took" display
   const prog = cvData.programs[cvProgIdx];
   const exs = prog.exercises || [];
 
@@ -7222,7 +7228,7 @@ async function cvSubmit() {
   const logText = lines.join(' | ');
 
   if (!prog.log) prog.log = [];
-  prog.log.push({ date: today, clinician: 'Client', text: logText, clientSubmitted: true });
+  prog.log.push({ date: today, clinician: 'Client', text: logText, clientSubmitted: true, durationSec: _sessionSeconds || 0 });
 
   // Sync updated cvData back to local practitioner clients[] array
   if (typeof clients !== 'undefined' && Array.isArray(clients)) {
@@ -9598,6 +9604,18 @@ function renderCVCalendar() {
   var ORDINALS    = ['th','st','nd','rd'];
   function ordinal(n) { var v=n%100; return n+(ORDINALS[(v-20)%10]||ORDINALS[v]||ORDINALS[0]); }
 
+  // The in-session timer's elapsed seconds (saved on the log entry as
+  // durationSec since this update) — how long the session actually took,
+  // not what time of day it happened. Older entries logged before this
+  // change won't have it, so they just show without a duration.
+  function fmtSessionDuration(sec) {
+    sec = parseInt(sec, 10);
+    if (!sec || sec < 1) return '';
+    var mins = Math.round(sec / 60);
+    if (mins < 1) return '<1 min';
+    return mins + ' min';
+  }
+
   var sessionsByDate = {};
 
   // Universal date parser - handles AU locale, ISO, and various formats
@@ -9655,7 +9673,7 @@ if (!p) return;
       var exCount = details.filter(function(d2) { return d2.match(/\[.+sets\]/); }).length;
       sessionsByDate[d].push({ type: isCustom ? 'own' : 'prescribed',
         title: isCustom ? 'Own Workout' : (p.title || 'Home Exercise Program'),
-        feeling: feeling, exCount: exCount, details: details });
+        feeling: feeling, exCount: exCount, details: details, tookTime: fmtSessionDuration(e.durationSec) });
     });
   });
 
@@ -9668,7 +9686,7 @@ if (!p) return;
       w.exercises.forEach(function(ex) { details.push(typeof ex === 'string' ? ex : (ex.name || '')); });
     }
     sessionsByDate[d].push({ type: 'own', title: w.type || 'Workout',
-      feeling: w.feel || '', duration: w.duration || '', details: details });
+      feeling: w.feel || '', duration: w.duration || '', details: details, tookTime: w.duration ? '' : fmtSessionDuration(w.durationSec) });
   });
 
   // Booked classes (added from the CLASSES tab)
@@ -9720,7 +9738,8 @@ if (!p) return;
         var accent = isClass ? '#F4B942' : (isPrescribed ? '#2FD4F5' : '#5BBFAA');
         var icon = isClass ? '&#128197;' : (isPrescribed ? '&#127947;' : '&#127939;');
         var sub = '';
-        if (s.feeling) sub += 'Felt: ' + s.feeling;
+        if (!isClass && s.tookTime) sub += s.tookTime;
+        if (s.feeling) sub += (sub ? ' · ' : '') + 'Felt: ' + s.feeling;
         if (s.duration) sub += (sub ? ' · ' : '') + s.duration + ' min';
         if (s.exCount) sub += (sub ? ' · ' : '') + s.exCount + ' exercises';
         if (isClass) sub = 'Booked class' + (s.time ? ' &middot; ' + cvFmtTime(s.time) : '');
@@ -10812,6 +10831,7 @@ async function cvSubmitCustomWorkout() {
   });
   if (!doneSets) { alert('Tick at least one set before submitting.'); return; }
 
+  var _sessionSeconds = cvStopTimer(); // elapsed seconds for this session, for the calendar's "time it took" display
   var today = new Date().toLocaleString('en-AU', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
 
   // Build log text
@@ -10840,14 +10860,15 @@ async function cvSubmitCustomWorkout() {
     date: today,
     type: 'Custom',
     exercises: cvCustomExercises.map(function(ex) { return ex.name; }),
-    summary: logText
+    summary: logText,
+    durationSec: _sessionSeconds || 0
   });
 
   // Also add to the first program's log
   var prog = cvData.programs && cvData.programs[0];
   if (prog) {
     if (!prog.log) prog.log = [];
-    prog.log.push({ date: today, clinician: 'Client', text: logText, clientSubmitted: true });
+    prog.log.push({ date: today, clinician: 'Client', text: logText, clientSubmitted: true, durationSec: _sessionSeconds || 0 });
   }
 
   // Sync
@@ -10860,7 +10881,7 @@ async function cvSubmitCustomWorkout() {
         fresh.ownWorkouts = cvData.ownWorkouts;
         if (fresh.programs && fresh.programs[0]) {
           if (!fresh.programs[0].log) fresh.programs[0].log = [];
-          fresh.programs[0].log.push({ date: today, clinician: 'Client', text: logText, clientSubmitted: true });
+          fresh.programs[0].log.push({ date: today, clinician: 'Client', text: logText, clientSubmitted: true, durationSec: _sessionSeconds || 0 });
         }
         cvData = fresh;
       }
