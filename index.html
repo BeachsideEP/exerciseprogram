@@ -6400,6 +6400,25 @@ var cvData = null, cvProgIdx = 0, cvState = {}, cvFeeling = '', cvSafetyDone = f
 // and which exercise index to scroll to + highlight the next time the active session renders (set by cvGoToExercise).
 var cvExpandedProgIdx = 'auto', cvScrollToExIdx = null;
 
+// Records that the CLIENT THEMSELF opened the app just now (lastAppOpenAt),
+// separate from a logged session — a session log entry can also come from
+// the practitioner recording an in-person class or 1:1, which otherwise made
+// classes-only/1:1-only clients look identically "active" to clients who are
+// actually opening and using the app. Fire-and-forget: never blocks the
+// client's own app load, and best-effort if the write fails.
+async function cvStampAppOpen() {
+  if (!cvData || !cvData.id) return;
+  var nowIso = new Date().toISOString();
+  cvData.lastAppOpenAt = nowIso; // reflect immediately in memory for this session
+  try {
+    await fetch(SUPA_URL + '/rest/v1/clients', {
+      method: 'POST',
+      headers: supaHeaders(),
+      body: JSON.stringify({ id: cvData.id, data: cvData, updated_at: nowIso })
+    });
+  } catch (e) { /* best-effort - a missed stamp just means next login records it */ }
+}
+
 async function loadClientView(user) {
   // Show loading state in home tab only — never write to cvBody (workouts tab) here
   var homeEl = document.getElementById('cvHomeContent');
@@ -6496,6 +6515,7 @@ async function loadClientView(user) {
     // Cache client ID for fast future loads (skips full table scan)
     try { localStorage.setItem('bep_clk_cached_id', match.id); } catch(e) {} cvState = {}; cvFeeling = ''; cvProgIdx = 0; cvSafetyDone = false; cvComment = '';
     setTimeout(function(){cvCheckMilestones();},2000);
+    cvStampAppOpen(); // Record that the client themselves opened the app (distinct from a logged session)
     cvStartSync(user); // Begin live sync
     loadAnnouncements().then(function() { if (cvActiveTab === 'home') renderCVHome(); }); // Load announcements
     // Load health data from localStorage into cvHealthData
@@ -11134,6 +11154,59 @@ function toggleDashboard() {
 // automatically right after sign-in, before the cloud sync that fills in
 // clients has necessarily finished, so without this it could show
 // "0 clients / No clients yet" until manually closed and reopened.
+// Last time the CLIENT THEMSELF actually opened the app (stamped in
+// loadClientView on login) — distinct from "last session logged", which can
+// also come from the practitioner manually recording an in-person class or
+// 1:1 session. A client can look "Active" on sessions while never touching
+// the app themselves (e.g. a classes-only client), so this is shown as its
+// own line rather than folded into the session status.
+function fmtAppOpenAgo(iso) {
+  if (!iso) return 'Never opened the app';
+  var d = new Date(iso);
+  if (isNaN(d)) return 'Never opened the app';
+  var today = new Date(); today.setHours(0,0,0,0);
+  var that = new Date(d); that.setHours(0,0,0,0);
+  var diff = Math.round((today - that) / 86400000);
+  if (diff <= 0) return 'Opened app today';
+  if (diff === 1) return 'Opened app yesterday';
+  if (diff < 14) return 'Opened app ' + diff + 'd ago';
+  if (diff < 60) return 'Opened app ' + Math.round(diff / 7) + 'w ago';
+  return 'Opened app ' + Math.round(diff / 30) + 'mo ago';
+}
+
+// Which dashboard category (if any) is currently expanded. Only one at a
+// time, accordion-style, so the list stays tidy - null means everything's
+// collapsed to just the category headers + counts.
+var dashOpenCat = null;
+function dashToggleCat(cat) {
+  dashOpenCat = (dashOpenCat === cat) ? null : cat;
+  renderDashboardPanel();
+}
+
+// Practitioner-set flag: "I see this client in person" (classes/1:1s), set
+// explicitly rather than guessed - so it's reliable for ANY client, not just
+// the ones whose app-inactivity happens to be obvious. Overrides the
+// session-based Active/At-risk pill with "In-person" so a client who comes
+// in but doesn't touch the app isn't confused with one who's truly lapsed,
+// or with one who's actually using the app themselves.
+function toggleInPerson(id, ev) {
+  if (ev) ev.stopPropagation();
+  var cl = clients.find(function(c) { return c.id === id; });
+  if (!cl) return;
+  cl.inPerson = !cl.inPerson;
+  saveDB();
+  pushClientToCloud(cl);
+  renderDashboardPanel();
+}
+
+var dashCatMeta = {
+  inactive:   { hdr: 'Inactive',        rowPill: 'Inactive',   dot: '#a13a3a', bg: '#f3e3e3', color: '#a13a3a' },
+  'at-risk':  { hdr: 'At risk',         rowPill: 'At risk',    dot: '#a15c00', bg: '#fdf0dc', color: '#a15c00' },
+  'in-person':{ hdr: 'In-person only',  rowPill: 'In-person',  dot: '#a15c00', bg: '#fdf0dc', color: '#a15c00' },
+  active:     { hdr: 'Active on app',   rowPill: 'Active',     dot: '#1e7a4c', bg: '#e0f4e8', color: '#1e7a4c' }
+};
+var dashCatOrder = ['inactive', 'at-risk', 'in-person', 'active'];
+
 function renderDashboardPanel() {
   var p = document.getElementById('dashPanel');
   if (!p || p.style.display === 'none' || p.style.display === '') return;
@@ -11144,8 +11217,11 @@ function renderDashboardPanel() {
 
   // Attention status per client, same thresholds as the Compliance tab
   // (renderComplianceTab): active <=14 days since last session, at-risk
-  // <=35, otherwise inactive - so this list sorts worst-first too.
-  var statusPriority = { inactive: 0, 'at-risk': 1, active: 2 };
+  // <=35, otherwise inactive. A client the practitioner has explicitly
+  // marked "seen in person" gets pulled into its own category instead of
+  // sitting under Active/At-risk - that pairing is now a manual call, not
+  // a guess, so it applies the same way for every client, not just the
+  // ones whose app-inactivity happened to be obvious.
   var rows = activeOnly.map(function(cl) {
     var lastLog = '', lastLogDate = null;
     (cl.programs || []).forEach(function(pr) {
@@ -11157,39 +11233,60 @@ function renderDashboardPanel() {
     });
     var daysSince = lastLogDate ? Math.floor((now - lastLogDate) / (1000*60*60*24)) : null;
     var status = daysSince === null ? 'at-risk' : (daysSince <= 14 ? 'active' : daysSince <= 35 ? 'at-risk' : 'inactive');
-    return { cl: cl, lastLog: lastLog, daysSince: daysSince, status: status };
+    var category = (status !== 'inactive' && cl.inPerson) ? 'in-person' : status;
+    return { cl: cl, lastLog: lastLog, daysSince: daysSince, category: category, appOpenAt: cl.lastAppOpenAt };
   });
   rows.sort(function(a, b) {
-    var pa = statusPriority[a.status], pb = statusPriority[b.status];
-    if (pa !== pb) return pa - pb;
     var da = a.daysSince===null ? 9999 : a.daysSince, db = b.daysSince===null ? 9999 : b.daysSince;
     return db - da;
   });
 
+  // Group into the 4 categories, worst-first order, for the accordion list
+  var groups = {}; dashCatOrder.forEach(function(c) { groups[c] = []; });
+  rows.forEach(function(r) { groups[r.category].push(r); });
+
   if (stats) {
     var total = activeOnly.length;
     var withProg = activeOnly.filter(function(c) { return c.programs && c.programs.length; }).length;
-    var needsAttn = rows.filter(function(r) { return r.status !== 'active'; }).length;
+    var needsAttn = groups.inactive.length + groups['at-risk'].length;
     stats.innerHTML =
       '<div class="dash-stat"><div class="ds-val">' + total + '</div><div class="ds-lbl">Clients</div></div>' +
       '<div class="dash-stat"><div class="ds-val">' + withProg + '</div><div class="ds-lbl">With programs</div></div>' +
       '<div class="dash-stat"><div class="ds-val">' + needsAttn + '</div><div class="ds-lbl">Needs attention</div></div>';
   }
   if (list) {
-    var pillClass = { active: 'dash-pill-active', 'at-risk': 'dash-pill-risk', inactive: 'dash-pill-inactive' };
-    var pillLabel = { active: 'Active', 'at-risk': 'At risk', inactive: 'Inactive' };
-    list.innerHTML = rows.map(function(r) {
+    function renderRow(r) {
       var cl = r.cl;
+      var meta = dashCatMeta[r.category];
       var initials = ((cl.first||'').charAt(0) + (cl.last||'').charAt(0)).toUpperCase();
       return '<div class="dash-row" onclick="document.getElementById(\'clientSel\').value=\'' + cl.id + '\';selectClient()">' +
         '<div class="dash-avatar">' + initials + '</div>' +
         '<div style="flex:1;min-width:0">' +
           '<div class="dash-row-name">' + cl.first + ' ' + cl.last + '</div>' +
-          '<div class="dash-row-meta">' + (r.lastLog ? 'Last: ' + r.lastLog.split(',')[0] : 'No sessions logged') + '</div>' +
+          '<div class="dash-row-meta">' + (r.lastLog ? 'Last session: ' + r.lastLog.split(',')[0] : 'No sessions logged') + '</div>' +
+          '<div class="dash-row-meta" style="' + (cl.inPerson ? 'color:#a15c00' : '') + '">' + fmtAppOpenAgo(r.appOpenAt) + '</div>' +
         '</div>' +
-        '<span class="dash-pill ' + pillClass[r.status] + '">' + pillLabel[r.status] + '</span>' +
+        '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">' +
+          '<span class="dash-pill" style="background:' + meta.bg + ';color:' + meta.color + '">' + meta.rowPill + '</span>' +
+          '<button type="button" onclick="toggleInPerson(\'' + cl.id + '\',event)" style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;border:1.5px solid ' + (cl.inPerson ? '#a15c00' : '#e6e6e6') + ';background:' + (cl.inPerson ? '#fdf0dc' : '#fff') + ';color:' + (cl.inPerson ? '#a15c00' : '#6b7b80') + ';cursor:pointer;white-space:nowrap">' + (cl.inPerson ? '✓ In-person' : '+ In-person') + '</button>' +
+        '</div>' +
       '</div>';
-    }).join('') || '<div style="color:var(--text-light);font-size:12px;padding:8px">No clients yet</div>';
+    }
+    function renderCat(catKey) {
+      var catRows = groups[catKey];
+      var meta = dashCatMeta[catKey];
+      var isOpen = dashOpenCat === catKey;
+      var header = '<div class="dash-cat-hdr" onclick="dashToggleCat(\'' + catKey + '\')" style="display:flex;align-items:center;gap:8px;padding:9px 8px;cursor:pointer;border-bottom:1px solid #f0f0f0;user-select:none">' +
+        '<span style="width:8px;height:8px;border-radius:50%;background:' + meta.dot + ';flex-shrink:0"></span>' +
+        '<span style="flex:1;font-size:12.5px;font-weight:700;color:#111111">' + meta.hdr + '</span>' +
+        '<span style="font-size:11px;color:#6b7b80;font-weight:600">' + catRows.length + '</span>' +
+        '<span style="font-size:11px;color:#6b7b80;display:inline-block;transition:transform .15s;transform:rotate(' + (isOpen ? 90 : 0) + 'deg)">›</span>' +
+      '</div>';
+      if (!catRows.length) return header;
+      var body = isOpen ? catRows.map(renderRow).join('') : '';
+      return header + body;
+    }
+    list.innerHTML = dashCatOrder.map(renderCat).join('') || '<div style="color:var(--text-light);font-size:12px;padding:8px">No clients yet</div>';
   }
 }
 
