@@ -326,6 +326,29 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .cv-note textarea:focus{border-color:var(--ocean-light);background:#fff}
 .cv-session{background:#12181D;border-radius:10px;padding:16px;margin-top:14px;border:1px solid #1F2A33}
 .cv-session-title{font-size:15px;font-weight:700;color:#FFFD1D9;margin-bottom:10px}
+/* Pre-session safety check — redesigned */
+.cv-safety-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.cv-safety-hdr-icon{width:34px;height:34px;border-radius:50%;background:rgba(47,212,245,.12);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.cv-safety-sub{font-size:11px;color:var(--cv-text-3,var(--text-light));margin-top:1px;font-weight:500}
+.cv-safety-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:6px}
+.cv-safety-field{background:var(--cv-input-bg,var(--sand));border:1.5px solid var(--cv-input-border,var(--sand-dark));border-radius:9px;padding:9px 10px;transition:border-color .12s}
+.cv-safety-field:focus-within{border-color:var(--cv-accent,var(--ocean-light))}
+.cv-safety-field label{display:flex;align-items:center;gap:5px;font-size:9px;font-weight:700;color:var(--cv-text-3,var(--text-light));text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;white-space:nowrap}
+.cv-safety-field input{width:100%;border:none;background:transparent;font-size:15px;font-weight:600;color:var(--cv-input-text,var(--text));outline:none;padding:0;font-family:-apple-system,sans-serif}
+.cv-safety-field input::placeholder{color:var(--cv-text-3,var(--text-light));opacity:.45}
+.cv-safety-hint{font-size:8.5px;color:var(--cv-text-3,var(--text-light));margin-top:3px;opacity:.8}
+.cv-safety-bp-row{display:flex;align-items:center;gap:5px}
+.cv-safety-bp-row input{text-align:center}
+.cv-safety-bp-row span{font-size:14px;color:var(--cv-text-3,var(--text-light));font-weight:700}
+.cv-safety-alert{display:flex;gap:9px;align-items:flex-start;border-radius:9px;padding:10px 11px;margin:6px 0 10px;font-size:11.5px;line-height:1.45;font-weight:600}
+.cv-safety-alert-icon{font-size:15px;flex-shrink:0;line-height:1.3}
+.cv-safety-alert.stop{background:rgba(232,115,90,.14);border:1.5px solid var(--coral);color:#ff9d8a}
+.cv-safety-alert.caution{background:rgba(244,185,66,.14);border:1.5px solid #F4B942;color:#F4B942}
+.cv-safety-alert.info{background:rgba(139,148,158,.1);border:1.5px solid var(--cv-border-2,var(--sand-dark));color:var(--cv-text-3,var(--text-light));font-weight:500}
+.cv-safety-done{display:flex;gap:10px;align-items:center;background:rgba(91,191,170,.1);border:1.5px solid var(--teal);border-radius:9px;padding:10px 12px}
+.cv-safety-done-badge{width:26px;height:26px;border-radius:50%;background:var(--teal);color:#0B0F12;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0}
+.cv-safety-done-title{font-size:12.5px;font-weight:700;color:var(--cv-text,var(--text))}
+.cv-safety-done-vals{font-size:10.5px;color:var(--cv-text-3,var(--text-light));margin-top:2px}
 .cv-feel-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
 .cv-feel{padding:7px 11px;border-radius:20px;border:1.5px solid var(--sand-dark);background:#fff;font-size:12px;cursor:pointer;transition:all .12s}
 .cv-feel:hover{border-color:var(--ocean-light)}
@@ -6640,21 +6663,28 @@ function renderCV() {
 
   // ── Pre-session safety check ──
   if (showSafety) { h += '<div class="cv-session" id="cvSafetyPanel" style="margin-bottom:10px">';
-  h += '<div class="cv-session-title">&#10084;&#65039; Pre-Session Check</div>';
+  h += '<div class="cv-safety-hdr"><div class="cv-safety-hdr-icon">&#10084;&#65039;</div><div><div class="cv-session-title" style="margin-bottom:1px">Pre-Session Check</div><div class="cv-safety-sub">Quick check before you start &mdash; takes 10 seconds</div></div></div>';
   if (cvSafetyDone) {
-    h += '<div style="font-size:11px;color:var(--teal);font-weight:600">&#10003; Safety check recorded for this session</div>';
-    h += '<button class="btn btn-outline btn-sm" style="margin-top:6px;font-size:10px" onclick="cvSafetyDone=false;renderCV()">Edit readings</button>';
+    var doneBits = [];
+    if (lastSafety) {
+      if (lastSafety.bp) doneBits.push('BP ' + lastSafety.bp);
+      if (lastSafety.bgl) doneBits.push('BGL ' + lastSafety.bgl);
+      if (lastSafety.hr) doneBits.push('HR ' + lastSafety.hr);
+      if (lastSafety.vas) doneBits.push('Pain ' + lastSafety.vas);
+    }
+    h += '<div class="cv-safety-done"><div class="cv-safety-done-badge">&#10003;</div><div><div class="cv-safety-done-title">Checked in for this session</div>' + (doneBits.length ? '<div class="cv-safety-done-vals">' + doneBits.join(' &middot; ') + '</div>' : '') + '</div></div>';
+    h += '<button class="btn btn-outline btn-sm" style="margin-top:8px;font-size:10px" onclick="cvSafetyDone=false;renderCV()">Edit readings</button>';
   } else {
-    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px">';
-    h += '<div class="cv-af"><label>Blood Pressure (mmHg)</label><div style="display:flex;gap:4px;align-items:center"><input id="cvBpSys" type="number" placeholder="120" style="text-align:center"><span style="font-size:14px;color:var(--text-light)">/</span><input id="cvBpDia" type="number" placeholder="80" style="text-align:center"></div></div>';
-    h += '<div class="cv-af"><label>Blood Glucose (mmol/L)</label><input id="cvBgl" type="number" placeholder="5.5" step="0.1"></div>';
-    h += '<div class="cv-af"><label>Pain right now (0–10)</label><input id="cvVas" type="number" placeholder="0" min="0" max="10" step="0.5"></div>';
-    h += '<div class="cv-af"><label>Heart Rate (bpm)</label><input id="cvHr" type="number" placeholder="72"></div>';
+    h += '<div class="cv-safety-grid">';
+    h += '<div class="cv-safety-field"><label>&#129658; Blood Pressure</label><div class="cv-safety-bp-row"><input id="cvBpSys" type="number" placeholder="120"><span>/</span><input id="cvBpDia" type="number" placeholder="80"></div><div class="cv-safety-hint">mmHg &middot; typical ~120/80</div></div>';
+    h += '<div class="cv-safety-field"><label>&#129656; Blood Glucose</label><input id="cvBgl" type="number" placeholder="5.5" step="0.1"><div class="cv-safety-hint">mmol/L &middot; typical 4&ndash;10</div></div>';
+    h += '<div class="cv-safety-field"><label>&#129301; Pain right now</label><input id="cvVas" type="number" placeholder="0" min="0" max="10" step="0.5"><div class="cv-safety-hint">0 = none, 10 = worst</div></div>';
+    h += '<div class="cv-safety-field"><label>&#128147; Heart Rate</label><input id="cvHr" type="number" placeholder="72"><div class="cv-safety-hint">bpm &middot; typical 60&ndash;100</div></div>';
     h += '</div>';
-    h += '<div id="cvSafetyMsg" style="min-height:18px;font-size:10px;margin-bottom:6px"></div>';
+    h += '<div id="cvSafetyMsg"></div>';
     h += '<button class="cv-submit" style="background:var(--ocean);padding:10px" onclick="cvSavePreSession()">&#10003; Record &amp; Start Session</button>';
     if (lastSafety) {
-      h += '<div style="font-size:9px;color:var(--text-light);margin-top:6px">Last check: ' + lastSafety.date + (lastSafety.bp ? ' · BP '+lastSafety.bp : '') + '</div>';
+      h += '<div style="font-size:9px;color:var(--cv-text-3,var(--text-light));margin-top:8px;text-align:center">Last check: ' + lastSafety.date + (lastSafety.bp ? ' &middot; BP '+lastSafety.bp : '') + '</div>';
     }
   }
   h += '</div>'; } // end showSafety
@@ -7069,18 +7099,21 @@ function cvSavePreSession() {
 
   if (bpS && bpSNum >= 180) { warnings.push('Systolic BP ' + bpSNum + ' — stop criteria'); stop = true; }
   if (bpD && bpDNum >= 110) { warnings.push('Diastolic BP ' + bpDNum + ' — stop criteria'); stop = true; }
-  if (bgl && (bglNum < 4 || bglNum >= 14)) { warnings.push('Blood glucose ' + bglNum + ' mmol/L — outside safe range'); stop = bglNum >= 14 || stop; }
+  if (bgl && bglNum < 4) { warnings.push('Blood glucose ' + bglNum + ' mmol/L — too low, stop criteria'); stop = true; }
+  if (bgl && bglNum >= 14) { warnings.push('Blood glucose ' + bglNum + ' mmol/L — too high, stop criteria'); stop = true; }
   if (vas && vasNum >= 8) { warnings.push('Pain ' + vasNum + '/10 — consult your clinician'); stop = true; }
 
   if (stop) {
-    if (msgEl) { msgEl.style.color = 'var(--coral)'; msgEl.innerHTML = '&#9888; ' + warnings.join(' &middot; ') + ' — please do not exercise and contact your clinician.'; }
+    if (msgEl) { msgEl.innerHTML = '<div class="cv-safety-alert stop"><div class="cv-safety-alert-icon">&#128683;</div><div>' + warnings.join(' &middot; ') + ' &mdash; please do not exercise and contact your clinician.</div></div>'; }
     return;
   } else if (warnings.length) {
-    if (msgEl) { msgEl.style.color = '#8a6000'; msgEl.innerHTML = '&#9888; ' + warnings.join(' &middot; ') + ' — proceed with care.'; }
+    if (msgEl) { msgEl.innerHTML = '<div class="cv-safety-alert caution"><div class="cv-safety-alert-icon">&#9888;&#65039;</div><div>' + warnings.join(' &middot; ') + ' &mdash; proceed with care.</div></div>'; }
+  } else if (msgEl) {
+    msgEl.innerHTML = '';
   }
 
   if (!bpS && !bpD && !bgl && !vas && !hr) {
-    if (msgEl) { msgEl.style.color = 'var(--text-light)'; msgEl.textContent = 'Enter at least one reading, or skip below.'; }
+    if (msgEl) { msgEl.innerHTML = '<div class="cv-safety-alert info">Enter at least one reading to record your check-in.</div>'; }
     return;
   }
 
