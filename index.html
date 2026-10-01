@@ -136,6 +136,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .pe-thumb{width:24px;height:24px;border-radius:4px;overflow:hidden;flex-shrink:0}
 .pe-thumb svg,.pe-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .pe-name{font-size:11px;font-weight:600;flex:1}
+.pe-last-done{font-size:10.5px;color:var(--teal);font-weight:600;margin:4px 0 2px;padding-left:1px}
 .pe-ctrl{display:flex;gap:2px;flex-shrink:0}
 .pe-ctrl button{width:19px;height:19px;border-radius:4px;border:1.5px solid var(--sand-d);background:#fff;cursor:pointer;font-size:9px;display:flex;align-items:center;justify-content:center;transition:all .12s;color:var(--text-m)}
 .pe-ctrl .mv:hover{background:var(--ocean);border-color:var(--ocean);color:#fff}
@@ -4999,6 +5000,52 @@ function updEx(uid, field, val) {
   }
 }
 
+// Summarises what the client actually logged last session for this
+// exercise, for display on the practitioner's editing screen. Prefers the
+// per-set arrays (lastLoadBySet/lastRepsBySet) so a varied pattern like
+// 50/40/40kg shows per set; falls back to the flattened scalar
+// lastLoad/lastReps for older data, and collapses back to one number when
+// every set the client logged was actually the same.
+function fmtClientLastDone(ex) {
+  var byLoad = ex.lastLoadBySet || [];
+  var byReps = ex.lastRepsBySet || [];
+  var n = Math.max(byLoad.length, byReps.length);
+  var hasBySet = byLoad.some(function(v){ return v != null && String(v).trim() !== ''; }) ||
+                 byReps.some(function(v){ return v != null && String(v).trim() !== ''; });
+  if (!hasBySet) {
+    if (ex.lastLoad && ex.lastReps) return withUnit(ex.lastLoad,'kg') + ' × ' + ex.lastReps;
+    if (ex.lastReps) return ex.lastReps + ' reps';
+    if (ex.lastLoad) return withUnit(ex.lastLoad,'kg');
+    return '';
+  }
+  var loads = [], reps = [];
+  for (var s = 0; s < n; s++) {
+    loads.push(byLoad[s] != null ? String(byLoad[s]) : '');
+    reps.push(byReps[s] != null ? String(byReps[s]) : '');
+  }
+  var firstLoad = loads.filter(Boolean)[0] || '';
+  var firstReps = reps.filter(Boolean)[0] || '';
+  var loadsVary = loads.some(function(v){ return v && v !== firstLoad; });
+  var repsVary = reps.some(function(v){ return v && v !== firstReps; });
+  if (!loadsVary && !repsVary) {
+    var l0 = firstLoad || ex.lastLoad || '';
+    var r0 = firstReps || ex.lastReps || '';
+    if (l0 && r0) return withUnit(l0,'kg') + ' × ' + r0;
+    if (r0) return r0 + ' reps';
+    if (l0) return withUnit(l0,'kg');
+    return '';
+  }
+  var parts = [];
+  for (var s2 = 0; s2 < n; s2++) {
+    var seg = '';
+    if (loads[s2] && reps[s2]) seg = withUnit(loads[s2],'kg') + '×' + reps[s2];
+    else if (reps[s2]) seg = reps[s2] + ' reps';
+    else if (loads[s2]) seg = withUnit(loads[s2],'kg');
+    if (seg) parts.push('Set ' + (s2+1) + ': ' + seg);
+  }
+  return parts.join('  ·  ');
+}
+
 function renderDropZone() {
   const p = getProg();
   // Re-hydrate slim exercise objects with library data before rendering
@@ -5043,6 +5090,7 @@ function renderDropZone() {
           <button class="rm" onclick="removeEx(${ex.uid})" title="Remove exercise">✕</button>
         </div>
       </div>
+      ${fmtClientLastDone(ex) ? `<div class="pe-last-done">✓ Client logged last session: ${fmtClientLastDone(ex)}</div>` : ''}
       <button type="button" class="pe-more-btn" onclick="pgToggleMore(this)"><span class="pe-more-arrow">▾</span> Notes, progression &amp; video${(ex.notes||ex.progression||ex.videoUrl) ? '<span class="pe-more-flag">&nbsp;· added</span>' : ''}</button>
       <div class="pe-more" style="display:none">
         <div class="pe-notes"><label>Technique Notes</label>
