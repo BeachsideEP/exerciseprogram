@@ -4241,7 +4241,7 @@ async function pullLibraryFromCloud() {
   } catch(e) {}
 }
 // Fields kept in localStorage per program exercise (small, user-editable)
-var PROG_EX_KEEP = ['uid','name','sets','reps','hold','rest','load','notes','clientNote','progression','superset','lastReps','lastLoad','_done','videoUrl','video'];
+var PROG_EX_KEEP = ['uid','name','sets','reps','hold','rest','load','notes','clientNote','progression','superset','lastReps','lastLoad','lastRepsBySet','lastLoadBySet','_done','videoUrl','video'];
 // 'videoUrl'/'video' were previously stripped here as "library-lookupable" — but after a
 // reload the app pushed the stripped copies back to Supabase, silently wiping
 // videos off program exercises. A URL is ~60 bytes; keeping it is essentially free.
@@ -6713,7 +6713,7 @@ function renderCV() {
         // Reps: same approach — placeholder hints last/target, value only if typed.
         var _repsTyped = (st.setReps && st.setReps[s] != null && String(st.setReps[s]).trim() !== '');
         const setReps = _repsTyped ? st.setReps[s] : '';
-        var setLoadRaw = (st.setLoads && st.setLoads[s] != null) ? st.setLoads[s] : (ex.lastLoad || '');
+        var setLoadRaw = (st.setLoads && st.setLoads[s] != null) ? st.setLoads[s] : (((ex.lastLoadBySet && ex.lastLoadBySet[s] != null) ? ex.lastLoadBySet[s] : ex.lastLoad) || '');
         // Strip the unit ("95kg" -> "95") before pre-filling the editable box.
         // A pre-filled value containing letters (kg) breaks select-and-overtype
         // on iOS Safari, so typed weights silently reverted to the old value
@@ -6723,15 +6723,15 @@ function renderCV() {
         // (last time's weight) shows and there's nothing stale to submit.
         var _typedThis = (st.setLoads && st.setLoads[s] != null && String(st.setLoads[s]).trim() !== '');
         const setLoad = _typedThis ? String(st.setLoads[s]).replace(/[^0-9.]/g, '') : '';
-        const repsPlaceholder = (ex.lastReps ? String(ex.lastReps) : (ex.reps || '—').toString()).replace(/ ?each ?/gi,'').replace(/ ?each side ?/gi,'');
+        const repsPlaceholder = ((ex.lastRepsBySet && ex.lastRepsBySet[s] != null) ? String(ex.lastRepsBySet[s]) : (ex.lastReps ? String(ex.lastReps) : (ex.reps || '—').toString())).replace(/ ?each ?/gi,'').replace(/ ?each side ?/gi,'');
         // Show last time's weight as a HINT (placeholder), not a pre-filled value.
         // Pre-filling caused iOS select-and-overtype failures that silently
         // submitted the old/prescribed number. Empty box = clean tap-and-type.
         var _lastW = String(setLoadRaw).replace(/[^0-9.]/g, '');
         const loadPlaceholder = (ex.cat === 'Cardio') ? 'min' : (_lastW ? _lastW : (ex.load ? String(ex.load).replace(/[^0-9.]/g,'') : 'kg'));
         // Previous session values
-        var prevLoad = ex.lastLoad || '—';
-        var prevReps = String(ex.lastReps || ex.reps || '—').replace(/ ?each ?side ?/gi,'').replace(/ ?each ?/gi,'');
+        var prevLoad = ((ex.lastLoadBySet && ex.lastLoadBySet[s] != null) ? ex.lastLoadBySet[s] : ex.lastLoad) || '—';
+        var prevReps = String((ex.lastRepsBySet && ex.lastRepsBySet[s] != null) ? ex.lastRepsBySet[s] : (ex.lastReps || ex.reps || '—')).replace(/ ?each ?side ?/gi,'').replace(/ ?each ?/gi,'');
         var prevText = prevLoad !== '—' ? prevLoad + ' kg × ' + prevReps : (prevReps !== '—' ? prevReps + ' reps' : '—');
         h += '<div style="display:grid;grid-template-columns:36px 1fr 90px 80px 44px;gap:4px;align-items:center;padding:3px 4px;border-radius:8px;background:' + (setDone ? 'rgba(47,212,245,.08)' : 'transparent') + '">';
         // Set number badge
@@ -6957,6 +6957,33 @@ function cvSetRow(exIdx, setIdx, field, val) {
   }, 800);
 }
 
+// Safety net for cvSetRow's live-typing cascade above (which only fires 800ms
+// after typing stops, so it can be skipped entirely by a fast Submit tap).
+// Run at submit time on every exercise's setLoads/setReps: each set keeps
+// whatever distinct weight/reps the client actually typed into its own box
+// (so "50kg set 1, 40kg set 2, 40kg set 3" all save separately); any box the
+// client left blank inherits the nearest value that WAS typed (carried
+// forward, or back-filled from the first typed value if the blank comes
+// before it) — so if they only ever fill in one box, that single weight/rep
+// count is what ends up applied to every set, exactly as if they'd retyped
+// it each time.
+function cvFillBlankSetValues(exIdx, key, totalSets) {
+  if (!cvState[exIdx]) cvState[exIdx] = {};
+  if (!cvState[exIdx][key]) cvState[exIdx][key] = [];
+  var arr = cvState[exIdx][key];
+  var isFilled = function(v) { return v !== undefined && v !== null && String(v).trim() !== ''; };
+  var last = null;
+  for (var s = 0; s < totalSets; s++) {
+    if (isFilled(arr[s])) { last = arr[s]; }
+    else if (last !== null) { arr[s] = last; }
+  }
+  var first = null;
+  for (var s2 = 0; s2 < totalSets; s2++) { if (isFilled(arr[s2])) { first = arr[s2]; break; } }
+  if (first !== null) {
+    for (var s3 = 0; s3 < totalSets; s3++) { if (!isFilled(arr[s3])) arr[s3] = first; }
+  }
+}
+
 
 function cvSavePreSession() {
   const bpS = (document.getElementById('cvBpSys') || {}).value || '';
@@ -7163,18 +7190,32 @@ async function cvSubmit() {
 
   const today = new Date().toLocaleString('en-AU', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
 
+  // Fill in any set boxes the client left blank (per exercise) before anything
+  // else reads cvState, so a weight/reps typed into only one box applies to
+  // every set, while boxes that were given different values keep them.
+  exs.forEach(function(ex, i) {
+    const totalSets = parseInt(ex.sets) || 3;
+    cvFillBlankSetValues(i, 'setLoads', totalSets);
+    cvFillBlankSetValues(i, 'setReps', totalSets);
+  });
+
   // IMMEDIATELY update in-memory cvData with lastReps/lastLoad
   // so next renderCV shows correct weights even before cloud sync completes
   exs.forEach(function(ex, i) {
     const st = cvState[i] || {};
     const totalSets = parseInt(ex.sets) || 3;
     const lastRepsArr = [], lastLoadsArr = [];
+    // Per-set memory too (lastLoadBySet/lastRepsBySet): if the client used a
+    // varied pattern across sets (e.g. 50/40/40kg), each set remembers its
+    // OWN value for next time, not just one flattened "last" number.
+    if (!ex.lastLoadBySet) ex.lastLoadBySet = [];
+    if (!ex.lastRepsBySet) ex.lastRepsBySet = [];
     for (var s = 0; s < totalSets; s++) {
       if (st.sets && st.sets[s]) {
         var r = (st.setReps && st.setReps[s]) || '';
         var l = collapseUnits((st.setLoads && st.setLoads[s]) || '');
-        if (r) lastRepsArr.push(r);
-        if (l) lastLoadsArr.push(l);
+        if (r) { lastRepsArr.push(r); ex.lastRepsBySet[s] = r; }
+        if (l) { lastLoadsArr.push(l); ex.lastLoadBySet[s] = l; }
       }
     }
     if (lastRepsArr.length) ex.lastReps = lastRepsArr[lastRepsArr.length - 1];
@@ -7296,6 +7337,8 @@ async function cvSubmit() {
               if (freshEx) {
                 if (ex.lastReps) freshEx.lastReps = ex.lastReps;
                 if (ex.lastLoad) freshEx.lastLoad = ex.lastLoad;
+                if (ex.lastRepsBySet) freshEx.lastRepsBySet = ex.lastRepsBySet;
+                if (ex.lastLoadBySet) freshEx.lastLoadBySet = ex.lastLoadBySet;
                 if (ex.substitutedFor) {
                   freshEx.name = ex.name;
                   freshEx.substitutedFor = ex.substitutedFor;
@@ -10137,7 +10180,7 @@ async function cvSilentSync() {
         var newProg = cvData.programs[pi];
         if (!newProg || !oldProg.exercises) return;
         oldProg.exercises.forEach(function(oldEx) {
-          if (!oldEx.lastLoad && !oldEx.lastReps) return;
+          if (!oldEx.lastLoad && !oldEx.lastReps && !oldEx.lastLoadBySet && !oldEx.lastRepsBySet) return;
           // Find matching exercise in new program by uid or name
           var newEx = null;
           if (oldEx.uid) newEx = (newProg.exercises || []).find(function(e) { return e.uid === oldEx.uid; });
@@ -10145,6 +10188,8 @@ async function cvSilentSync() {
           if (newEx) {
             if (oldEx.lastReps && !newEx.lastReps) newEx.lastReps = oldEx.lastReps;
             if (oldEx.lastLoad && !newEx.lastLoad) newEx.lastLoad = oldEx.lastLoad;
+            if (oldEx.lastRepsBySet && !newEx.lastRepsBySet) newEx.lastRepsBySet = oldEx.lastRepsBySet;
+            if (oldEx.lastLoadBySet && !newEx.lastLoadBySet) newEx.lastLoadBySet = oldEx.lastLoadBySet;
           }
         });
       });
@@ -10832,6 +10877,16 @@ async function cvSubmitCustomWorkout() {
   if (!doneSets) { alert('Tick at least one set before submitting.'); return; }
 
   var _sessionSeconds = cvStopTimer(); // elapsed seconds for this session, for the calendar's "time it took" display
+
+  // Same blank-box fill as the assigned-program flow: a weight/reps typed
+  // into only one box carries to every set of that exercise; boxes given
+  // their own distinct value keep it.
+  cvCustomExercises.forEach(function(ex, i) {
+    var totalSets = parseInt(ex.sets) || 3;
+    cvFillBlankSetValues(i, 'setLoads', totalSets);
+    cvFillBlankSetValues(i, 'setReps', totalSets);
+  });
+
   var today = new Date().toLocaleString('en-AU', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
 
   // Build log text
