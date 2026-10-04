@@ -294,7 +294,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
    the main header (which is already sticky) so you never lose your way back
    while scrolling through a long exercise list. Full-bleed dark background
    so exercise cards don't show through as they scroll underneath it. */
-.cv-sesh-bar{position:sticky;top:52px;z-index:90;background:#0B0F12;margin:0 -10px 12px;padding:10px 10px 8px;box-shadow:0 6px 10px -6px rgba(0,0,0,.5)}
+.cv-sesh-bar{position:relative;z-index:1;background:#0B0F12;margin:0 -10px 8px;padding:6px 10px 4px}
 .cv-logo{display:flex;align-items:center;gap:9px}
 .cv-logo img{height:34px;width:34px;border-radius:50%;object-fit:contain}
 .cv-logo-text{font-family:Georgia,serif;font-size:13px;color:#fff}
@@ -5030,6 +5030,7 @@ function updEx(uid, field, val) {
 // lastLoad/lastReps for older data, and collapses back to one number when
 // every set the client logged was actually the same.
 function fmtClientLastDone(ex) {
+  if (ex.cat === 'Cardio') return ex.lastReps ? String(ex.lastReps) : '';  // timed, no weight
   var byLoad = ex.lastLoadBySet || [];
   var byReps = ex.lastRepsBySet || [];
   var n = Math.max(byLoad.length, byReps.length);
@@ -5106,7 +5107,7 @@ function renderDropZone() {
         <div class="pe-field"><label>Sets</label><input type="number" value="${ex.sets}" min="1" max="20" onchange="updEx(${ex.uid},'sets',this.value)"></div>
         <div class="pe-field"><label>${ex.cat === 'Cardio' ? 'Duration' : 'Reps'}</label><input type="text" value="${ex.reps}" placeholder="${ex.cat === 'Cardio' ? '20 min' : '10-12'}" onchange="updEx(${ex.uid},'reps',this.value)"></div>
         <div class="pe-field"><label>Hold</label><input type="text" value="${ex.hold}" placeholder="30s" onchange="updEx(${ex.uid},'hold',this.value)"></div>
-        <div class="pe-field"><label>Load</label><input autocomplete="off" type="text" value="${ex.load}" placeholder="kg/band" onchange="updEx(${ex.uid},'load',this.value)"></div>
+        ${ex.cat === 'Cardio' ? '' : `<div class="pe-field"><label>Load</label><input autocomplete="off" type="text" value="${ex.load}" placeholder="kg/band" onchange="updEx(${ex.uid},'load',this.value)"></div>`}
         <div class="pe-field"><label>Rest</label><input type="text" value="${ex.rest}" placeholder="60s" onchange="updEx(${ex.uid},'rest',this.value)"></div>
         <div class="pe-ctrl">
           <button class="pe-ss ${ex.superset ? 'ss-active' : ''}" onclick="toggleSuperset('${ex.uid}')" title="Toggle superset with next exercise">SS</button>
@@ -6637,6 +6638,12 @@ function renderCV() {
       if (_fna > -1) cvProgIdx = _fna;
     }
   }
+  // Cardio is timed, not weighted — drop any stray stored weight (e.g. 5kg on the bike)
+  if (cvData && cvData.programs) cvData.programs.forEach(function(p) {
+    (p.exercises || []).forEach(function(e) {
+      if (e && e.cat === 'Cardio') { delete e.lastLoad; delete e.lastLoadBySet; if (e.load) e.load = ''; }
+    });
+  });
   // Auto-clear safety if not required for this client
   if (cvData && cvData.requireSafetyCheck === false) cvSafetyDone = true;
   // Check custom workout mode FIRST before any cvData checks
@@ -6799,7 +6806,7 @@ function renderCV() {
       // Per-set table rendered inside st.open block below
       // Set table header
       h += '<div style="margin:0 -4px">';
-      h += '<div style="display:grid;grid-template-columns:36px 1fr 90px 80px 44px;gap:4px;padding:4px 4px 2px;margin-bottom:2px">';
+      h += '<div style="display:grid;grid-template-columns:' + (isCardioEx ? '36px 1fr 1fr 44px' : '36px 1fr 90px 80px 44px') + ';gap:4px;padding:4px 4px 2px;margin-bottom:2px">';
       h += '<div style="font-size:13px;font-weight:700;color:#FFFFFF;text-align:center">Set</div>';
       h += '<div style="font-size:13px;font-weight:700;color:#FFFFFF">Previous</div>';
       h += isCardioEx ? '' : '<div style="font-size:13px;font-weight:700;color:#FFFFFF;text-align:center">Weight</div>';
@@ -6811,7 +6818,7 @@ function renderCV() {
         // Reps: same approach — placeholder hints last/target, value only if typed.
         var _repsTyped = (st.setReps && st.setReps[s] != null && String(st.setReps[s]).trim() !== '');
         const setReps = _repsTyped ? st.setReps[s] : '';
-        var setLoadRaw = (st.setLoads && st.setLoads[s] != null) ? st.setLoads[s] : (((ex.lastLoadBySet && ex.lastLoadBySet[s] != null) ? ex.lastLoadBySet[s] : ex.lastLoad) || '');
+        var setLoadRaw = isCardioEx ? '' : ((st.setLoads && st.setLoads[s] != null) ? st.setLoads[s] : (((ex.lastLoadBySet && ex.lastLoadBySet[s] != null) ? ex.lastLoadBySet[s] : ex.lastLoad) || ''));
         // Strip the unit ("95kg" -> "95") before pre-filling the editable box.
         // A pre-filled value containing letters (kg) breaks select-and-overtype
         // on iOS Safari, so typed weights silently reverted to the old value
@@ -6828,16 +6835,16 @@ function renderCV() {
         var _lastW = String(setLoadRaw).replace(/[^0-9.]/g, '');
         const loadPlaceholder = (ex.cat === 'Cardio') ? 'min' : (_lastW ? _lastW : (ex.load ? String(ex.load).replace(/[^0-9.]/g,'') : 'kg'));
         // Previous session values
-        var prevLoad = ((ex.lastLoadBySet && ex.lastLoadBySet[s] != null) ? ex.lastLoadBySet[s] : ex.lastLoad) || '—';
+        var prevLoad = isCardioEx ? '—' : (((ex.lastLoadBySet && ex.lastLoadBySet[s] != null) ? ex.lastLoadBySet[s] : ex.lastLoad) || '—');
         var prevReps = String((ex.lastRepsBySet && ex.lastRepsBySet[s] != null) ? ex.lastRepsBySet[s] : (ex.lastReps || ex.reps || '—')).replace(/ ?each ?side ?/gi,'').replace(/ ?each ?/gi,'');
-        var prevText = prevLoad !== '—' ? prevLoad + ' kg × ' + prevReps : (prevReps !== '—' ? prevReps + ' reps' : '—');
-        h += '<div style="display:grid;grid-template-columns:36px 1fr 90px 80px 44px;gap:4px;align-items:center;padding:3px 4px;border-radius:8px;background:' + (setDone ? 'rgba(47,212,245,.08)' : 'transparent') + '">';
+        var prevText = prevLoad !== '—' ? prevLoad + ' kg × ' + prevReps : (prevReps !== '—' ? (isCardioEx ? prevReps : prevReps + ' reps') : '—');
+        h += '<div style="display:grid;grid-template-columns:' + (isCardioEx ? '36px 1fr 1fr 44px' : '36px 1fr 90px 80px 44px') + ';gap:4px;align-items:center;padding:3px 4px;border-radius:8px;background:' + (setDone ? 'rgba(47,212,245,.08)' : 'transparent') + '">';
         // Set number badge
         h += '<div style="width:28px;height:28px;border-radius:8px;background:#1F2A33;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#C9D1D9;margin:0 auto">' + (s+1) + '</div>';
         // Previous
         h += '<div style="font-size:13px;color:#FFFFFF">' + prevText + '</div>';
         // Weight input
-        h += '<input data-ex="' + i + '" data-field="load" data-set="' + s + '" style="background:#1F2A33;border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="decimal" placeholder="' + loadPlaceholder + '" value="' + setLoad + '" onfocus="this.select()" oninput="cvSetRow(' + i + ',' + s + ',\'load\',this.value)">';
+        if (!isCardioEx) h += '<input data-ex="' + i + '" data-field="load" data-set="' + s + '" style="background:#1F2A33;border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="decimal" placeholder="' + loadPlaceholder + '" value="' + setLoad + '" onfocus="this.select()" oninput="cvSetRow(' + i + ',' + s + ',\'load\',this.value)">';
         // Reps input
         h += '<input data-ex="' + i + '" data-field="reps" data-set="' + s + '" style="background:#1F2A33;border:1.5px solid ' + (setDone ? '#2FD4F5' : '#26323A') + ';border-radius:8px;color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;padding:6px 4px;outline:none;width:100%;box-sizing:border-box" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="' + repsPlaceholder + '" value="' + setReps + '" onfocus="this.select()" oninput="cvSetRow(' + i + ',' + s + ',\'reps\',this.value)">';
         // Tick button
@@ -7296,6 +7303,11 @@ async function cvSubmit() {
   // every set, while boxes that were given different values keep them.
   exs.forEach(function(ex, i) {
     const totalSets = parseInt(ex.sets) || 3;
+    if (ex.cat === 'Cardio') {
+      // Cardio is timed, not weighted — never keep a weight (e.g. a stray 5kg on the bike).
+      if (cvState[i]) cvState[i].setLoads = [];
+      delete ex.lastLoad; delete ex.lastLoadBySet; ex.load = '';
+    }
     cvFillBlankSetValues(i, 'setLoads', totalSets);
     cvFillBlankSetValues(i, 'setReps', totalSets);
   });
@@ -12716,15 +12728,15 @@ function copyToClinicNotes() {
     if (ex.sets) params.push('Sets: ' + ex.sets);
     if (ex.reps) params.push('Reps: ' + ex.reps);
     if (ex.hold) params.push('Hold: ' + withUnit(ex.hold, 's'));
-    if (ex.load) params.push('Weight: ' + ex.load);
+    if (ex.load && ex.cat !== 'Cardio') params.push('Weight: ' + ex.load);
     if (ex.rest) params.push('Rest: ' + ex.rest);
     if (params.length) lines.push('   ' + params.join('  |  '));
 
     // Last recorded values
-    if (ex.lastLoad || ex.lastReps) {
+    if ((ex.cat !== 'Cardio' && ex.lastLoad) || ex.lastReps) {
       var recorded = [];
       if (ex.lastReps) recorded.push('Reps achieved: ' + ex.lastReps);
-      if (ex.lastLoad) recorded.push('Weight used: ' + withUnit(ex.lastLoad, 'kg'));
+      if (ex.lastLoad && ex.cat !== 'Cardio') recorded.push('Weight used: ' + withUnit(ex.lastLoad, 'kg'));
       lines.push('   Recorded: ' + recorded.join('  |  '));
     }
 
