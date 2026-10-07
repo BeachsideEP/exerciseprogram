@@ -14,9 +14,9 @@
    "hold": "",
    "rest": "60s",
    "load": "",
-   "video": "./media/test-loop.mp4",
-   "startImage": "./media/test-start.jpg",
-   "endImage": "./media/test-end.jpg",
+   "video": "",
+   "startImage": "",
+   "endImage": "",
    "oldYoutube": "https://www.youtube.com/watch?v=ultWZbUMPL8"
   },
   {
@@ -30,9 +30,9 @@
    "hold": "",
    "rest": "60s",
    "load": "",
-   "video": "./media/test-loop.mp4",
-   "startImage": "./media/test-start.jpg",
-   "endImage": "./media/test-end.jpg",
+   "video": "",
+   "startImage": "",
+   "endImage": "",
    "oldYoutube": "https://www.youtube.com/watch?v=MxsFDhcyFyE"
   },
   {
@@ -366,9 +366,9 @@
    "hold": "",
    "rest": "60s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": "",
+   "video": "./media/chest-press.mp4",
+   "startImage": "chest-press-start.jpg",
+   "endImage": "chest-press-end.jpg",
    "oldYoutube": "https://www.youtube.com/watch?v=VmB1G1K7v94"
   },
   {
@@ -4949,9 +4949,9 @@
    "hold": "",
    "rest": "60s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": ""
+   "video": "./media/incline-push-up.mp4",
+   "startImage": "incline-push-up-start.jpg",
+   "endImage": "incline-push-up-end.jpg"
   },
   {
    "id": "hx13",
@@ -8328,9 +8328,9 @@
    "hold": "",
    "rest": "90s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": ""
+   "video": "./media/safety-bar-squat.mp4",
+   "startImage": "safety-bar-squat-start.jpg",
+   "endImage": "safety-bar-squat-end.jpg"
   },
   {
    "id": "nx10",
@@ -8343,9 +8343,9 @@
    "hold": "",
    "rest": "90s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": ""
+   "video": "./media/bar-squat.mp4",
+   "startImage": "bar-squat-start.jpg",
+   "endImage": "bar-squat-end.jpg"
   },
   {
    "id": "nx11",
@@ -8403,9 +8403,9 @@
    "hold": "",
    "rest": "60s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": ""
+   "video": "./media/db-chest-fly.mp4",
+   "startImage": "db-chest-fly-start.jpg",
+   "endImage": "db-chest-fly-end.jpg"
   },
   {
    "id": "nx15",
@@ -8463,9 +8463,13 @@
    "hold": "",
    "rest": "90s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": ""
+   "video": "./media/bent-over-row.mp4",
+   "startImage": "bent-over-row-start.jpg",
+   "endImage": "bent-over-row-end.jpg",
+   "aliases": [
+    "Bent Over BB Row (overhand)",
+    "Bent Over Row"
+   ]
   },
   {
    "id": "nx19",
@@ -8478,9 +8482,9 @@
    "hold": "",
    "rest": "90s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": ""
+   "video": "./media/underhand-pull-up.mp4",
+   "startImage": "underhand-pull-up-start.jpg",
+   "endImage": "underhand-pull-up-end.jpg"
   },
   {
    "id": "nx20",
@@ -8493,9 +8497,9 @@
    "hold": "",
    "rest": "90s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": ""
+   "video": "./media/pull-up.mp4",
+   "startImage": "pull-up-start.jpg",
+   "endImage": "pull-up-end.jpg"
   },
   {
    "id": "nx21",
@@ -8673,9 +8677,9 @@
    "hold": "",
    "rest": "90s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": ""
+   "video": "./media/front-bar-squat.mp4",
+   "startImage": "front-bar-squat-start.jpg",
+   "endImage": "front-bar-squat-end.jpg"
   },
   {
    "id": "nx33",
@@ -8784,9 +8788,9 @@
    "hold": "",
    "rest": "90s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": "",
+   "video": "./media/trap-bar-deadlift.mp4",
+   "startImage": "trap-bar-deadlift-start.jpg",
+   "endImage": "trap-bar-deadlift-end.jpg",
    "aliases": [
     "Trapbar Deadlift"
    ]
@@ -8865,6 +8869,65 @@
    "video": "",
    "startImage": "",
    "endImage": ""
+  },
+  {
+   "id": "nx45",
+   "name": "Bent Over BB Row (underhand)",
+   "cat": "Upper Limb",
+   "desc": "Hold a barbell with an underhand (palms-up) grip, hands about shoulder width. Hinge forward at the hips with a flat back and soft knees. Pull the bar towards your lower ribs, squeezing your shoulder blades together and keeping your elbows close to your body. Lower with control. Don't round your back.",
+   "muscles": "Lats,Rhomboids,Rear Deltoid,Biceps",
+   "sets": "3",
+   "reps": "8-10",
+   "hold": "",
+   "rest": "90s",
+   "load": "",
+   "video": "./media/underhand-bent-over-row.mp4",
+   "startImage": "underhand-bent-over-row-start.jpg",
+   "endImage": "underhand-bent-over-row-end.jpg",
+   "aliases": [
+    "Underhand Bent Over Row",
+    "Bent Over Row (underhand)"
+   ]
+  },
+  {
+   "id": "nx46",
+   "name": "Hex Press",
+   "cat": "Upper Limb",
+   "desc": "Lie on a bench holding two dumbbells pressed tightly together over your chest, palms facing each other. Keep squeezing the dumbbells together the whole time. Lower them to your chest, then press straight up. Keep your feet flat and your back relaxed on the bench.",
+   "muscles": "Pectorals,Triceps,Anterior Deltoid",
+   "sets": "3",
+   "reps": "8-10",
+   "hold": "",
+   "rest": "90s",
+   "load": "",
+   "video": "./media/hex-press.mp4",
+   "startImage": "hex-press-start.jpg",
+   "endImage": "hex-press-end.jpg",
+   "aliases": [
+    "Hex Press (DB)",
+    "DB Hex Press",
+    "Squeeze Press"
+   ]
+  },
+  {
+   "id": "nx47",
+   "name": "Chest Supported DB Row",
+   "cat": "Upper Limb",
+   "desc": "Lie face down on an incline bench with your chest supported and a dumbbell in each hand, arms hanging straight. Pull the dumbbells up towards your hips, squeezing your shoulder blades together. Pause, then lower with control. Keep your chest on the bench and your neck relaxed.",
+   "muscles": "Lats,Rhomboids,Rear Deltoid,Biceps",
+   "sets": "3",
+   "reps": "8-10",
+   "hold": "",
+   "rest": "90s",
+   "load": "",
+   "video": "./media/chest-supported-row.mp4",
+   "startImage": "chest-supported-row-start.jpg",
+   "endImage": "chest-supported-row-end.jpg",
+   "aliases": [
+    "Chest Supported Row",
+    "Incline DB Row",
+    "Chest Supported Row (DB)"
+   ]
   }
  ]
 }
