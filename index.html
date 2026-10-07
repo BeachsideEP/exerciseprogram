@@ -644,8 +644,6 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 #viewClient[data-theme="light"] textarea,
 #viewClient[data-theme="light"] select{background:#FFFFFF!important;color:#14202B!important;border:1.5px solid #C4D0DB!important}
 /* 6. SAFETY: the red video button always keeps white-on-red in both themes */
-#viewClient[data-theme="light"] .cv-yt-btn,
-#viewClient[data-theme="light"] .cv-yt-btn *{color:#fff!important;background:#FF0000}
 /* Red "Watch Exercise Video" button stays red — good in both themes */
 
 
@@ -710,6 +708,19 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .cv-session-date{font-weight:700;color:var(--ocean-deep);margin-bottom:2px}
 
 
+/* Video */
+.yt-btn{display:inline-flex;align-items:center;gap:6px;background:#FF0000;color:#fff;
+  border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:700;
+  font-family:-apple-system,sans-serif;cursor:pointer;margin-top:6px;text-decoration:none}
+.yt-btn:hover{background:#cc0000}
+.yt-btn svg{flex-shrink:0}
+.yt-input{width:100%;padding:7px 9px;border:1.5px solid var(--sand-d);border-radius:6px;
+  font-size:12px;font-family:'DM Sans',sans-serif;outline:none;background:var(--sand)}
+.yt-input:focus{border-color:var(--ocean-l);background:#fff}
+.yt-embed{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;
+  border-radius:9px;margin:8px 0;background:#000}
+.yt-embed iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:9px}
+/* Looping exercise video (native HTML5, no branding) */
 /* YouTube video */
 .yt-btn{display:inline-flex;align-items:center;gap:6px;background:#FF0000;color:#fff;
   border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:700;
@@ -731,7 +742,8 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 .cv-yt-embed{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;
   border-radius:10px;background:#000}
 .cv-yt-embed iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:10px}
-
+.cv-loop{position:relative;margin:8px 0 10px;border-radius:12px;overflow:hidden;background:#000;line-height:0;-webkit-tap-highlight-color:transparent}
+.cv-loop video{width:100%;max-height:300px;display:block;object-fit:cover;background:#0B0F12;border-radius:12px}
 
 /* Anna AI tab */
 #cvTabAi{height:calc(100vh - 120px);flex-direction:column;display:none}
@@ -1113,6 +1125,8 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 }
 #viewClient .announce-body { color: #C9D1B9 !important; }
 #viewClient .announce-title { color: #2FD4A0 !important; }
+.ann-link{color:#1A7BA4;font-weight:600;text-decoration:underline;word-break:break-all}
+#viewClient .ann-link{color:#2FD4F5 !important}
 
 /* Sub/back buttons */
 #viewClient .cv-sub-btn {
@@ -1842,7 +1856,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   <div class="hdr-btns">
     <button class="btn btn-ghost btn-sm" onclick="openClientDemo()" title="Preview how clients see their program">&#128247; Client View</button>
     <button class="btn btn-ghost btn-sm" onclick="saveProg()">💾 Save</button>
-    <button class="btn btn-teal btn-sm" onclick="openPrintModal()">📄 PDF</button>
+    <button class="btn btn-teal btn-sm" onclick="openPrintModal()">🖨 Print Routine</button>
   </div>
 </header>
 
@@ -1963,7 +1977,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
     <div id="logEntries" style="max-height:160px;overflow-y:auto"></div>
   </div>
   <div class="prev-actions">
-    <button class="btn btn-teal" onclick="openPrintModal()">📄 Generate PDF</button>
+    <button class="btn btn-teal" onclick="openPrintModal()">🖨 Print Routine</button>
     <button class="btn btn-ghost btn-sm" onclick="copyToClinicNotes()">📋 Copy to Clinical Notes</button>
     <button class="btn btn-ghost btn-sm" onclick="saveProg()">💾 Save Program</button>
     <button class="btn btn-ghost btn-sm" onclick="saveAsTemplate()">Save as Template</button>
@@ -2168,7 +2182,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
         <label>Custom Category Name</label><input id="em_custom_cat" type="text" placeholder="e.g. Post-Surgical Rehab">
       </div>
       <div class="fg" style="grid-column:1/-1"><label>Clinical Description</label><textarea id="em_desc" placeholder="Starting position, movement cues, safety tips…" rows="3"></textarea></div>
-      <div class="fg" style="grid-column:1/-1"><label>YouTube Video URL <span style="font-weight:400;color:var(--text-l)">(optional — paste full URL e.g. https://youtube.com/watch?v=…)</span></label><input id="em_video" type="text" class="yt-input" placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ"></div>
+      <div class="fg" style="grid-column:1/-1"><label>Video URL (.mp4) <span style="font-weight:400;color:var(--text-l)">(optional — link to an .mp4)</span></label><input id="em_video" type="text" class="yt-input" placeholder="https://…/video.mp4"></div>
 
       <div class="fg" style="grid-column:1/-1">
         <label>Primary Muscles <span style="font-weight:400;color:var(--text-l)">(hold Ctrl/Cmd to select multiple)</span></label>
@@ -2286,7 +2300,7 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
         </select>
     </div>
     <div class="fg" style="grid-column:1/-1"><label>Clinical Description</label><textarea id="ee_desc" rows="3"></textarea></div>
-      <div class="fg" style="grid-column:1/-1"><label>YouTube Video URL <span style="font-weight:400;color:var(--text-l)">(optional)</span></label><input oninput="var _v=document.getElementById('eeVidHint'); if(_v){_v.textContent = ytVideoId(this.value)? '✓ valid video link' : (this.value?'⚠ not a valid YouTube link':''); _v.style.color = ytVideoId(this.value)?'#2FD4F5':'#e06a5a';}" id="ee_video" type="text" class="yt-input" placeholder="https://www.youtube.com/watch?v=…"><span id="eeVidHint" style="font-size:11px;display:block;margin-top:2px"></span></div>
+      <div class="fg" style="grid-column:1/-1"><label>Video URL (.mp4) <span style="font-weight:400;color:var(--text-l)">(optional)</span></label><input oninput="var _v=document.getElementById('eeVidHint'); if(_v){_v.textContent = isVideoUrl(this.value)? '✓ valid video link' : (this.value?'⚠ not a valid video link':''); _v.style.color = isVideoUrl(this.value)?'#2FD4F5':'#e06a5a';}" id="ee_video" type="text" class="yt-input" placeholder="https://…/video.mp4"><span id="eeVidHint" style="font-size:11px;display:block;margin-top:2px"></span></div>
     <div class="fg" style="grid-column:1/-1">
       <label>Primary Muscles <span style="font-weight:400;color:var(--text-l)">(hold Ctrl/Cmd to select multiple)</span></label>
       <select id="ee_muscles" multiple style="height:120px;padding:4px">
@@ -2433,7 +2447,7 @@ create policy "clients_read_library" on library for select using (auth.role() = 
   <div style="background:var(--sand);border-radius:8px;padding:4px 14px;margin-bottom:10px">
     <div class="popt-row">
       <input type="checkbox" id="popt_photos" checked>
-      <div class="popt-label"><strong>Exercise illustrations / photos</strong><span>SVG diagrams or uploaded photos for each exercise</span></div>
+      <div class="popt-label"><strong>Exercise illustrations / photos</strong><span>Start and end position photos side by side (from exercises.json)</span></div>
     </div>
     <div class="popt-row">
       <input type="checkbox" id="popt_desc" checked>
@@ -2687,97 +2701,6 @@ const EXERCISE_SVG_MAP = {
   "Aqua Squat": `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="60" fill="#D4E8F5" rx="6"/><path d="M4 40 Q12 34 20 40 Q28 46 36 40 Q44 34 56 40" stroke="#2C6EA0" stroke-width="2" fill="none"/><circle cx="30" cy="10" r="4" fill="#2C6EA0"/><path d="M30 14 L30 26" stroke="#2C6EA0" stroke-width="2.5" stroke-linecap="round"/><line x1="30" y1="18" x2="20" y2="22" stroke="#2C6EA0" stroke-width="2" stroke-linecap="round"/><line x1="30" y1="18" x2="40" y2="22" stroke="#2C6EA0" stroke-width="2" stroke-linecap="round"/><path d="M30 26 Q20 30 18 38" stroke="#1a4e80" stroke-width="2.5" stroke-linecap="round" fill="none"/><path d="M30 26 Q40 30 42 38" stroke="#1a4e80" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg>`,
   "Resistance Band Circuit": `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="60" fill="#F0D4ED" rx="6"/><circle cx="30" cy="10" r="4" fill="#8A2C6E"/><path d="M30 14 L30 30" stroke="#8A2C6E" stroke-width="2.5" stroke-linecap="round"/><path d="M30 20 L14 22" stroke="#6a0c4e" stroke-width="2.5" stroke-linecap="round"/><circle cx="10" cy="22" r="4" fill="#E8735A" opacity=".6"/><path d="M30 20 L46 22" stroke="#6a0c4e" stroke-width="2.5" stroke-linecap="round"/><circle cx="50" cy="22" r="4" fill="#E8735A" opacity=".6"/><path d="M30 30 L24 46" stroke="#6a0c4e" stroke-width="2.5" stroke-linecap="round"/><path d="M30 30 L36 46" stroke="#6a0c4e" stroke-width="2.5" stroke-linecap="round"/><path d="M10 26 Q14 30 18 26" stroke="#E8735A" stroke-width="1.5" fill="none"/></svg>`
 };
-const EXERCISES = [
-  {id:1,name:"Squat",cat:"Lower Limb",desc:"Stand feet shoulder-width apart, toes slightly out. Lower hips until thighs are parallel to floor, keeping chest tall and knees tracking over toes. Drive through heels to return. Keep core braced throughout.",muscles:"Quadriceps,Glutes,Hamstrings",sets:3,reps:"10-12",hold:"",rest:"60s",load:"",video:"https://www.youtube.com/watch?v=ultWZbUMPL8"},
-  {id:2,name:"Goblet Squat",cat:"Lower Limb",desc:"Hold a weight at chest height. Feet shoulder-width, squat deep, keeping elbows inside knees at the bottom. Chest tall, heels down.",muscles:"Quadriceps,Glutes,Core",sets:3,reps:"10",hold:"",rest:"60s",load:"",video:"https://www.youtube.com/watch?v=MxsFDhcyFyE"},
-  {id:3,name:"Split Squat",cat:"Lower Limb",desc:"Stand in a long lunge stance, both feet facing forward. Lower back knee toward the floor, keeping front shin vertical. Drive through front heel to return.",muscles:"Quadriceps,Glutes,Hip Flexors",sets:3,reps:"10 each",hold:"",rest:"60s",load:"",video:"https://www.youtube.com/watch?v=U4s5DfOJyCA"},
-  {id:4,name:"Bulgarian Split Squat",cat:"Lower Limb",desc:"Rear foot elevated on a bench, front foot forward. Lower until front thigh is parallel to floor. Keep torso upright and front knee over toes.",muscles:"Quadriceps,Glutes",sets:3,reps:"8 each",hold:"",rest:"60s",load:"",video:"https://www.youtube.com/watch?v=2C-uNgKwPLE"},
-  {id:5,name:"Romanian Deadlift",cat:"Lower Limb",desc:"Hinge at hips with slight knee bend, pushing hips back as bar/weights lower toward mid-shin. Maintain neutral spine throughout. Drive hips forward to return.",muscles:"Hamstrings,Glutes,Erectors",sets:3,reps:"10",hold:"",rest:"60s",load:"",video:"https://www.youtube.com/watch?v=uhghy9pFIPY"},
-  {id:6,name:"Single-Leg Romanian Deadlift",cat:"Lower Limb",desc:"Balance on one leg, hinge forward at hip while rear leg extends. Keep hips level and spine neutral. Return to upright without touching down.",muscles:"Hamstrings,Glutes,Balance",sets:3,reps:"8 each",hold:"",rest:"60s",load:"",video:"https://www.youtube.com/watch?v=sYcFEZSRLFA"},
-  {id:7,name:"Hip Thrust",cat:"Lower Limb",desc:"Shoulders on bench, feet flat, bar across hips. Drive hips to full extension, squeezing glutes at top. Control the descent.",muscles:"Glutes,Hamstrings,Core",sets:3,reps:"12-15",hold:"",rest:"60s",load:"",video:"https://www.youtube.com/watch?v=LM8XHLYJoYs"},
-  {id:8,name:"Glute Bridge",cat:"Lower Limb",desc:"Lie supine, knees bent, feet flat. Drive hips to full extension squeezing glutes, hold briefly, then lower. Keep ribs down.",muscles:"Glutes,Hamstrings",sets:3,reps:"15",hold:"",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=wPM8icPu6H8"},
-  {id:9,name:"Single-Leg Glute Bridge",cat:"Lower Limb",desc:"Supine with one knee bent, other leg extended. Drive hips up through the planted foot. Keep pelvis level throughout.",muscles:"Glutes,Core",sets:3,reps:"12 each",hold:"",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=EAX_EZteqGs"},
-  {id:10,name:"Step Up",cat:"Lower Limb",desc:"Step onto a box with one foot, drive through that heel to stand fully. Step down with control. Keep torso upright throughout.",muscles:"Quadriceps,Glutes,Balance",sets:3,reps:"10 each",hold:"",rest:"60s",load:"",video:"https://www.youtube.com/watch?v=szRhNNHqGYw"},
-  {id:11,name:"Lateral Step Up",cat:"Lower Limb",desc:"Stand beside the box, step up sideways with the leading foot, driving through the hip and glute. Step down with control.",muscles:"Glutes,Hip Abductors",sets:3,reps:"10 each",hold:"",rest:"60s",load:"",video:"https://www.youtube.com/watch?v=oB8ksHDHGWs"},
-  {id:12,name:"Calf Raise (Bilateral)",cat:"Lower Limb",desc:"Stand at edge of step or flat surface. Rise onto toes, fully extending ankles, then lower with control below neutral.",muscles:"Gastrocnemius,Soleus",sets:3,reps:"15-20",hold:"",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=MmxkHMNqVOY"},
-  {id:13,name:"Calf Raise (Single Leg)",cat:"Lower Limb",desc:"Balance on one foot at edge of step. Rise onto toes fully, then lower slowly with control. Use support if needed for balance.",muscles:"Gastrocnemius,Soleus",sets:3,reps:"12-15 each",hold:"",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=cwb4PwZlHxk"},
-  {id:14,name:"Terminal Knee Extension",cat:"Lower Limb",desc:"Resistance band behind knee, stand on one leg with slight flex. Extend knee to full extension against band resistance, then return with control.",muscles:"VMO,Quadriceps",sets:3,reps:"15",hold:"",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=jOocyT_fmFg"},
-  {id:15,name:"Leg Press",cat:"Lower Limb",desc:"Seated, feet shoulder-width on platform. Lower weight until knees are at 90°, then press through heels to extend. Do not lock knees at top.",muscles:"Quadriceps,Glutes,Hamstrings",sets:3,reps:"12-15",hold:"",rest:"60s",load:"",video:"https://www.youtube.com/watch?v=IZxyjW7MPJQ"},
-  {id:16,name:"Wall Squat (Isometric)",cat:"Lower Limb",desc:"Back flat against wall, slide down until knees are at 90°. Hold position with core engaged and knees over ankles. Maintain neutral spine.",muscles:"Quadriceps,Glutes",sets:3,reps:"",hold:"45s",rest:"60s",load:"",video:"https://www.youtube.com/watch?v=y-wV4Venusw"},
-  {id:17,name:"Deadlift",cat:"Lower Limb",desc:"Bar over mid-foot, grip outside legs. Hinge to bar maintaining neutral spine, brace core. Drive floor away to stand, hips and shoulders rise together.",muscles:"Posterior Chain,Glutes,Erectors",sets:3,reps:"8",hold:"",rest:"90s",load:"",video:"https://www.youtube.com/watch?v=op9kVnSso6Q"},
-  {id:18,name:"Clamshell",cat:"Lower Limb",desc:"Side-lying, hips stacked and bent to 45°. Keeping feet together, rotate top knee toward ceiling. Avoid rolling the pelvis back.",muscles:"Glute Med,Hip Abductors",sets:3,reps:"15 each",hold:"",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=SxHMeRhRSzg"},
-  {id:19,name:"Mini-Band Walk (Lateral)",cat:"Lower Limb",desc:"Band around ankles, quarter-squat position. Step sideways maintaining tension in band, keeping toes forward and knees over toes.",muscles:"Glute Med,Hip Abductors",sets:3,reps:"10 each",hold:"",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=jtNdUt17UoM"},
-  {id:20,name:"Tibialis Raise",cat:"Lower Limb",desc:"Stand with heels on edge of step or against wall. Lift forefoot up toward shins as high as possible, then lower slowly.",muscles:"Tibialis Anterior",sets:3,reps:"15",hold:"",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=zMkLz2DkG6o"},
-  {id:21,name:"Seated Row (Cable)",cat:"Upper Limb",desc:"Seated upright, grip handles. Pull elbows back to sides squeezing shoulder blades together. Avoid leaning back excessively.",muscles:"Rhomboids,Mid Traps,Biceps",sets:3,reps:"10-12",hold:"",rest:"60s",load:"",video:"https://www.youtube.com/watch?v=GZbfZ033f74"},
-  {id:22,name:"Lat Pulldown",cat:"Upper Limb",desc:"Seated under bar, grip wide. Pull bar to upper chest, driving elbows down. Avoid excessive lean-back; keep core engaged.",muscles:"Latissimus Dorsi,Biceps",sets:3,reps:"10-12",hold:"",rest:"60s",load:"",video:"https://www.youtube.com/watch?v=CAwf7n6Luuc"},
-  {id:23,name:"Chest Press (DB)",cat:"Upper Limb",desc:"Supine on bench, dumbbells at chest. Press straight up until arms extended, then lower with control, keeping elbows at 45°.",muscles:"Pectorals,Triceps,Anterior Deltoid",sets:3,reps:"10-12",hold:"",rest:"60s",load:"",video:"https://www.youtube.com/watch?v=VmB1G1K7v94"},
-  {id:24,name:"Shoulder Press (DB)",cat:"Upper Limb",desc:"Seated or standing, dumbbells at shoulder height. Press overhead until arms extended, then lower to start. Keep core braced.",muscles:"Deltoids,Triceps,Upper Traps",sets:3,reps:"10-12",hold:"",rest:"60s",load:"",video:"https://www.youtube.com/watch?v=B-aVuyhvLHU"},
-  {id:25,name:"Bicep Curl (DB)",cat:"Upper Limb",desc:"Stand, arms at sides. Curl dumbbells toward shoulders keeping elbows pinned at sides. Lower slowly with control.",muscles:"Biceps,Brachialis",sets:3,reps:"12",hold:"",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=ykJmrZ5v0Oo"},
-  {id:26,name:"Tricep Pushdown (Cable)",cat:"Upper Limb",desc:"Grip bar or rope at chest. Push down until arms fully extend, keeping upper arms still. Control the return.",muscles:"Triceps",sets:3,reps:"12",hold:"",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=2-LAMcpzODU"},
-  {id:27,name:"Band Pull-Apart",cat:"Upper Limb",desc:"Hold band at shoulder height, arms straight. Pull apart horizontally until hands are level with shoulders, squeezing shoulder blades. Control the return.",muscles:"Posterior Deltoid,Rhomboids,Mid Traps",sets:3,reps:"15",hold:"",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=wlSFoHFYbGo"},
-  {id:28,name:"Face Pull (Cable)",cat:"Upper Limb",desc:"Cable at face height, rope attachment. Pull toward face splitting the rope to ears, externally rotating shoulders. Pause at end range.",muscles:"Posterior Deltoid,External Rotators",sets:3,reps:"15",hold:"",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=rep-qVOkqgk"},
-  {id:29,name:"Lateral Raise",cat:"Upper Limb",desc:"Slight bend at elbow, raise dumbbells to shoulder height, leading with elbows. Lower slowly. Avoid shrugging or swinging.",muscles:"Lateral Deltoid",sets:3,reps:"12-15",hold:"",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=3VcKaXpzqRo"},
-  {id:30,name:"External Rotation (Band)",cat:"Upper Limb",desc:"Elbow at 90° pinned at side. Rotate forearm outward against band resistance. Control the return to neutral.",muscles:"Infraspinatus,Teres Minor,RC",sets:3,reps:"15 each",hold:"",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=lMmIzBB9aN4"},
-  {id:31,name:"Internal Rotation (Band)",cat:"Upper Limb",desc:"Elbow at 90° at side. Rotate forearm inward across body against band resistance. Control return to neutral.",muscles:"Subscapularis,RC",sets:3,reps:"15 each",hold:"",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=EkJMkJG8kMg"},
-  {id:32,name:"Prone Y-T-W",cat:"Upper Limb",desc:"Lie prone. Perform three positions — Y (arms overhead 45°), T (arms out to sides), W (elbows bent 90°). Lift arms off ground each time.",muscles:"Lower/Mid Traps,Rhomboids",sets:3,reps:"10 each",hold:"",rest:"60s",load:"",video:"https://www.youtube.com/watch?v=Rl8gtMSxGz0"},
-  {id:33,name:"Push-Up",cat:"Upper Limb",desc:"Plank position, hands shoulder-width. Lower chest to floor with elbows at 45° to body. Press back up maintaining rigid trunk.",muscles:"Pectorals,Triceps,Core",sets:3,reps:"8-12",hold:"",rest:"60s",load:"",video:"https://www.youtube.com/watch?v=IODxDxX7oi4"},
-  {id:34,name:"Wall Push-Up",cat:"Upper Limb",desc:"Hands on wall, body angled. Bend elbows to bring chest toward wall, then push back. A reduced-load chest press variation suitable for all levels.",muscles:"Pectorals,Triceps",sets:3,reps:"12-15",hold:"",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=cGKOFoVjUPw"},
-  {id:35,name:"Wrist Flexion/Extension",cat:"Upper Limb",desc:"Seated, forearm resting on thigh. Curl wrist up then extend down through full range. Use light dumbbell or band.",muscles:"Wrist Flexors,Wrist Extensors",sets:2,reps:"15 each",hold:"",rest:"30s",load:"",video:"https://www.youtube.com/watch?v=QCK-2lSnUDs"},
-  {id:36,name:"Dead Bug",cat:"Core",desc:"Supine, arms toward ceiling, knees at 90°. Extend opposite arm and leg simultaneously while pressing lower back into floor. Exhale throughout.",muscles:"Transversus Abdominis,Core",sets:3,reps:"8 each",hold:"",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=4XLEnwUr1d8"},
-  {id:37,name:"Bird Dog",cat:"Core",desc:"On hands and knees, neutral spine. Extend opposite arm and leg, hold briefly, then return. Avoid hip rotation.",muscles:"Erectors,Glutes,Core",sets:3,reps:"10 each",hold:"",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=wiFNA3sqjCA"},
-  {id:38,name:"Plank (Prone)",cat:"Core",desc:"Forearms and toes, body straight. Brace core, squeeze glutes, keep hips level. Breathe normally throughout hold.",muscles:"Transversus Abdominis,Deltoids,Glutes",sets:3,reps:"",hold:"30s",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=pSHjTRCQxIw"},
-  {id:39,name:"Side Plank",cat:"Core",desc:"Side-lying on forearm, body straight. Lift hips, maintaining alignment from head to feet. Place top hand on hip. Avoid sagging.",muscles:"Obliques,Glute Med",sets:3,reps:"",hold:"20s each",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=K_E8-GEHlhI"},
-  {id:40,name:"Pallof Press",cat:"Core",desc:"Standing perpendicular to cable. Press handle straight out from chest and return, resisting the rotation. Keep hips and shoulders square.",muscles:"Anti-Rotation Core,Obliques",sets:3,reps:"10 each",hold:"",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=AH_QZLm_0-s"},
-  {id:41,name:"McGill Curl-Up",cat:"Core",desc:"Supine, one knee bent, hands under lumbar curve. Lift head and shoulders slightly without flattening lumbar spine. Isometric spine stabilisation.",muscles:"Rectus Abdominis,Core",sets:3,reps:"10",hold:"",rest:"30s",load:"",video:"https://www.youtube.com/watch?v=n2tSqfNGqJk"},
-  {id:42,name:"Hollow Hold",cat:"Core",desc:"Supine, arms overhead, press lower back into floor. Raise arms, legs and shoulders slightly. Maintain position without breath-holding.",muscles:"Rectus Abdominis,Hip Flexors",sets:3,reps:"",hold:"20s",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=LlDNef_Ztsc"},
-  {id:43,name:"Suitcase Carry",cat:"Core",desc:"Hold weight in one hand at side, walk forward maintaining level pelvis and upright posture. Resist lateral trunk lean.",muscles:"Obliques,Quadratus Lumborum",sets:3,reps:"20m each",hold:"",rest:"60s",load:"",video:"https://www.youtube.com/watch?v=Fkzk_RqlYig"},
-  {id:44,name:"Hip Flexor Stretch",cat:"Flexibility",desc:"Half-kneeling position, front foot forward. Tuck pelvis slightly and shift weight forward until stretch felt in front of rear hip. Avoid overextending lumbar.",muscles:"Iliopsoas,Rectus Femoris",sets:2,reps:"",hold:"30s each",rest:"20s",load:"",video:"https://www.youtube.com/watch?v=YQmpO9VT2X4"},
-  {id:45,name:"Hamstring Stretch (Supine)",cat:"Flexibility",desc:"Lie on back, lift one leg keeping knee straight. Hold behind thigh or use a strap. Avoid rounding the lower back.",muscles:"Hamstrings",sets:2,reps:"",hold:"30s each",rest:"20s",load:"",video:"https://www.youtube.com/watch?v=LF8mA4lNAMQ"},
-  {id:46,name:"Pigeon Pose (Glute Stretch)",cat:"Flexibility",desc:"From a lunge, bring front shin across body and lower hips toward floor. Keep hips level and avoid rotating the pelvis. Breathe into stretch.",muscles:"Piriformis,Glutes",sets:2,reps:"",hold:"45s each",rest:"20s",load:"",video:"https://www.youtube.com/watch?v=qKeLMKPTiOg"},
-  {id:47,name:"Cat-Cow",cat:"Flexibility",desc:"On hands and knees. Alternately arch and round the spine through its full range. Move slowly and breathe with each movement.",muscles:"Lumbar Extensors,Thoracic Spine",sets:2,reps:"10",hold:"",rest:"20s",load:"",video:"https://www.youtube.com/watch?v=kqnua4rHVVA"},
-  {id:48,name:"Thoracic Extension (Foam Roller)",cat:"Flexibility",desc:"Position foam roller horizontally under thoracic spine. Support head with hands, allow upper back to extend over roller. Breathe out and relax.",muscles:"Thoracic Extensors",sets:2,reps:"",hold:"60s",rest:"30s",load:"",video:"https://www.youtube.com/watch?v=7L6EV5-4jHI"},
-  {id:49,name:"Child\'s Pose",cat:"Flexibility",desc:"Kneel, sit back toward heels, reach arms forward. Relax the chest toward the floor. Breathe into the lower back and between shoulder blades.",muscles:"Lumbar Extensors,Lats,Hip Flexors",sets:2,reps:"",hold:"45s",rest:"20s",load:""},
-  {id:50,name:"Quad Stretch (Standing)",cat:"Flexibility",desc:"Stand on one leg, pull opposite foot toward buttock. Keep knees together, stand tall. Use support if needed for balance.",muscles:"Quadriceps,Hip Flexors",sets:2,reps:"",hold:"30s each",rest:"20s",load:"",video:"https://www.youtube.com/watch?v=0uyQmDV2LFE"},
-  {id:51,name:"Calf Stretch (Wall)",cat:"Flexibility",desc:"Hands on wall, one foot back with heel flat. Keep rear knee straight for gastrocnemius; bend slightly for soleus. Lean forward gently.",muscles:"Gastrocnemius,Soleus",sets:2,reps:"",hold:"30s each",rest:"20s",load:""},
-  {id:52,name:"Single Leg Stance",cat:"Balance",desc:"Stand on one leg, maintaining a level pelvis and upright posture. Progress by reducing hand support, closing eyes, or using an unstable surface.",muscles:"Glute Med,Proprioceptors,Core",sets:3,reps:"",hold:"30s each",rest:"30s",load:""},
-  {id:53,name:"Single Leg Stance (Eyes Closed)",cat:"Balance",desc:"Stand on one leg, close eyes. Maintain balance by focusing on ankle and hip proprioceptors. Stand near support for safety.",muscles:"Proprioceptors,Ankle Stabilisers",sets:3,reps:"",hold:"20s each",rest:"30s",load:""},
-  {id:54,name:"Tandem Walk",cat:"Balance",desc:"Walk forward placing each foot directly in front of the other, heel to toe. Arms may be extended for balance.",muscles:"Balance,Core,Lower Limb",sets:3,reps:"10m",hold:"",rest:"30s",load:""},
-  {id:55,name:"Star Excursion (Y-Balance)",cat:"Balance",desc:"Stand on one leg, reach the free foot to three target directions (anterior, posteromedial, posterolateral) as far as possible. Return to center between each reach.",muscles:"Dynamic Balance,Hip Stabilisers",sets:3,reps:"5 each",hold:"",rest:"45s",load:""},
-  {id:56,name:"Bosu Ball Squat",cat:"Balance",desc:"Stand on dome side of BOSU, feet shoulder-width. Perform a controlled squat, maintaining balance throughout.",muscles:"Proprioceptors,Quadriceps,Core",sets:3,reps:"10",hold:"",rest:"60s",load:""},
-  {id:57,name:"Stationary Bike (Moderate)",cat:"Cardio",desc:"Maintain a comfortable pace at 60-70% of maximum heart rate. Adjust seat so knee has slight bend at bottom of pedal stroke.",muscles:"Quadriceps,Glutes,Cardiovascular",sets:1,reps:"",hold:"20 min",rest:"",load:""},
-  {id:58,name:"Stationary Bike (Interval)",cat:"Cardio",desc:"Alternate 30s high effort with 60-90s recovery throughout session. Monitor perceived exertion to guide intensity.",muscles:"Quadriceps,Cardiovascular,Anaerobic",sets:1,reps:"",hold:"20 min",rest:"",load:""},
-  {id:59,name:"Treadmill Walk",cat:"Cardio",desc:"Maintain upright posture, arms swinging naturally. Target 3-4.5km/h or pace that allows comfortable conversation.",muscles:"Full Body,Cardiovascular",sets:1,reps:"",hold:"20-30 min",rest:"",load:""},
-  {id:60,name:"Rowing Machine",cat:"Cardio",desc:"Drive with legs first, then lean back slightly, then pull arms to lower chest. Reverse the order to return.",muscles:"Full Body,Cardiovascular",sets:1,reps:"",hold:"15 min",rest:"",load:""},
-  {id:61,name:"Elliptical Trainer",cat:"Elliptical Trainer",desc:"Low-impact full-body exercise. Maintain upright posture, push and pull handles equally, keep light grip.",muscles:"Full Body Low Impact,Cardiovascular",sets:1,reps:"",hold:"20 min",rest:"",load:""},
-  {id:62,name:"Step Machine",cat:"Cardio",desc:"Press through full foot, avoid hanging on handlebars. Maintain slight forward lean and controlled pace.",muscles:"Glutes,Quadriceps,Cardiovascular",sets:1,reps:"",hold:"15 min",rest:"",load:""},
-  {id:63,name:"Swimming",cat:"Cardio",desc:"Freestyle or stroke of choice. Focus on bilateral breathing if freestyle, maintaining streamlined body position.",muscles:"Full Body,Cardiovascular",sets:1,reps:"",hold:"20 min",rest:"",load:""},
-  {id:64,name:"Sit-to-Stand (Chair)",cat:"Neuromotor",desc:"Sit at chair edge, feet flat shoulder-width. Lean slightly forward then drive through feet to stand fully. Reverse with control.",muscles:"Quadriceps,Glutes,Functional",sets:3,reps:"10",hold:"",rest:"45s",load:""},
-  {id:65,name:"Timed Up-and-Go",cat:"Neuromotor",desc:"From seated, stand, walk 3m, turn, return and sit. Record time. Target under 12 seconds for community-dwelling adults.",muscles:"Balance,Functional Mobility",sets:3,reps:"1 trial",hold:"",rest:"60s",load:""},
-  {id:66,name:"Heel-Toe Walk",cat:"Neuromotor",desc:"Walk in a straight line placing the heel of each advancing foot directly in front of the toes of the rear foot.",muscles:"Balance,Proprioception",sets:2,reps:"10m",hold:"",rest:"30s",load:""},
-  {id:67,name:"Backwards Walk",cat:"Neuromotor",desc:"Walk backwards in a straight line. Progress by adding a cognitive task. Ensure clear space behind you for safety.",muscles:"Balance,Cognitive,Lower Limb",sets:2,reps:"10m",hold:"",rest:"30s",load:""},
-  {id:68,name:"High Knee March",cat:"Neuromotor",desc:"March in place lifting each knee to hip height. Maintain upright posture with opposite arm swing. Control the descent.",muscles:"Hip Flexors,Core,Coordination",sets:3,reps:"20",hold:"",rest:"45s",load:""},
-  {id:69,name:"Diaphragmatic Breathing",cat:"Respiratory",desc:"Lie or sit comfortably. Breathe into the belly first, allowing it to rise. Exhale slowly. Avoid elevating shoulders on inhale.",muscles:"Diaphragm,Accessory Muscles",sets:3,reps:"10 breaths",hold:"",rest:"30s",load:"",video:"https://www.youtube.com/watch?v=kgTL5G1ibIo"},
-  {id:70,name:"Pursed Lip Breathing",cat:"Respiratory",desc:"Inhale through nose for 2 counts. Exhale slowly through pursed lips for 4 counts. Helps slow breathing rate and reduce dyspnoea.",muscles:"Respiratory Muscles",sets:3,reps:"10 breaths",hold:"",rest:"30s",load:""},
-  {id:71,name:"Post-Meal Walk",cat:"Metabolic",desc:"Walk at comfortable pace within 30 minutes of a meal to aid glucose uptake. Monitor glucose if on insulin.",muscles:"Full Body,Metabolic",sets:1,reps:"",hold:"10-15 min",rest:"",load:""},
-  {id:72,name:"Resistance Band Circuit",cat:"Metabolic",desc:"Complete a series of band exercises back-to-back with minimal rest to maintain elevated heart rate and metabolic demand.",muscles:"Full Body,Metabolic",sets:3,reps:"10-12",hold:"",rest:"60s",load:""},
-  {id:73,name:"Pelvic Tilts",cat:"Pilates",desc:"Supine with knees bent. Alternate between flattening and arching the lower back, focusing on isolated lumbar movement. Breathe with each tilt.",muscles:"Lumbar Stabilisers,Transversus Abdominis",sets:2,reps:"10",hold:"",rest:"20s",load:""},
-  {id:74,name:"Swimming (Pilates)",cat:"Pilates",desc:"Prone, extend opposite arm and leg simultaneously off the floor, alternate rapidly in a flutter motion. Maintain core brace.",muscles:"Erectors,Glutes,Shoulder Stabilisers",sets:3,reps:"",hold:"30s",rest:"30s",load:""},
-  {id:75,name:"Heel Drop (Bone Loading)",cat:"Bone Health",desc:"Stand on both feet, rise to toes then drop down quickly, creating a brief impact force. Maintain tall posture throughout.",muscles:"Bone Stimulation,Lower Limb",sets:1,reps:"50",hold:"",rest:"",load:""},
-  {id:76,name:"Chin Tuck",cat:"Posture",desc:"Sitting tall, gently draw chin straight back creating a double chin. Hold briefly, release. Avoid tilting the head.",muscles:"Deep Neck Flexors,Cervical Spine",sets:3,reps:"10",hold:"5s",rest:"20s",load:""},
-  {id:77,name:"Wall Angels",cat:"Posture",desc:"Stand with back, head, and arms against wall. Slide arms overhead and back down like a snow angel, keeping all contact points.",muscles:"Lower/Mid Traps,Serratus Anterior",sets:3,reps:"10",hold:"",rest:"30s",load:""},
-  {id:78,name:"Prone Cobra",cat:"Posture",desc:"Lie prone, forehead down. Lift head, shoulders and chest, retracting shoulder blades. Arms can be at sides or Y-position. Hold briefly.",muscles:"Thoracic Extensors,Rhomboids",sets:3,reps:"10",hold:"3s",rest:"30s",load:""},
-  {id:79,name:"Seated Scapular Retraction",cat:"Posture",desc:"Seated tall. Squeeze shoulder blades firmly together and hold, then release fully. Avoid shrugging or holding breath.",muscles:"Rhomboids,Mid Traps",sets:3,reps:"15",hold:"3s",rest:"30s",load:""},
-  {id:80,name:"Neural Floss – Sciatic",cat:"Neurodynamic",desc:"Seated, straighten one knee while dorsiflexing foot, then flex knee and plantarflex. Perform as a slow, rhythmic motion.",muscles:"Sciatic Nerve,Hamstrings",sets:2,reps:"10 each",hold:"",rest:"30s",load:""},
-  {id:81,name:"Neural Floss – Median Nerve",cat:"Neurodynamic",desc:"Seated, extend arm at shoulder height, extend wrist. Alternately tilt head away and toward the arm. Perform smoothly without pain.",muscles:"Median Nerve,Upper Limb",sets:2,reps:"10 each",hold:"",rest:"30s",load:""},
-  {id:82,name:"Slump Stretch",cat:"Neurodynamic",desc:"Seated, slump into flexion, extend one knee with foot dorsiflexed. Hold or perform gentle oscillations at end of range if tolerated.",muscles:"Sciatic Nerve,Dura",sets:2,reps:"",hold:"20s each",rest:"30s",load:""},
-  {id:83,name:"Box Jump (Low)",cat:"Plyometric",desc:"Stand before a low box, dip slightly, swing arms and jump onto box with soft landing. Land with knees bent, absorbing force quietly.",muscles:"Quadriceps,Glutes,Calves",sets:3,reps:"5",hold:"",rest:"90s",load:""},
-  {id:84,name:"Broad Jump",cat:"Plyometric",desc:"Stand feet shoulder-width, dip and jump as far forward as possible with two feet. Land softly with knees bent. Measure for progression.",muscles:"Full Lower Limb,Power",sets:3,reps:"5",hold:"",rest:"90s",load:""},
-  {id:85,name:"Lateral Bound",cat:"Plyometric",desc:"Single-leg takeoff laterally, land on opposite foot with control, absorbing the force. Focus on soft, stable landing before exploding again.",muscles:"Glute Med,Lateral Power",sets:3,reps:"5 each",hold:"",rest:"90s",load:""},
-  {id:86,name:"Jogging (Treadmill)",cat:"Plyometric",desc:"Begin at brisk walk, progress to easy jog. Focus on upright posture, midfoot strike, and comfortable breathing.",muscles:"Full Body,Cardiovascular",sets:3,reps:"",hold:"2 min",rest:"60s",load:""},
-  {id:87,name:"Aqua Walking",cat:"Hydrotherapy",desc:"Walk in chest-deep water, maintaining upright posture with arm swing. Increase pace or resistance for greater challenge.",muscles:"Full Body Low Impact,Cardiovascular",sets:3,reps:"2 min",hold:"",rest:"60s",load:""},
-  {id:88,name:"Aqua High Knee March",cat:"Hydrotherapy",desc:"March in pool, lifting knees to hip height against water resistance. Maintain balance and upright trunk.",muscles:"Hip Flexors,Core",sets:3,reps:"20",hold:"",rest:"45s",load:""},
-  {id:89,name:"Aqua Squat",cat:"Hydrotherapy",desc:"Feet shoulder-width in pool, lower to squat position using water for buoyancy assistance. Drive through heels to return.",muscles:"Quadriceps,Glutes",sets:3,reps:"10-12",hold:"",rest:"60s",load:""}
-];
 
 
 // NEW SVG ADDITIONS
@@ -2844,616 +2767,15 @@ const NEW_SVG_MAP = {
 };
 
 // NEW EXERCISES (ids 90-148)
-const NEW_EXERCISES = [
-  {id:90,name:"Pendulum Exercise",cat:"Shoulder Rehab",desc:"Lean forward supporting yourself with one hand. Let the affected arm hang freely and swing it in small circles using trunk momentum — not shoulder muscle activation.",muscles:"Shoulder Capsule,Rotator Cuff",sets:1,reps:"20 circles",hold:"",rest:"",load:"",video:"https://www.youtube.com/watch?v=p-sV2oW5NAs"},
-  {id:91,name:"Sleeper Stretch",cat:"Shoulder Rehab",desc:"Side-lying on affected shoulder, elbow at 90°. Use other hand to gently push forearm toward floor, stretching posterior shoulder capsule. Stop at discomfort.",muscles:"Posterior Capsule,Infraspinatus",sets:2,reps:"",hold:"30s each",rest:"20s",load:"",video:"https://www.youtube.com/watch?v=OI9AjLZqEDs"},
-  {id:92,name:"Doorway Chest Stretch",cat:"Shoulder Rehab",desc:"Stand in doorway, forearm on frame at 90°. Step forward until stretch felt across chest and anterior shoulder. Maintain tall posture.",muscles:"Pectorals,Anterior Deltoid",sets:2,reps:"",hold:"30s",rest:"20s",load:"",video:"https://www.youtube.com/watch?v=Xe7rqhKWfTs"},
-  {id:93,name:"Scapular Clock",cat:"Shoulder Rehab",desc:"Move shoulder blade in a full clock motion — up, out, down, in — smoothly and with control. Focuses on scapular motor control and proprioception.",muscles:"Serratus Anterior,Trapezius,Rhomboids",sets:3,reps:"10 each direction",hold:"",rest:"30s",load:""},
-  {id:94,name:"Sidelying External Rotation",cat:"Shoulder Rehab",desc:"Lie on unaffected side, affected arm elbow at 90°. Rotate forearm toward ceiling against gravity. Control the return slowly.",muscles:"Infraspinatus,Teres Minor",sets:3,reps:"15",hold:"",rest:"45s",load:"",video:"https://www.youtube.com/watch?v=lMmIzBB9aN4"},
-  {id:95,name:"Shoulder Flexion Wall Slide",cat:"Shoulder Rehab",desc:"Stand facing wall, hands flat. Slide arms overhead as far as pain-free range allows, then return. Useful early post-surgical rehab.",muscles:"Anterior Deltoid,Shoulder Flexors",sets:3,reps:"10",hold:"",rest:"30s",load:""},
-  {id:96,name:"Scapular Push-Up",cat:"Shoulder Rehab",desc:"Push-up position (or against wall). Without bending elbows, protract and retract shoulder blades only. Teaches serratus anterior activation.",muscles:"Serratus Anterior,Pectoralis Minor",sets:3,reps:"12",hold:"",rest:"30s",load:""},
-  {id:97,name:"Quad Set (Isometric)",cat:"Knee Rehab",desc:"Lie flat with affected leg straight. Press knee firmly into surface by contracting quadriceps. Hold, then relax. Safe post-surgery or with acute pain.",muscles:"VMO,Quadriceps",sets:3,reps:"",hold:"10s",rest:"20s",load:""},
-  {id:98,name:"Short Arc Quad",cat:"Knee Rehab",desc:"Supine with a rolled towel under the knee. Extend the lower leg to full extension, hold briefly, then lower slowly through limited range.",muscles:"Quadriceps,VMO",sets:3,reps:"15",hold:"",rest:"30s",load:""},
-  {id:99,name:"Straight Leg Raise",cat:"Knee Rehab",desc:"Supine with one knee bent. Lock opposite knee straight and raise leg to 45°. Hold briefly, lower slowly. Maintains quad without knee joint load.",muscles:"Quadriceps,Hip Flexors",sets:3,reps:"15 each",hold:"",rest:"30s",load:""},
-  {id:100,name:"Prone Knee Flexion",cat:"Knee Rehab",desc:"Prone, bend knee toward buttock as far as comfortable, then lower slowly. Progress with ankle weight for resistance.",muscles:"Hamstrings",sets:3,reps:"15 each",hold:"",rest:"30s",load:""},
-  {id:101,name:"Step Down (Eccentric)",cat:"Knee Rehab",desc:"Stand on affected leg on a step. Slowly lower the opposite heel toward floor, controlling descent entirely through the working leg. Key eccentric quad loading.",muscles:"Quadriceps,VMO,Glutes",sets:3,reps:"10 each",hold:"",rest:"60s",load:""},
-  {id:102,name:"Knee Flexion Stretch (Prone)",cat:"Knee Rehab",desc:"Prone, loop a towel around ankle and gently pull heel toward buttock. Steady pressure without bouncing. Restores post-op ROM.",muscles:"Quadriceps,Knee Capsule",sets:2,reps:"",hold:"40s each",rest:"20s",load:""},
-  {id:103,name:"Hip Abduction (Sidelying)",cat:"Hip Rehab",desc:"Lie on side, body straight. Lift top leg to 40° keeping toes forward and hip not rolling back. Lower with control.",muscles:"Glute Med,TFL,Hip Abductors",sets:3,reps:"15 each",hold:"",rest:"45s",load:""},
-  {id:104,name:"Hip Adduction (Sidelying)",cat:"Hip Rehab",desc:"Lie on side, top leg supported on chair or bent forward. Lift bottom leg upward. Targets often-neglected hip adductors.",muscles:"Hip Adductors,Groin",sets:3,reps:"15 each",hold:"",rest:"45s",load:""},
-  {id:105,name:"Hip Internal Rotation (Seated)",cat:"Hip Rehab",desc:"Seated, feet together. Rotate one knee outward (hip internally rotates) against band resistance. Control return.",muscles:"Glute Med,Hip Internal Rotators",sets:3,reps:"12 each",hold:"",rest:"30s",load:""},
-  {id:106,name:"Hip Extension (Prone)",cat:"Hip Rehab",desc:"Prone, contract glute and lift one leg straight off surface keeping pelvis stable. Hold briefly at top.",muscles:"Glutes,Hamstrings",sets:3,reps:"15 each",hold:"",rest:"45s",load:""},
-  {id:107,name:"Supine Hip Flexion (Active)",cat:"Hip Rehab",desc:"Supine, lift one knee toward chest maintaining neutral pelvis. Lower slowly. Restores flexor strength post hip surgery.",muscles:"Hip Flexors,Core",sets:3,reps:"12 each",hold:"",rest:"30s",load:""},
-  {id:108,name:"Ankle Alphabet",cat:"Ankle Rehab",desc:"Seated, leg outstretched. Draw each letter of the alphabet with the big toe by moving the ankle only. Improves ROM and proprioception.",muscles:"Ankle Musculature,Proprioception",sets:1,reps:"A–Z each",hold:"",rest:"",load:""},
-  {id:109,name:"Ankle Dorsiflexion (Band)",cat:"Ankle Rehab",desc:"Band around midfoot fixed behind. Pull foot toward shin against resistance, then return slowly. Essential for ankle sprain and Achilles rehab.",muscles:"Tibialis Anterior,Peroneals",sets:3,reps:"15 each",hold:"",rest:"30s",load:""},
-  {id:110,name:"Heel Raises on Step (Eccentric)",cat:"Ankle Rehab",desc:"Stand on step edge. Rise on both feet, then lower on one foot slowly below step level. Eccentric loading protocol for Achilles tendinopathy.",muscles:"Gastrocnemius,Soleus,Achilles",sets:3,reps:"15 each",hold:"",rest:"90s",load:""},
-  {id:111,name:"Towel Scrunches",cat:"Ankle Rehab",desc:"Seated, towel on floor. Use toes to scrunch it toward you. Strengthens intrinsic foot muscles and plantar fascia.",muscles:"Toe Flexors,Plantar Fascia",sets:3,reps:"20",hold:"",rest:"30s",load:""},
-  {id:112,name:"Single Leg Calf Raise (Slow)",cat:"Ankle Rehab",desc:"Single leg, rise over 3 counts, hold 2s at top, lower over 3 counts. Use support for balance. Key loading protocol for Achilles.",muscles:"Gastrocnemius,Soleus,Achilles",sets:3,reps:"12",hold:"",rest:"90s",load:""},
-  {id:113,name:"Sit-to-Stand (Fast)",cat:"Falls Prevention",desc:"Sit at chair edge. Stand as quickly and safely as possible. Builds explosive power essential for fall recovery reactions.",muscles:"Quadriceps,Glutes,Explosive Power",sets:3,reps:"5",hold:"",rest:"60s",load:""},
-  {id:114,name:"Stepping in Place (Marching)",cat:"Falls Prevention",desc:"March in place lifting knees high with exaggerated arm swing. Focus on rhythm and coordination. Progress tempo gradually.",muscles:"Hip Flexors,Coordination,Cardiovascular",sets:3,reps:"30 steps",hold:"",rest:"45s",load:""},
-  {id:115,name:"Lateral Step-Out",cat:"Falls Prevention",desc:"Step one foot out to the side, bring feet together, repeat. Move along a line. Builds lateral stability and reactive stepping.",muscles:"Glute Med,Lateral Stability",sets:3,reps:"10m each",hold:"",rest:"30s",load:""},
-  {id:116,name:"Over-the-Object Step",cat:"Falls Prevention",desc:"Step over a cone or low object forward then backward, leading with each foot. Builds obstacle navigation confidence and dynamic balance.",muscles:"Dynamic Balance,Hip Flexors",sets:3,reps:"5 each",hold:"",rest:"30s",load:""},
-  {id:117,name:"Dual-Task Balance",cat:"Falls Prevention",desc:"Stand on one leg while performing a cognitive task (count backwards, name words). Trains the cognitive-motor integration that governs fall risk.",muscles:"Proprioception,Cognitive,Balance",sets:3,reps:"",hold:"20s each",rest:"30s",load:""},
-  {id:118,name:"RPE Walk (Cardiac)",cat:"Cardiac Rehab",desc:"Walk at 11–13/20 RPE — comfortable, conversational pace. Monitor for symptoms: stop if chest pain, dizziness or severe dyspnoea. Build duration 1–2 min per week.",muscles:"Cardiovascular,Endurance",sets:1,reps:"",hold:"20 min",rest:"",load:""},
-  {id:119,name:"Seated Arm Ergometer",cat:"Cardiac Rehab",desc:"Pedal arm ergometer at low resistance. Maintain controlled breathing. Avoid Valsalva maneuver. Target 40–60% HRmax.",muscles:"Upper Limb,Cardiovascular",sets:1,reps:"",hold:"10-15 min",rest:"",load:""},
-  {id:120,name:"Low-Load Resistance (Cardiac)",cat:"Cardiac Rehab",desc:"Light resistance at high reps and slow cadence. Exhale on exertion, avoid breath-holding. Monitor HR and symptoms throughout.",muscles:"Muscular Endurance,Cardiovascular",sets:3,reps:"15-20",hold:"",rest:"60s",load:""},
-  {id:121,name:"Seated Marching (Cardiac)",cat:"Cardiac Rehab",desc:"Seated, alternate lifting knees rhythmically. Safe low-demand cardiovascular stimulus for early cardiac rehab or very deconditioned patients.",muscles:"Hip Flexors,Cardiovascular",sets:3,reps:"30 each",hold:"",rest:"30s",load:""},
-  {id:122,name:"Paced Walking (Chronic Pain)",cat:"Chronic Pain",desc:"Walk at a pace set below pain threshold. Gradually increase duration each session by a small fixed amount regardless of symptom changes that day.",muscles:"Endurance,Pain Desensitisation",sets:1,reps:"",hold:"Set baseline",rest:"",load:""},
-  {id:123,name:"Breathing with Movement",cat:"Chronic Pain",desc:"Coordinate gentle movement (e.g. arm raises) with slow breath cycles. Exhale on effort. Calms sympathetic nervous system and reduces central sensitisation.",muscles:"Respiratory,Parasympathetic,Core",sets:3,reps:"10 breaths",hold:"",rest:"20s",load:""},
-  {id:124,name:"Progressive Muscle Relaxation",cat:"Chronic Pain",desc:"Systematically tense then release major muscle groups from feet to head. Hold tension 5s, release 15s. Reduces muscle guarding and pain-related hypervigilance.",muscles:"Nervous System,Muscle Tension",sets:1,reps:"",hold:"10-15 min",rest:"",load:""},
-  {id:125,name:"Gaze Stabilisation (VOR)",cat:"Vestibular",desc:"Fix eyes on a stationary target. Move head side-to-side while keeping the target in sharp focus. Progress speed gradually. Trains vestibulo-ocular reflex.",muscles:"Vestibular System,VOR",sets:3,reps:"20 each",hold:"",rest:"30s",load:""},
-  {id:126,name:"Brandt-Daroff Exercises",cat:"Vestibular",desc:"Sit upright, rapidly lie on side with head turned 45° to affected side. Hold 30s or until dizziness stops. Return to upright then repeat on other side.",muscles:"BPPV,Vestibular System",sets:3,reps:"5 each side",hold:"",rest:"60s",load:""},
-  {id:127,name:"Head Turns (Seated)",cat:"Vestibular",desc:"Seated, slowly turn head side-to-side then up and down. Progress to standing. Targets vestibular habituation and motion tolerance.",muscles:"Vestibular Habituation",sets:3,reps:"10 each",hold:"",rest:"30s",load:""},
-  {id:128,name:"Tandem Stance on Foam",cat:"Vestibular",desc:"Stand heel-to-toe on foam mat, eyes open then closed. Challenges vestibular, proprioceptive and visual balance systems simultaneously.",muscles:"Vestibular,Proprioception,Visual",sets:3,reps:"",hold:"20s each",rest:"30s",load:""},
-  {id:129,name:"Gentle Seated Movement (Cancer)",cat:"Cancer Rehab",desc:"Slow seated movements through comfortable range — gentle neck rolls, seated trunk rotation, shoulder circles. Focus on breath and body awareness with activity pacing.",muscles:"Flexibility,Relaxation,Fatigue Management",sets:1,reps:"",hold:"5-10 min",rest:"",load:""},
-  {id:130,name:"Energy-Paced Walk",cat:"Cancer Rehab",desc:"Walk at RPE 10–12. Stop before onset of fatigue. Gradually builds aerobic capacity while respecting post-exertional malaise and treatment-related fatigue.",muscles:"Cardiovascular,Energy Conservation",sets:1,reps:"",hold:"10-15 min",rest:"",load:""},
-  {id:131,name:"Light Resistance Band (Cancer)",cat:"Cancer Rehab",desc:"Light band at slow cadence, focusing on breath control and movement quality. Terminate before significant fatigue onset.",muscles:"Muscular Endurance,Fatigue Management",sets:2,reps:"8-10",hold:"",rest:"90s",load:""},
-  {id:132,name:"Diaphragmatic Breathing (Lymph)",cat:"Lymphoedema",desc:"Slow diaphragmatic breathing stimulates thoracic duct and promotes central lymphatic flow. Hand on belly to monitor diaphragmatic movement.",muscles:"Lymphatic System,Diaphragm",sets:3,reps:"10 deep breaths",hold:"",rest:"30s",load:""},
-  {id:133,name:"Arm Elevation Pumping",cat:"Lymphoedema",desc:"Elevate arm overhead. Repeatedly open and close fist. Gravity-assisted lymph drainage combined with muscle pump activation.",muscles:"Lymphatic Drainage,Upper Limb",sets:3,reps:"20 pumps",hold:"",rest:"45s",load:""},
-  {id:134,name:"Ankle Pumps (Lymph)",cat:"Lymphoedema",desc:"Supine or seated. Rapidly pump ankles up and down. Activates calf muscle pump to drive lymphatic and venous return.",muscles:"Calf Pump,Lymphatic Drainage",sets:3,reps:"30",hold:"",rest:"30s",load:""},
-  {id:135,name:"Pursed Lip Breathing Walk",cat:"Respiratory",desc:"Walk at comfortable pace. Inhale through nose for 2 steps, exhale through pursed lips for 4 steps. Maintains positive airway pressure during exertion.",muscles:"Respiratory Muscles,Airway Pressure",sets:1,reps:"",hold:"10 min",rest:"",load:""},
-  {id:136,name:"Inspiratory Muscle Training",cat:"Respiratory",desc:"Use IMT device (e.g. Threshold) at 30–40% of MIP. Breathe through device for set reps. Progressively strengthens respiratory muscles.",muscles:"Diaphragm,Inspiratory Muscles",sets:1,reps:"30 breaths",hold:"",rest:"",load:""},
-  {id:137,name:"Active Cycle of Breathing",cat:"Respiratory",desc:"Sequence: breathing control → thoracic expansion exercises → forced expiration (huffing). Effective airway clearance for COPD and bronchiectasis.",muscles:"Airway Clearance,Lung Volumes",sets:3,reps:"2-3 cycles",hold:"",rest:"60s",load:""},
-  {id:138,name:"Pelvic Floor Contraction",cat:"Pelvic Floor",desc:"Identify pelvic floor muscles as if stopping urine flow. Contract upward and inward, hold, then fully relax. Avoid contracting buttocks or thighs.",muscles:"Pelvic Floor,Core",sets:3,reps:"10",hold:"5-10s",rest:"30s",load:""},
-  {id:139,name:"Pelvic Floor Quick Flicks",cat:"Pelvic Floor",desc:"Rapidly contract and release pelvic floor muscles. Trains fast-twitch fibres for cough and sneeze reflex control and prevention of stress incontinence.",muscles:"Pelvic Floor,Fast Twitch Fibres",sets:3,reps:"10",hold:"",rest:"30s",load:""},
-  {id:140,name:"Pelvic Floor with Squat",cat:"Pelvic Floor",desc:"Perform a bodyweight squat while maintaining pelvic floor contraction through descent, releasing at the top. Functional integration of pelvic floor with load.",muscles:"Pelvic Floor,Quadriceps,Glutes",sets:3,reps:"10",hold:"",rest:"30s",load:""},
-  {id:141,name:"Putty Squeeze",cat:"Hand Rehab",desc:"Knead therapeutic putty using full hand, pinch between fingers, or roll between palms. Select resistance appropriate to hand strength and diagnosis.",muscles:"Hand Intrinsics,Grip Strength",sets:3,reps:"",hold:"2 min",rest:"30s",load:""},
-  {id:142,name:"Finger Tendon Glides",cat:"Hand Rehab",desc:"Move hand through four positions: straight, hook fist, full fist, tabletop. Hold briefly at each. Maintains tendon excursion post injury or surgery.",muscles:"Finger Flexor Tendons,Intrinsics",sets:3,reps:"10 each position",hold:"",rest:"30s",load:""},
-  {id:143,name:"Opposition Exercises",cat:"Hand Rehab",desc:"Touch tip of each finger to the thumb in sequence, then reverse. Progress speed. Restores fine motor coordination post nerve injury or surgery.",muscles:"Thenar Muscles,Finger Coordination",sets:3,reps:"10 cycles",hold:"",rest:"20s",load:""},
-  {id:144,name:"Cervical Rotation Stretch",cat:"Cervical",desc:"Gently turn head to one side to comfortable end range, hold, return to neutral. Move slowly and within pain-free range at all times.",muscles:"Cervical Rotators,SCM",sets:2,reps:"",hold:"20s each",rest:"20s",load:""},
-  {id:145,name:"Cervical Lateral Flexion",cat:"Cervical",desc:"Tilt ear toward shoulder without raising the shoulder. May apply gentle overpressure with same-side hand for a mild end-range stretch.",muscles:"Scalenes,Upper Trapezius",sets:2,reps:"",hold:"20s each",rest:"20s",load:""},
-  {id:146,name:"Neck Isometric (Side)",cat:"Cervical",desc:"Hand against temple, resist head lateral flexion without any movement. Equal and opposite force. Safe cervical strengthening post whiplash.",muscles:"Cervical Lateral Flexors,SCM",sets:3,reps:"",hold:"5-10s each",rest:"30s",load:""},
-  {id:147,name:"Upper Trap Stretch",cat:"Cervical",desc:"Seated, hold chair edge with one hand. Tilt head to opposite side and slightly forward. Targets upper trapezius and levator scapulae.",muscles:"Upper Trapezius,Levator Scapulae",sets:2,reps:"",hold:"30s each",rest:"20s",load:""},
-  {id:148,name:"Graded Motor Imagery",cat:"Chronic Pain",desc:"Observe images of body parts and identify left or right (laterality recognition). Progresses to mental imagery of movement. Targets cortical reorganisation in chronic pain.",muscles:"Cortical Reorganisation,Pain Modulation",sets:3,reps:"10-15 images",hold:"",rest:"30s",load:""}
-];
 
 
 // Merge SVG maps and exercise arrays
 const ALL_SVG_MAP = Object.assign({}, EXERCISE_SVG_MAP, NEW_SVG_MAP);
 
-const EXTRA_EXERCISES = [
-  // ── HOME EXERCISE ──
-  {id:'he1',name:'Theraband Bicep Curl',cat:'Home Exercise',desc:'Anchor theraband underfoot. Curl hands to shoulders keeping elbows tucked.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Biceps',video:''},
-  {id:'he2',name:'Theraband Shoulder Press',cat:'Home Exercise',desc:'Stand on band. Press hands overhead from shoulder height.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Deltoids,Triceps',video:''},
-  {id:'he3',name:'Theraband Row',cat:'Home Exercise',desc:'Anchor band at chest height. Pull handles to sides of chest squeezing shoulder blades.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Rhomboids,Mid/Lower Trapezius',video:''},
-  {id:'he4',name:'Theraband Lateral Raise',cat:'Home Exercise',desc:'Stand on band. Raise arms to shoulder height with slight elbow bend.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Deltoids',video:''},
-  {id:'he5',name:'Chair Squat',cat:'Home Exercise',desc:'Stand in front of chair. Lower until you just touch the seat then stand.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Quadriceps,Glutes,Hamstrings',video:''},
-  {id:'he6',name:'Wall Push Up',cat:'Home Exercise',desc:'Place hands on wall at shoulder height. Bend elbows to bring chest to wall.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Chest,Triceps,Deltoids',video:''},
-  {id:'he7',name:'Step Ups',cat:'Home Exercise',desc:'Step up onto a stair leading with one foot. Alternate legs.',sets:'3',reps:'10 each',hold:'',rest:'60s',muscles:'Quadriceps,Glutes,Calves',video:''},
-  {id:'he8',name:'Seated Marching',cat:'Home Exercise',desc:'Sit tall. Lift alternate knees as if marching in place.',sets:'3',reps:'20',hold:'',rest:'60s',muscles:'Hip Flexors,Core',video:''},
-  {id:'he9',name:'Doorway Shoulder Stretch',cat:'Home Exercise',desc:'Place forearm on doorframe. Rotate body away to feel stretch across chest and shoulder.',sets:'3',reps:'1',hold:'30s',rest:'30s',muscles:'Chest,Deltoids',video:''},
-  {id:'he10',name:'Prone Hip Extension',cat:'Home Exercise',desc:'Lie face down. Lift one leg keeping knee straight and pelvis flat.',sets:'3',reps:'12 each',hold:'2s',rest:'60s',muscles:'Glutes,Hamstrings',video:''},
-
-  // ── MOBILITY ──
-  {id:'mob1',name:'Cat Cow Stretch',cat:'Mobility',desc:'On hands and knees. Alternate arching and rounding spine with breath.',sets:'3',reps:'10',hold:'',rest:'30s',muscles:'Erector Spinae,Core',video:'https://www.youtube.com/watch?v=kqnua4rHVVA'},
-  {id:'mob2',name:'Hip 90/90 Stretch',cat:'Mobility',desc:'Sit with both legs at 90 degrees. Rotate torso over front leg.',sets:'3',reps:'1 each',hold:'45s',rest:'30s',muscles:'Hip Rotators,Glutes,Hip Flexors',video:'https://www.youtube.com/watch?v=MEr-E8mkVFM'},
-  {id:'mob3',name:'Thoracic Rotation Stretch',cat:'Mobility',desc:'Side lying with knees bent. Rotate top arm to opposite side opening chest.',sets:'3',reps:'10 each',hold:'3s',rest:'30s',muscles:'Mid/Lower Trapezius,Erector Spinae',video:'https://www.youtube.com/watch?v=LoGdFMFLRGI'},
-  {id:'mob4',name:'Ankle Circles',cat:'Mobility',desc:'Seated. Lift foot and draw circles with toes. Clockwise then anti-clockwise.',sets:'2',reps:'10 each',hold:'',rest:'30s',muscles:'Ankle Stabilisers',video:''},
-  {id:'mob5',name:'Cervical Lateral Flexion Stretch',cat:'Mobility',desc:'Sit tall. Tilt ear to shoulder gently. Hold.',sets:'3',reps:'1 each',hold:'30s',rest:'30s',muscles:'Cervical Flexors,Cervical Extensors',video:''},
-  {id:'mob6',name:'Wrist Flexor Stretch',cat:'Mobility',desc:'Extend arm with palm up. Gently pull fingers back with other hand.',sets:'3',reps:'1 each',hold:'30s',rest:'30s',muscles:'Forearms',video:''},
-  {id:'mob7',name:'Wrist Extensor Stretch',cat:'Mobility',desc:'Extend arm with palm down. Gently press hand downward.',sets:'3',reps:'1 each',hold:'30s',rest:'30s',muscles:'Forearms',video:''},
-  {id:'mob8',name:'Pigeon Stretch',cat:'Mobility',desc:'From plank position, bring one knee forward. Lower hips toward floor.',sets:'3',reps:'1 each',hold:'45s',rest:'30s',muscles:'Hip Rotators,Glutes,Piriformis',video:'https://www.youtube.com/watch?v=qKeLMKPTiOg'},
-  {id:'mob9',name:'Posterior Shoulder Capsule Stretch',cat:'Mobility',desc:'Bring one arm across chest. Use other arm to pull elbow gently.',sets:'3',reps:'1 each',hold:'30s',rest:'30s',muscles:'Rotator Cuff,Deltoids',video:''},
-  {id:'mob10',name:'Lumbar Rotation Stretch',cat:'Mobility',desc:'Lie on back. Drop both knees to one side keeping shoulders flat.',sets:'3',reps:'1 each',hold:'30s',rest:'30s',muscles:'Erector Spinae,Obliques',video:''},
-
-  // ── FALLS AND BALANCE ──
-  {id:'fb1',name:'Tandem Stance',cat:'Falls and Balance',desc:'Stand with one foot directly in front of the other. Hold 30 seconds.',sets:'3',reps:'1 each',hold:'30s',rest:'30s',muscles:'Ankle Stabilisers,Core,Proprioception',video:''},
-  {id:'fb2',name:'Single Leg Stance Eyes Closed',cat:'Falls and Balance',desc:'Stand on one leg. Close eyes and maintain balance.',sets:'3',reps:'1 each',hold:'20s',rest:'30s',muscles:'Ankle Stabilisers,Balance,Core',video:''},
-  {id:'fb3',name:'Timed Up and Go (TUG)',cat:'Falls and Balance',desc:'From seated: stand, walk 3m, turn, walk back, sit. Time the task.',sets:'3',reps:'1',hold:'',rest:'60s',muscles:'Balance,Proprioception',video:'https://www.youtube.com/watch?v=RbPBLWy_mJA'},
-  {id:'fb4',name:'Step Over Obstacle',cat:'Falls and Balance',desc:'Walk toward a small obstacle and step over it without breaking stride.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Balance,Hip Flexors,Ankle Stabilisers',video:''},
-  {id:'fb5',name:'Backwards Walking',cat:'Falls and Balance',desc:'Walk backwards in a straight line over 3-5 metres.',sets:'3',reps:'5',hold:'',rest:'60s',muscles:'Balance,Proprioception,Calves',video:''},
-  {id:'fb6',name:'Star Excursion Balance',cat:'Falls and Balance',desc:'Stand on one leg. Reach other foot in 8 directions without touching floor.',sets:'3',reps:'8 each',hold:'',rest:'60s',muscles:'Ankle Stabilisers,Proprioception,Core',video:''},
-  {id:'fb7',name:'Foam Pad Standing',cat:'Falls and Balance',desc:'Stand on foam pad with feet together. Maintain balance for set time.',sets:'3',reps:'1',hold:'30s',rest:'30s',muscles:'Ankle Stabilisers,Proprioception,Balance',video:''},
-  {id:'fb8',name:'Gait Training',cat:'Falls and Balance',desc:'Walk with deliberate heel-toe pattern. Swing arms. Look forward.',sets:'3',reps:'20m',hold:'',rest:'60s',muscles:'Balance,Proprioception',video:''},
-
-  // ── CHRONIC PAIN ──
-  {id:'cp1',name:'Diaphragmatic Breathing',cat:'Chronic Pain',desc:'Lie on back. Place hands on belly. Breathe in expanding belly. Breathe out slowly.',sets:'3',reps:'10',hold:'5s',rest:'30s',muscles:'Breathing Muscles,Core',video:''},
-  {id:'cp2',name:'Graded Motor Imagery',cat:'Chronic Pain',desc:'Visualise pain-free movement. Mentally rehearse the exercise before attempting.',sets:'3',reps:'5',hold:'10s',rest:'30s',muscles:'Proprioception',video:''},
-  {id:'cp3',name:'Paced Walking',cat:'Chronic Pain',desc:'Walk at comfortable pace. Stop BEFORE pain onset. Gradually increase distance.',sets:'1',reps:'5 min',hold:'',rest:'60s',muscles:'Cardiovascular',video:''},
-  {id:'cp4',name:'Relaxation Breathing',cat:'Chronic Pain',desc:'Inhale 4 counts. Hold 4 counts. Exhale 6 counts. Repeat.',sets:'3',reps:'10',hold:'',rest:'30s',muscles:'Breathing Muscles',video:''},
-  {id:'cp5',name:'Warm Water Exercise',cat:'Chronic Pain',desc:'Gentle movement in warm water. Buoyancy reduces joint load.',sets:'2',reps:'10 each',hold:'',rest:'60s',muscles:'Core,Balance',video:''},
-
-  // ── BONE HEALTH ──
-  {id:'bh1',name:'Heel Drops',cat:'Bone Health',desc:'Rise onto toes then let heels drop firmly to floor. Creates impact stimulus.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Calves,Ankle Stabilisers',video:'https://www.youtube.com/watch?v=FkRCT_dD3FQ'},
-  {id:'bh2',name:'Weighted Vest Walk',cat:'Bone Health',desc:'Walk for set time wearing a weighted vest. Maintains loading stimulus.',sets:'1',reps:'20 min',hold:'',rest:'',muscles:'Cardiovascular,Balance',video:''},
-  {id:'bh3',name:'Impact Stepping',cat:'Bone Health',desc:'Step up and down from low step with moderate impact through heel.',sets:'3',reps:'20',hold:'',rest:'60s',muscles:'Quadriceps,Glutes,Ankle Stabilisers',video:''},
-  {id:'bh4',name:'Loaded Carry',cat:'Bone Health',desc:'Carry a weight in one or both hands while walking. Loads spine and hips.',sets:'3',reps:'20m',hold:'',rest:'60s',muscles:'Core,Erector Spinae,Glutes',video:''},
-
-  // ── UPPER LIMB - additional ──
-  {id:'ul1',name:'Rotator Cuff Strengthening (ER)',cat:'Upper Limb',desc:'Elbow at side bent 90°. Rotate hand outward against theraband resistance.',sets:'3',reps:'15 each',hold:'2s',rest:'60s',muscles:'Rotator Cuff',video:''},
-  {id:'ul2',name:'Rotator Cuff Strengthening (IR)',cat:'Upper Limb',desc:'Elbow at side bent 90°. Rotate hand inward against theraband resistance.',sets:'3',reps:'15 each',hold:'2s',rest:'60s',muscles:'Rotator Cuff',video:''},
-  {id:'ul3',name:'Shoulder Flexion (Theraband)',cat:'Upper Limb',desc:'Stand on band. Raise arm forward to shoulder height. Slow and controlled.',sets:'3',reps:'12 each',hold:'',rest:'60s',muscles:'Deltoids,Rotator Cuff',video:''},
-  {id:'ul4',name:'Wrist Extension Strengthening',cat:'Upper Limb',desc:'Forearm supported. Hold light weight and raise hand upward.',sets:'3',reps:'15',hold:'2s',rest:'60s',muscles:'Forearms',video:''},
-  {id:'ul5',name:'Wrist Flexion Strengthening',cat:'Upper Limb',desc:'Forearm supported palm up. Curl weight upward.',sets:'3',reps:'15',hold:'2s',rest:'60s',muscles:'Forearms',video:''},
-  {id:'ul6',name:'Finger Extension Band',cat:'Upper Limb',desc:'Place rubber band around fingers. Spread fingers against resistance.',sets:'3',reps:'15',hold:'2s',rest:'30s',muscles:'Forearms',video:''},
-  {id:'ul7',name:'Elbow Flexion Eccentric',cat:'Upper Limb',desc:'Curl weight up with both hands. Lower slowly with one hand over 4 counts.',sets:'3',reps:'10 each',hold:'',rest:'60s',muscles:'Biceps',video:''},
-  {id:'ul8',name:'Tricep Dips',cat:'Upper Limb',desc:'Hands on bench behind you. Dip body down bending elbows. Push back up.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Triceps,Chest',video:''},
-  {id:'ul9',name:'Scapular Protraction/Retraction',cat:'Upper Limb',desc:'Arms forward. Push hands further away rounding upper back. Then pull back squeezing blades.',sets:'3',reps:'12',hold:'2s',rest:'30s',muscles:'Serratus Anterior,Rhomboids',video:''},
-  {id:'ul10',name:'Shoulder Shrug',cat:'Upper Limb',desc:'Hold weights at sides. Shrug shoulders toward ears. Hold. Release.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Upper Trapezius',video:''},
-
-  // ── LOWER LIMB - additional ──
-  {id:'ll1',name:'Lateral Band Walk',cat:'Lower Limb',desc:'Band around ankles. Step side to side maintaining slight squat.',sets:'3',reps:'15 each',hold:'',rest:'60s',muscles:'Glute Med,Hip Abductors',video:'https://www.youtube.com/watch?v=jtNdUt17UoM'},
-  {id:'ll2',name:'Terminal Knee Extension',cat:'Lower Limb',desc:'Band behind knee. Start bent. Extend knee against resistance.',sets:'3',reps:'15 each',hold:'2s',rest:'60s',muscles:'Quadriceps,VMO',video:''},
-  {id:'ll3',name:'Hamstring Curl (Prone)',cat:'Lower Limb',desc:'Lie face down. Curl heel toward buttocks against theraband.',sets:'3',reps:'12 each',hold:'',rest:'60s',muscles:'Hamstrings',video:''},
-  {id:'ll4',name:'Hip Adductor Squeeze',cat:'Lower Limb',desc:'Lie on back knees bent. Squeeze ball between knees. Hold.',sets:'3',reps:'12',hold:'5s',rest:'60s',muscles:'Hip Adductors',video:''},
-  {id:'ll5',name:'Standing Hip Abduction',cat:'Lower Limb',desc:'Stand holding support. Lift leg out to side keeping pelvis level.',sets:'3',reps:'12 each',hold:'2s',rest:'60s',muscles:'Glute Med,Hip Abductors',video:''},
-  {id:'ll6',name:'Ankle Plantarflexion Strengthening',cat:'Lower Limb',desc:'Seated. Loop band over foot. Point foot down against resistance.',sets:'3',reps:'15 each',hold:'2s',rest:'60s',muscles:'Calves,Gastrocnemius',video:''},
-  {id:'ll7',name:'Ankle Dorsiflexion Strengthening',cat:'Lower Limb',desc:'Seated. Band anchored ahead. Pull foot up against resistance.',sets:'3',reps:'15 each',hold:'2s',rest:'60s',muscles:'Tibialis Anterior',video:''},
-  {id:'ll8',name:'Clamshell',cat:'Lower Limb',desc:'Lie on side knees bent. Open top knee like a clamshell. Keep pelvis still.',sets:'3',reps:'15 each',hold:'2s',rest:'60s',muscles:'Glute Med,Hip Abductors',video:''},
-  {id:'ll9',name:'Reverse Lunge',cat:'Lower Limb',desc:'Step back into lunge. Lower back knee toward floor. Drive forward to start.',sets:'3',reps:'10 each',hold:'',rest:'60s',muscles:'Quadriceps,Glutes,Hamstrings',video:''},
-  {id:'ll10',name:'Side Lying Hip Extension',cat:'Lower Limb',desc:'Lie on side. Extend top leg back keeping hip neutral.',sets:'3',reps:'12 each',hold:'2s',rest:'60s',muscles:'Glutes,Hamstrings',video:''},
-
-  // ── CARDIO ──
-  {id:'c1',name:'Stationary Bike',cat:'Cardio',desc:'Cycle at moderate intensity maintaining comfortable resistance.',sets:'1',reps:'20 min',hold:'',rest:'',muscles:'Cardiovascular,Quadriceps,Calves',video:'https://www.youtube.com/watch?v=UxhygPgrQjc'},
-  {id:'c2',name:'Recumbent Bike',cat:'Cardio',desc:'Seated cycling with back support. Low joint stress.',sets:'1',reps:'15 min',hold:'',rest:'',muscles:'Cardiovascular,Quadriceps,Hamstrings',video:''},
-  {id:'c4',name:'Step Machine',cat:'Cardio',desc:'Step at steady pace maintaining upright posture.',sets:'1',reps:'10 min',hold:'',rest:'',muscles:'Cardiovascular,Glutes,Quadriceps,Calves',video:''},
-  {id:'c5',name:'Nordic Walking',cat:'Cardio',desc:'Walk using poles for additional upper body engagement and stability.',sets:'1',reps:'20 min',hold:'',rest:'',muscles:'Cardiovascular,Deltoids,Balance',video:''},
-
-  // ── PILATES ──
-  {id:'pil1',name:'Pelvic Clock',cat:'Pilates',desc:'Lie on back knees bent. Tilt pelvis as if a clock on belly. Move 12-6 then 3-9.',sets:'3',reps:'10',hold:'',rest:'30s',muscles:'Core,Transversus Abdominis',video:''},
-  {id:'pil2',name:'Spine Stretch Forward',cat:'Pilates',desc:'Sit tall legs extended. Reach arms forward curling spine. Return.',sets:'3',reps:'8',hold:'5s',rest:'30s',muscles:'Erector Spinae,Hamstrings',video:''},
-  {id:'pil3',name:'Side Lying Leg Lift Series',cat:'Pilates',desc:'Lie on side. Lift top leg to hip height. Add circles, kicks, and lifts.',sets:'2',reps:'10 each',hold:'',rest:'30s',muscles:'Glute Med,Hip Abductors,Core',video:''},
-  {id:'pil4',name:'Swimming',cat:'Pilates',desc:'Lie prone. Lift opposite arm and leg. Alternate like a swimming motion.',sets:'3',reps:'10 each',hold:'2s',rest:'30s',muscles:'Glutes,Erector Spinae,Multifidus',video:''},
-  {id:'pil5',name:'Chest Lift',cat:'Pilates',desc:'Lie on back knees bent. Curl chest up keeping neck long. Lower slowly.',sets:'3',reps:'10',hold:'2s',rest:'30s',muscles:'Rectus Abdominis,Core',video:''},
-  {id:'pil6',name:'Leg Pull Front',cat:'Pilates',desc:'Plank position. Lift one leg keeping hips level. Alternate.',sets:'3',reps:'6 each',hold:'3s',rest:'30s',muscles:'Core,Glutes,Erector Spinae',video:''},
-  {id:'pil7',name:'Hundreds (Modified)',cat:'Pilates',desc:'Lie on back. Lift head and arms. Pump arms 100 times with breath.',sets:'1',reps:'1',hold:'100 pumps',rest:'30s',muscles:'Core,Transversus Abdominis,Rectus Abdominis',video:''},
-  {id:'pil8',name:'Side Bend',cat:'Pilates',desc:'Side plank on hand or elbow. Lift hips. Lower and repeat.',sets:'3',reps:'8 each',hold:'',rest:'30s',muscles:'Obliques,Core,Glute Med',video:''},
-
-  // ── HYDROTHERAPY ──
-  {id:'ht1',name:'Pool Walking',cat:'Hydrotherapy',desc:'Walk forward and backward in waist-deep water. Use water resistance.',sets:'3',reps:'2 min',hold:'',rest:'60s',muscles:'Cardiovascular,Balance,Quadriceps',video:''},
-  {id:'ht2',name:'Aqua Jogging',cat:'Hydrotherapy',desc:'Jog in deep water with flotation belt. High cardio low impact.',sets:'3',reps:'3 min',hold:'',rest:'60s',muscles:'Cardiovascular,Core,Hip Flexors',video:''},
-  {id:'ht3',name:'Pool Wall Push Off',cat:'Hydrotherapy',desc:'Stand facing pool wall. Push away gently. Return with controlled flutter kick.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Chest,Core,Calves',video:''},
-  {id:'ht4',name:'Aqua Arm Circles',cat:'Hydrotherapy',desc:'Submerge arms. Circle forward and backward against water resistance.',sets:'3',reps:'15 each',hold:'',rest:'30s',muscles:'Deltoids,Rotator Cuff',video:''},
-  {id:'ht5',name:'Hip Flexion in Water',cat:'Hydrotherapy',desc:'Hold pool edge. March knees up against water resistance.',sets:'3',reps:'12 each',hold:'',rest:'60s',muscles:'Hip Flexors,Core,Balance',video:''},
-  {id:'ht6',name:'Pool Side Steps',cat:'Hydrotherapy',desc:'Step sideways through water in waist depth. Resistance trains abductors.',sets:'3',reps:'10 each',hold:'',rest:'60s',muscles:'Glute Med,Hip Abductors,Balance',video:''},
-
-  // ── CORE - additional ──
-  {id:'co1',name:'McGill Curl Up',cat:'Core',desc:'One knee bent. Hands under lumbar. Lift head and shoulders only. No full crunch.',sets:'3',reps:'10',hold:'10s',rest:'60s',muscles:'Rectus Abdominis,Core',video:'https://www.youtube.com/watch?v=n2tSqfNGqJk'},
-  {id:'co2',name:'McGill Bird Dog',cat:'Core',desc:'On hands and knees. Extend opposite arm and leg. Hold. Return slowly.',sets:'3',reps:'8 each',hold:'10s',rest:'60s',muscles:'Multifidus,Erector Spinae,Core',video:'https://www.youtube.com/watch?v=wiFNA3sqjCA'},
-  {id:'co3',name:'McGill Side Bridge',cat:'Core',desc:'Side plank on elbow and knees (modified) or feet. Hold.',sets:'3',reps:'1 each',hold:'30s',rest:'60s',muscles:'Obliques,Core,Glute Med',video:'https://www.youtube.com/watch?v=K_E8-GEHlhI'},
-  {id:'co4',name:'Pallof Press',cat:'Core',desc:'Cable or band at chest height. Press hands away from body. Resist rotation.',sets:'3',reps:'12 each',hold:'2s',rest:'60s',muscles:'Core,Obliques,Transversus Abdominis',video:''},
-  {id:'co5',name:'Ab Wheel Rollout',cat:'Core',desc:'Kneel with wheel. Roll forward keeping core braced. Return.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Rectus Abdominis,Core,Erector Spinae',video:'https://www.youtube.com/watch?v=FJ6bdBIr6Jw'},
-  {id:'co6',name:'Hollow Body Hold',cat:'Core',desc:'Lie on back. Press lower back flat. Extend arms and legs off floor.',sets:'3',reps:'1',hold:'20s',rest:'60s',muscles:'Transversus Abdominis,Core,Rectus Abdominis',video:'https://www.youtube.com/watch?v=LlDNef_Ztsc'},
-];
 
 
-const LIBRARY_2 = [
-  // ══════════════════════════════════════════════════════
-  // PILATES REFORMER (50)
-  // ══════════════════════════════════════════════════════
-  {id:'pr1',name:'Footwork - Parallel',cat:'Pilates',desc:'Lie on reformer. Feet hip-width on footbar. Press out and return. Keep pelvis neutral and core engaged.',sets:'3',reps:'10',hold:'',rest:'30s',muscles:'Quadriceps,Hamstrings,Glutes,Calves',video:''},
-  {id:'pr2',name:'Footwork - Pilates V',cat:'Pilates',desc:'Heels together toes apart on footbar. Press out and return. Focus on inner thigh connection.',sets:'3',reps:'10',hold:'',rest:'30s',muscles:'Hip Adductors,Quadriceps,Calves',video:''},
-  {id:'pr3',name:'Footwork - Wide V',cat:'Pilates',desc:'Feet wide apart on footbar in turnout. Press out engaging outer hips.',sets:'3',reps:'10',hold:'',rest:'30s',muscles:'Glute Med,Hip Abductors,Quadriceps',video:''},
-  {id:'pr4',name:'Footwork - Heels',cat:'Pilates',desc:'Heels on footbar, toes lifted. Press out and return. Strengthens calves and hamstrings.',sets:'3',reps:'10',hold:'',rest:'30s',muscles:'Hamstrings,Calves,Glutes',video:''},
-  {id:'pr5',name:'Footwork - Arches',cat:'Pilates',desc:'Arches of feet on footbar. Requires strong ankle stability and foot intrinsic activation.',sets:'3',reps:'10',hold:'',rest:'30s',muscles:'Foot Intrinsics,Calves,Quadriceps',video:''},
-  {id:'pr6',name:'Hundred on Reformer',cat:'Pilates',desc:'Lie supine, legs in tabletop. Pump arms 100 times matching breath. Maintain deep abdominal connection.',sets:'1',reps:'100 pumps',hold:'',rest:'60s',muscles:'Core,Transversus Abdominis,Rectus Abdominis',video:''},
-  {id:'pr7',name:'Leg Circles on Reformer',cat:'Pilates',desc:'Feet in straps. Circle legs maintaining stable pelvis. Reverse direction.',sets:'3',reps:'8 each',hold:'',rest:'30s',muscles:'Hip Flexors,Hip Rotators,Core',video:''},
-  {id:'pr8',name:'Short Spine',cat:'Pilates',desc:'Feet in straps. Roll spine up bringing knees to chest then extend legs overhead. Slowly roll down.',sets:'3',reps:'5',hold:'',rest:'60s',muscles:'Erector Spinae,Core,Hamstrings',video:''},
-  {id:'pr9',name:'Coordination',cat:'Pilates',desc:'Lie supine. Extend arms and legs simultaneously. Open and close legs then return. Demands full body control.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Core,Hip Flexors,Transversus Abdominis',video:''},
-  {id:'pr10',name:'Elephant',cat:'Pilates',desc:'Stand on carriage, hands on footbar. Round spine. Push carriage out and pull in with hamstrings.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Hamstrings,Core,Erector Spinae',video:''},
-  {id:'pr11',name:'Down Stretch',cat:'Pilates',desc:'Kneel on carriage, hands on footbar. Push back into extension while maintaining strong abdominals.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Erector Spinae,Glutes,Core',video:''},
-  {id:'pr12',name:'Up Stretch',cat:'Pilates',desc:'Pike position. Push carriage back lengthening spine. Return drawing navel in.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Core,Hamstrings,Erector Spinae',video:''},
-  {id:'pr13',name:'Long Stretch',cat:'Pilates',desc:'Plank position on reformer. Push and pull carriage maintaining rigid trunk.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Core,Chest,Erector Spinae',video:''},
-  {id:'pr14',name:'Knee Stretch - Round',cat:'Pilates',desc:'Kneel on carriage spine rounded. Pull knees toward chest and extend. Articulate lumbar spine.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Core,Erector Spinae,Hip Flexors',video:''},
-  {id:'pr15',name:'Knee Stretch - Arch',cat:'Pilates',desc:'Kneel on carriage spine in extension. Push and pull maintaining neutral curve.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Erector Spinae,Glutes,Core',video:''},
-  {id:'pr16',name:'Running on Reformer',cat:'Pilates',desc:'Supine, feet on footbar. Alternate heel lowering simulating running motion. Mobilises ankles.',sets:'3',reps:'20',hold:'',rest:'30s',muscles:'Calves,Ankle Stabilisers,Hamstrings',video:''},
-  {id:'pr17',name:'Pelvic Lift on Reformer',cat:'Pilates',desc:'Bridge position with feet on footbar. Lift and lower hips maintaining alignment.',sets:'3',reps:'10',hold:'3s',rest:'60s',muscles:'Glutes,Hamstrings,Core',video:''},
-  {id:'pr18',name:'Side Lying Leg Series',cat:'Pilates',desc:'Side lying on carriage. Lift and lower top leg. Add variations - forward/back, circles.',sets:'3',reps:'10 each',hold:'',rest:'30s',muscles:'Glute Med,Hip Abductors,Core',video:''},
-  {id:'pr19',name:'Mermaid on Reformer',cat:'Pilates',desc:'Seated sideways. Reach over in lateral flexion using arm to push/pull carriage.',sets:'3',reps:'8 each',hold:'3s',rest:'30s',muscles:'Obliques,Latissimus Dorsi,Core',video:''},
-  {id:'pr20',name:'Rowing - Front',cat:'Pilates',desc:'Seated, straps in hands. Round forward then open arms wide pressing back.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Rhomboids,Latissimus Dorsi,Core',video:''},
-  {id:'pr21',name:'Rowing - Back',cat:'Pilates',desc:'Seated, straps in hands behind. Extend arms back then round forward reaching.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Rhomboids,Deltoids,Core',video:''},
-  {id:'pr22',name:'Chest Expansion',cat:'Pilates',desc:'Kneeling, straps in hands. Pull arms back opening chest. Hold. Return.',sets:'3',reps:'8',hold:'5s',rest:'30s',muscles:'Rhomboids,Mid/Lower Trapezius,Deltoids',video:''},
-  {id:'pr23',name:'Hug a Tree',cat:'Pilates',desc:'Seated, arms open wide with straps. Pull arms in front of body maintaining open chest.',sets:'3',reps:'10',hold:'',rest:'30s',muscles:'Chest,Serratus Anterior,Core',video:''},
-  {id:'pr24',name:'Salute',cat:'Pilates',desc:'Kneeling, straps in hands at shoulders. Press arms up overhead maintaining stable trunk.',sets:'3',reps:'10',hold:'',rest:'30s',muscles:'Deltoids,Triceps,Core',video:''},
-  {id:'pr25',name:'Bicep Curl on Reformer',cat:'Pilates',desc:'Seated or kneeling. Curl straps to shoulders. Control the lowering phase.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Biceps,Core',video:''},
-  {id:'pr26',name:'Tricep Press on Reformer',cat:'Pilates',desc:'Seated, elbows bent with straps. Extend arms pressing back. Control return.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Triceps,Deltoids',video:''},
-  {id:'pr27',name:'Teaser on Reformer',cat:'Pilates',desc:'Supine, feet in straps. Roll up to V-sit while extending legs simultaneously.',sets:'3',reps:'5',hold:'3s',rest:'60s',muscles:'Core,Rectus Abdominis,Hip Flexors',video:''},
-  {id:'pr28',name:'Long Box Pulling Straps',cat:'Pilates',desc:'Prone on long box. Pull straps back lifting chest. Strengthens back extensors.',sets:'3',reps:'10',hold:'3s',rest:'60s',muscles:'Erector Spinae,Rhomboids,Latissimus Dorsi',video:''},
-  {id:'pr29',name:'Long Box T Pull',cat:'Pilates',desc:'Prone, arms reach forward. Pull straps to T position squeezing shoulder blades.',sets:'3',reps:'10',hold:'3s',rest:'60s',muscles:'Rhomboids,Mid/Lower Trapezius,Erector Spinae',video:''},
-  {id:'pr30',name:'Breaststroke on Reformer',cat:'Pilates',desc:'Prone. Coordinate arm and leg extension then circle arms around. Demands full posterior chain.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Erector Spinae,Glutes,Rhomboids',video:''},
-  {id:'pr31',name:'Short Box - Round Back',cat:'Pilates',desc:'Seated on box. Round spine and roll back. Return stacking vertebrae.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Core,Erector Spinae,Rectus Abdominis',video:''},
-  {id:'pr32',name:'Short Box - Flat Back',cat:'Pilates',desc:'Seated, hinge back from hips maintaining neutral spine. Return tall.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Hip Flexors,Erector Spinae,Core',video:''},
-  {id:'pr33',name:'Short Box - Side Reach',cat:'Pilates',desc:'Seated on box. Reach arm over in lateral flexion. Alternate sides.',sets:'3',reps:'8 each',hold:'3s',rest:'30s',muscles:'Obliques,Latissimus Dorsi,Core',video:''},
-  {id:'pr34',name:'Short Box - Twist',cat:'Pilates',desc:'Seated, rotate torso and reach. Maintain hip stability throughout.',sets:'3',reps:'8 each',hold:'3s',rest:'30s',muscles:'Obliques,Erector Spinae,Core',video:''},
-  {id:'pr35',name:'Arabesque on Reformer',cat:'Pilates',desc:'Standing on carriage, hands on footbar. Extend one leg back into arabesque. Balance and control.',sets:'3',reps:'8 each',hold:'3s',rest:'60s',muscles:'Glutes,Erector Spinae,Balance',video:''},
-  {id:'pr36',name:'Splits on Reformer',cat:'Pilates',desc:'Front foot on footbar, back foot on carriage. Lower into split position controlling carriage.',sets:'3',reps:'8 each',hold:'',rest:'60s',muscles:'Hip Flexors,Hamstrings,Glutes',video:''},
-  {id:'pr37',name:'Knee to Chest on Reformer',cat:'Pilates',desc:'Supine. Draw one knee to chest then extend. Alternate. Mobilises hip flexors.',sets:'3',reps:'10 each',hold:'3s',rest:'30s',muscles:'Hip Flexors,Core,Glutes',video:''},
-  {id:'pr38',name:'Hip Abduction in Straps',cat:'Pilates',desc:'Supine, feet in straps. Open legs wide against resistance. Return.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Hip Abductors,Glute Med,Core',video:''},
-  {id:'pr39',name:'Hip Adduction in Straps',cat:'Pilates',desc:'Supine, feet in straps open wide. Squeeze legs together against resistance.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Hip Adductors,Core',video:''},
-  {id:'pr40',name:'Frog in Straps',cat:'Pilates',desc:'Supine, heels together toes apart in straps. Extend legs out at angle and return.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Hip Flexors,Hip Adductors,Core',video:''},
-  {id:'pr41',name:'Tendon Stretch',cat:'Pilates',desc:'Standing on footbar, lower heels below bar. Lift and lower. Eccentric calf strengthening.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Calves,Gastrocnemius,Ankle Stabilisers',video:''},
-  {id:'pr42',name:'Snake and Twist',cat:'Pilates',desc:'Advanced. Plank to side plank to pike and return. Full body rotation control.',sets:'3',reps:'5 each',hold:'',rest:'60s',muscles:'Core,Obliques,Erector Spinae',video:''},
-  {id:'pr43',name:'Scooter on Reformer',cat:'Pilates',desc:'Standing, one foot on carriage. Push carriage back balancing on standing leg.',sets:'3',reps:'10 each',hold:'',rest:'60s',muscles:'Glutes,Quadriceps,Balance,Core',video:''},
-  {id:'pr44',name:'Kneeling Side Kick',cat:'Pilates',desc:'Kneeling sideways on carriage. Kick top leg forward and back controlling carriage.',sets:'3',reps:'10 each',hold:'',rest:'60s',muscles:'Glute Med,Hip Flexors,Core',video:''},
-  {id:'pr45',name:'Backstroke on Reformer',cat:'Pilates',desc:'Supine. Coordinate arms and legs in backstroke pattern. Full body coordination.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Core,Deltoids,Hip Flexors',video:''},
-  {id:'pr46',name:'Stomach Massage - Round',cat:'Pilates',desc:'Seated on footbar edge, spine rounded. Push carriage out and return.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Core,Quadriceps,Hip Flexors',video:''},
-  {id:'pr47',name:'Stomach Massage - Reach',cat:'Pilates',desc:'Seated upright arms reaching overhead. Push and pull carriage maintaining tall spine.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Core,Quadriceps,Deltoids',video:''},
-  {id:'pr48',name:'Chest Lift on Reformer',cat:'Pilates',desc:'Supine, straps behind head. Curl chest up maintaining lower back contact.',sets:'3',reps:'10',hold:'2s',rest:'60s',muscles:'Rectus Abdominis,Core',video:''},
-  {id:'pr49',name:'Rotation on Reformer',cat:'Pilates',desc:'Supine, chest lifted. Rotate elbow to opposite knee. Oblique focus.',sets:'3',reps:'10 each',hold:'2s',rest:'60s',muscles:'Obliques,Core,Rectus Abdominis',video:''},
-  {id:'pr50',name:'Control Balance',cat:'Pilates',desc:'Advanced. Roll over to shoulders, balance and extend one leg up. Control spine throughout.',sets:'3',reps:'5 each',hold:'3s',rest:'60s',muscles:'Core,Erector Spinae,Hip Flexors',video:''},
-
-  // ══════════════════════════════════════════════════════
-  // STRETCHES (50)
-  // ══════════════════════════════════════════════════════
-  {id:'str1',name:'Standing Quad Stretch',cat:'Mobility',desc:'Stand on one leg. Pull heel to buttock. Hold upright posture. Use wall for balance if needed.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Quadriceps,Hip Flexors',video:'https://www.youtube.com/watch?v=0uyQmDV2LFE'},
-  {id:'str2',name:'Supine Hamstring Stretch',cat:'Mobility',desc:'Lie on back. Lift one leg and hold behind thigh. Gently straighten knee until stretch felt.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Hamstrings',video:''},
-  {id:'str3',name:'Seated Hamstring Stretch',cat:'Mobility',desc:'Sit with one leg extended. Lean forward reaching toward foot. Keep back straight.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Hamstrings,Erector Spinae',video:''},
-  {id:'str4',name:'Hip Flexor Lunge Stretch',cat:'Mobility',desc:'Kneeling lunge. Drive hips forward feeling stretch in front hip. Keep upright posture.',sets:'3',reps:'1 each',hold:'45s',rest:'15s',muscles:'Hip Flexors,Quadriceps',video:''},
-  {id:'str5',name:'Butterfly Stretch',cat:'Mobility',desc:'Sit with feet together. Let knees fall out. Lean forward gently pressing knees down.',sets:'3',reps:'1',hold:'45s',rest:'15s',muscles:'Hip Adductors,Groin',video:''},
-  {id:'str6',name:'Figure Four Stretch',cat:'Mobility',desc:'Lie on back. Cross ankle over opposite knee. Pull both legs toward chest.',sets:'3',reps:'1 each',hold:'45s',rest:'15s',muscles:'Glutes,Piriformis,Hip Rotators',video:''},
-  {id:'str7',name:'Standing Calf Stretch',cat:'Mobility',desc:'Hands on wall. Step back with one foot. Press heel to floor. Lean forward.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Calves,Gastrocnemius',video:'https://www.youtube.com/watch?v=ZsxmhQkNTdc'},
-  {id:'str8',name:'Soleus Stretch',cat:'Mobility',desc:'Step back with one foot. Bend that knee toward floor keeping heel down. Targets lower calf.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Soleus,Ankle Stabilisers',video:''},
-  {id:'str9',name:'Child Pose',cat:'Mobility',desc:'Kneel and sit back toward heels. Reach arms forward lowering chest to floor.',sets:'3',reps:'1',hold:'60s',rest:'15s',muscles:'Erector Spinae,Latissimus Dorsi,Glutes',video:''},
-  {id:'str10',name:'Thread the Needle',cat:'Mobility',desc:'On hands and knees. Slide one arm under body rotating thoracic spine. Hold.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Mid/Lower Trapezius,Erector Spinae',video:'https://www.youtube.com/watch?v=VJrQ5Y1KLEM'},
-  {id:'str11',name:'Pec Stretch at Wall',cat:'Mobility',desc:'Place forearm on wall at 90°. Rotate body away feeling stretch across chest.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Chest,Deltoids,Biceps',video:''},
-  {id:'str12',name:'Cross Body Shoulder Stretch',cat:'Mobility',desc:'Pull one arm across chest using other arm. Hold. Keep shoulder down.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Deltoids,Rotator Cuff',video:''},
-  {id:'str13',name:'Overhead Tricep Stretch',cat:'Mobility',desc:'Reach one arm overhead. Bend elbow behind head. Push gently with other hand.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Triceps,Latissimus Dorsi',video:''},
-  {id:'str14',name:'Neck Flexion Stretch',cat:'Mobility',desc:'Gently drop chin to chest. Place hands on back of head for gentle overpressure.',sets:'3',reps:'1',hold:'20s',rest:'15s',muscles:'Cervical Extensors',video:''},
-  {id:'str15',name:'Neck Extension Stretch',cat:'Mobility',desc:'Gently look up toward ceiling. Do not compress cervical spine.',sets:'3',reps:'1',hold:'10s',rest:'15s',muscles:'Cervical Flexors',video:''},
-  {id:'str16',name:'Upper Trapezius Stretch',cat:'Mobility',desc:'Tilt ear to shoulder. Gently apply pressure with same-side hand. Keep opposite shoulder down.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Upper Trapezius,Cervical Flexors',video:''},
-  {id:'str17',name:'Levator Scapulae Stretch',cat:'Mobility',desc:'Look down toward armpit. Gently apply pressure to top of head.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Upper Trapezius,Cervical Extensors',video:''},
-  {id:'str18',name:'Wrist Flexor Stretch',cat:'Mobility',desc:'Extend arm palm up. Gently pull fingers back with other hand. Hold.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Forearms',video:''},
-  {id:'str19',name:'Wrist Extensor Stretch',cat:'Mobility',desc:'Extend arm palm down. Gently press hand downward with other hand.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Forearms',video:''},
-  {id:'str20',name:'Thoracic Extension over Foam Roller',cat:'Mobility',desc:'Place foam roller horizontally under mid back. Support head. Gently extend over roller.',sets:'3',reps:'1',hold:'30s',rest:'30s',muscles:'Erector Spinae,Chest',video:''},
-  {id:'str21',name:'Seated Piriformis Stretch',cat:'Mobility',desc:'Seated in chair. Cross ankle over knee. Lean forward keeping back straight.',sets:'3',reps:'1 each',hold:'45s',rest:'15s',muscles:'Piriformis,Glutes,Hip Rotators',video:''},
-  {id:'str22',name:'Low Back Rotation Stretch',cat:'Mobility',desc:'Lie on back knees bent. Drop both knees to one side. Keep shoulders flat.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Erector Spinae,Obliques',video:''},
-  {id:'str23',name:'Knee to Chest Stretch',cat:'Mobility',desc:'Lie on back. Pull one knee toward chest with both hands. Hold.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Erector Spinae,Glutes',video:''},
-  {id:'str24',name:'Double Knee to Chest',cat:'Mobility',desc:'Lie on back. Pull both knees to chest hugging them. Rock gently.',sets:'3',reps:'1',hold:'30s',rest:'15s',muscles:'Erector Spinae,Glutes',video:''},
-  {id:'str25',name:'Supine IT Band Stretch',cat:'Mobility',desc:'Lie on back. Cross one leg over midline pressing knee down with opposite hand.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'IT Band,Glute Med',video:''},
-  {id:'str26',name:'Standing IT Band Stretch',cat:'Mobility',desc:'Cross one leg behind other. Lean to standing side. Feel stretch in hip of crossed leg.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'IT Band,Glute Med,TFL',video:''},
-  {id:'str27',name:'Doorway Chest Stretch',cat:'Mobility',desc:'Stand in doorway. Place both forearms on frame. Lean forward gently.',sets:'3',reps:'1',hold:'30s',rest:'15s',muscles:'Chest,Deltoids,Biceps',video:''},
-  {id:'str28',name:'Lat Stretch at Doorway',cat:'Mobility',desc:'Hold doorframe at shoulder height. Sit back and drop hips. Feel stretch down side.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Latissimus Dorsi,Obliques',video:''},
-  {id:'str29',name:'Prone Cobra Stretch',cat:'Mobility',desc:'Lie face down. Press up onto elbows or hands. Let hips drop. Breathe.',sets:'3',reps:'1',hold:'20s',rest:'30s',muscles:'Erector Spinae,Rectus Abdominis',video:''},
-  {id:'str30',name:'Side-Lying Quad Stretch',cat:'Mobility',desc:'Lie on side. Pull top heel to buttock. Push hip forward to intensify.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Quadriceps,Hip Flexors',video:''},
-  {id:'str31',name:'Half-Kneeling Hip Flexor Stretch',cat:'Mobility',desc:'Kneeling lunge. Tuck pelvis under and squeeze glute. Drive hips forward.',sets:'3',reps:'1 each',hold:'45s',rest:'15s',muscles:'Hip Flexors,Psoas',video:''},
-  {id:'str32',name:'Worlds Greatest Stretch',cat:'Mobility',desc:'Lunge with front foot. Drop same-side hand inside foot. Rotate upper body reaching to ceiling.',sets:'3',reps:'5 each',hold:'3s',rest:'30s',muscles:'Hip Flexors,Thoracic Spine,Hamstrings',video:''},
-  {id:'str33',name:'Ankle Dorsiflexion Stretch',cat:'Mobility',desc:'Lunge with knee tracking over foot. Push knee forward past toes. Increases ankle mobility.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Calves,Ankle Stabilisers',video:''},
-  {id:'str34',name:'Neck Rotation Stretch',cat:'Mobility',desc:'Slowly rotate head to look over shoulder. Hold. Return and repeat other side.',sets:'3',reps:'1 each',hold:'20s',rest:'15s',muscles:'Cervical Extensors',video:''},
-  {id:'str35',name:'Shoulder Capsule Stretch',cat:'Mobility',desc:'Reach arm across chest. Use opposite arm to press elbow toward body.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Rotator Cuff,Deltoids',video:''},
-  {id:'str36',name:'Prayer Stretch',cat:'Mobility',desc:'Kneel, sit back and reach arms forward as far as possible on floor.',sets:'3',reps:'1',hold:'45s',rest:'15s',muscles:'Latissimus Dorsi,Erector Spinae,Glutes',video:''},
-  {id:'str37',name:'Seated Spinal Twist',cat:'Mobility',desc:'Sit with one leg extended, other foot outside opposite knee. Rotate toward bent knee.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Erector Spinae,Obliques',video:''},
-  {id:'str38',name:'Standing Side Stretch',cat:'Mobility',desc:'Reach one arm overhead. Lean to opposite side. Feel stretch down entire side body.',sets:'3',reps:'1 each',hold:'20s',rest:'15s',muscles:'Latissimus Dorsi,Obliques,Intercostals',video:''},
-  {id:'str39',name:'Cat Stretch',cat:'Mobility',desc:'On hands and knees. Round spine fully upward. Hold then release. Mobilises thoracic and lumbar.',sets:'3',reps:'10',hold:'5s',rest:'15s',muscles:'Erector Spinae,Core',video:''},
-  {id:'str40',name:'Cow Stretch',cat:'Mobility',desc:'On hands and knees. Drop belly toward floor arching spine. Look forward.',sets:'3',reps:'10',hold:'5s',rest:'15s',muscles:'Erector Spinae,Rectus Abdominis',video:''},
-  {id:'str41',name:'Groin Stretch - Sumo Squat',cat:'Mobility',desc:'Wide stance squat. Push knees out with elbows. Hold deep position.',sets:'3',reps:'1',hold:'45s',rest:'30s',muscles:'Hip Adductors,Groin,Hip Flexors',video:''},
-  {id:'str42',name:'Forearm and Bicep Stretch',cat:'Mobility',desc:'Extend arms forward palms up. Rotate palms to face down and away. Hold.',sets:'3',reps:'1',hold:'20s',rest:'15s',muscles:'Forearms,Biceps',video:''},
-  {id:'str43',name:'Standing Piriformis Stretch',cat:'Mobility',desc:'Cross one ankle over bent knee. Sit back into a squat position. Hold.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Piriformis,Glutes',video:''},
-  {id:'str44',name:'Banded Hamstring Stretch',cat:'Mobility',desc:'Lie on back. Loop band around foot. Straighten leg pulling with band. Keep pelvis flat.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Hamstrings',video:''},
-  {id:'str45',name:'Adductor Stretch - Side Lunge',cat:'Mobility',desc:'Lateral lunge. Sit into one hip keeping opposite leg straight. Feel inner thigh stretch.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Hip Adductors,Groin',video:''},
-  {id:'str46',name:'Spinal Flexion Stretch',cat:'Mobility',desc:'Seated. Round entire spine forward reaching hands toward feet. Breathe into back.',sets:'3',reps:'1',hold:'30s',rest:'15s',muscles:'Erector Spinae',video:''},
-  {id:'str47',name:'Thoracic Rotation in Sitting',cat:'Mobility',desc:'Sit in chair, arms folded. Rotate as far as comfortable. Hold. Return.',sets:'3',reps:'10 each',hold:'3s',rest:'15s',muscles:'Erector Spinae,Obliques',video:''},
-  {id:'str48',name:'Standing Hip Flexor Stretch',cat:'Mobility',desc:'Stand tall. Pull one heel to opposite hand behind body extending hip.',sets:'3',reps:'1 each',hold:'30s',rest:'15s',muscles:'Hip Flexors,Quadriceps',video:''},
-  {id:'str49',name:'Chest Opening Stretch',cat:'Mobility',desc:'Clasp hands behind back. Squeeze shoulder blades. Lift arms slightly. Hold.',sets:'3',reps:'1',hold:'20s',rest:'15s',muscles:'Chest,Deltoids,Biceps',video:''},
-  {id:'str50',name:'Posterior Chain Stretch',cat:'Mobility',desc:'Stand and hinge forward. Let arms hang. Gently bend and straighten knees alternately.',sets:'3',reps:'10',hold:'',rest:'30s',muscles:'Hamstrings,Erector Spinae,Calves',video:''},
-
-  // ══════════════════════════════════════════════════════
-  // HOME EXERCISES (50)
-  // ══════════════════════════════════════════════════════
-  {id:'hx1',name:'Bodyweight Squat',cat:'Home Exercise',desc:'Stand feet shoulder-width. Lower hips back and down until thighs parallel. Drive through heels.',sets:'3',reps:'15',hold:'',rest:'60s',muscles:'Quadriceps,Glutes,Hamstrings',video:''},
-  {id:'hx2',name:'Glute Bridge',cat:'Home Exercise',desc:'Lie on back knees bent. Drive hips up squeezing glutes at top. Hold briefly.',sets:'3',reps:'15',hold:'3s',rest:'60s',muscles:'Glutes,Hamstrings,Core',video:''},
-  {id:'hx3',name:'Single Leg Glute Bridge',cat:'Home Exercise',desc:'Glute bridge with one leg extended. Requires greater stability and strength.',sets:'3',reps:'10 each',hold:'3s',rest:'60s',muscles:'Glutes,Hamstrings,Core',video:''},
-  {id:'hx4',name:'Donkey Kick',cat:'Home Exercise',desc:'On hands and knees. Kick one heel toward ceiling keeping knee bent. Squeeze glute at top.',sets:'3',reps:'15 each',hold:'2s',rest:'60s',muscles:'Glutes,Erector Spinae',video:''},
-  {id:'hx5',name:'Fire Hydrant',cat:'Home Exercise',desc:'On hands and knees. Lift one knee out to side keeping bend. Activate outer glute.',sets:'3',reps:'15 each',hold:'2s',rest:'60s',muscles:'Glute Med,Hip Abductors',video:'https://www.youtube.com/watch?v=KVGGjKGRGtk'},
-  {id:'hx6',name:'Wall Sit',cat:'Home Exercise',desc:'Back against wall. Lower into squat position with thighs parallel. Hold.',sets:'3',reps:'1',hold:'30s',rest:'60s',muscles:'Quadriceps,Glutes',video:'https://www.youtube.com/watch?v=y-wV4Venusw'},
-  {id:'hx7',name:'Reverse Lunge',cat:'Home Exercise',desc:'Step back into lunge. Lower back knee toward floor. Drive front foot to return.',sets:'3',reps:'10 each',hold:'',rest:'60s',muscles:'Quadriceps,Glutes,Hamstrings',video:''},
-  {id:'hx8',name:'Side Lunge',cat:'Home Exercise',desc:'Step wide to one side. Sit into hip keeping opposite leg straight. Return.',sets:'3',reps:'10 each',hold:'',rest:'60s',muscles:'Glute Med,Hip Adductors,Quadriceps',video:''},
-  {id:'hx9',name:'Sumo Squat',cat:'Home Exercise',desc:'Wide stance toes out. Squat keeping knees tracking over toes.',sets:'3',reps:'15',hold:'',rest:'60s',muscles:'Hip Adductors,Glutes,Quadriceps',video:''},
-  {id:'hx10',name:'Standing Calf Raise',cat:'Home Exercise',desc:'Rise onto toes. Hold at top. Lower slowly. Use wall for balance.',sets:'3',reps:'20',hold:'2s',rest:'60s',muscles:'Calves,Gastrocnemius',video:''},
-  {id:'hx11',name:'Single Leg Calf Raise',cat:'Home Exercise',desc:'Balance on one leg. Rise onto toes. Lower slowly. Increases challenge.',sets:'3',reps:'15 each',hold:'2s',rest:'60s',muscles:'Calves,Ankle Stabilisers',video:''},
-  {id:'hx12',name:'Incline Push Up',cat:'Home Exercise',desc:'Hands on bench or couch. Body at angle. Lower chest to surface. Push up.',sets:'3',reps:'15',hold:'',rest:'60s',muscles:'Chest,Triceps,Deltoids',video:''},
-  {id:'hx13',name:'Decline Push Up',cat:'Home Exercise',desc:'Feet elevated on chair. Hands on floor. More upper chest and shoulder activation.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Chest,Triceps,Deltoids',video:''},
-  {id:'hx14',name:'Diamond Push Up',cat:'Home Exercise',desc:'Hands close together forming diamond. Targets triceps more than standard push up.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Triceps,Chest',video:''},
-  {id:'hx15',name:'Pike Push Up',cat:'Home Exercise',desc:'Hips high in pike position. Lower head toward floor. Targets shoulders.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Deltoids,Triceps,Core',video:''},
-  {id:'hx16',name:'Spiderman Plank',cat:'Home Exercise',desc:'In plank bring one knee to elbow. Alternate sides. Challenges core and hip flexors.',sets:'3',reps:'10 each',hold:'',rest:'60s',muscles:'Core,Hip Flexors,Obliques',video:''},
-  {id:'hx17',name:'Plank with Shoulder Tap',cat:'Home Exercise',desc:'In plank tap opposite shoulder with each hand. Minimise hip rotation.',sets:'3',reps:'10 each',hold:'',rest:'60s',muscles:'Core,Deltoids,Obliques',video:''},
-  {id:'hx18',name:'Dead Bug',cat:'Home Exercise',desc:'Lie on back arms up. Extend opposite arm and leg toward floor. Return. Keep back flat.',sets:'3',reps:'8 each',hold:'',rest:'60s',muscles:'Core,Transversus Abdominis',video:''},
-  {id:'hx19',name:'Superman',cat:'Home Exercise',desc:'Lie face down. Lift arms and legs simultaneously. Hold at top.',sets:'3',reps:'12',hold:'3s',rest:'60s',muscles:'Erector Spinae,Glutes,Rhomboids',video:''},
-  {id:'hx20',name:'Prone Hip Extension',cat:'Home Exercise',desc:'Lie face down. Lift one leg straight keeping pelvis flat. Squeeze glute.',sets:'3',reps:'12 each',hold:'3s',rest:'60s',muscles:'Glutes,Erector Spinae',video:''},
-  {id:'hx21',name:'Seated Leg Raise',cat:'Home Exercise',desc:'Sit in chair. Straighten one leg and hold. Lower slowly.',sets:'3',reps:'12 each',hold:'5s',rest:'60s',muscles:'Quadriceps,Hip Flexors',video:''},
-  {id:'hx22',name:'Seated Toe Taps',cat:'Home Exercise',desc:'Sit in chair. Tap toes on floor alternately in marching pattern.',sets:'3',reps:'20',hold:'',rest:'30s',muscles:'Hip Flexors,Tibialis Anterior',video:''},
-  {id:'hx23',name:'Heel Raises Seated',cat:'Home Exercise',desc:'Seated. Lift both heels off floor. Hold. Lower slowly.',sets:'3',reps:'20',hold:'2s',rest:'30s',muscles:'Calves,Gastrocnemius',video:''},
-  {id:'hx24',name:'Chair Dips',cat:'Home Exercise',desc:'Hands on chair edge. Dip body down bending elbows. Push back up.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Triceps,Chest',video:''},
-  {id:'hx25',name:'Towel Row',cat:'Home Exercise',desc:'Wrap towel around door handle. Lean back and row body toward door.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Rhomboids,Biceps,Latissimus Dorsi',video:''},
-  {id:'hx26',name:'Doorframe Pull',cat:'Home Exercise',desc:'Hold doorframe at sides. Lean back and pull chest toward frame.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Latissimus Dorsi,Biceps,Rhomboids',video:''},
-  {id:'hx27',name:'Backpack Bicep Curl',cat:'Home Exercise',desc:'Fill backpack with books. Hold handles and perform bicep curl.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Biceps,Forearms',video:''},
-  {id:'hx28',name:'Hip Hinge',cat:'Home Exercise',desc:'Stand with slight knee bend. Hinge forward at hips keeping back straight. Return.',sets:'3',reps:'15',hold:'',rest:'60s',muscles:'Hamstrings,Glutes,Erector Spinae',video:''},
-  {id:'hx29',name:'Single Leg Balance',cat:'Home Exercise',desc:'Stand on one leg. Maintain balance for set time. Progress to eyes closed.',sets:'3',reps:'1 each',hold:'30s',rest:'30s',muscles:'Ankle Stabilisers,Proprioception,Core',video:''},
-  {id:'hx30',name:'Tandem Walking',cat:'Home Exercise',desc:'Walk heel to toe in a straight line. Arms out for balance.',sets:'3',reps:'10m',hold:'',rest:'30s',muscles:'Balance,Proprioception,Core',video:''},
-  {id:'hx31',name:'Standing March',cat:'Home Exercise',desc:'March on spot lifting knees to hip height. Swing opposite arm.',sets:'3',reps:'20',hold:'',rest:'30s',muscles:'Hip Flexors,Core,Cardiovascular',video:''},
-  {id:'hx32',name:'High Knees',cat:'Cardio',desc:'Run on spot bringing knees to hip height. Maintain upright posture.',sets:'3',reps:'30s',hold:'',rest:'60s',muscles:'Hip Flexors,Cardiovascular,Core',video:''},
-  {id:'hx33',name:'Stair Climbing',cat:'Home Exercise',desc:'Walk up and down stairs continuously. Maintain good posture.',sets:'3',reps:'5 min',hold:'',rest:'60s',muscles:'Glutes,Quadriceps,Calves,Cardiovascular',video:''},
-  {id:'hx34',name:'Towel Hamstring Curl',cat:'Home Exercise',desc:'Lie on smooth floor with towel under heels. Slide heels toward buttocks.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Hamstrings,Glutes',video:''},
-  {id:'hx35',name:'Standing Hip Circles',cat:'Home Exercise',desc:'Hold wall. Draw large circles with raised knee. Mobilises hip joint.',sets:'3',reps:'10 each',hold:'',rest:'30s',muscles:'Hip Flexors,Hip Rotators',video:''},
-  {id:'hx36',name:'Standing Shoulder Press with Can',cat:'Home Exercise',desc:'Hold tins of food. Press overhead from shoulder height. Control lowering.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Deltoids,Triceps',video:''},
-  {id:'hx37',name:'Chest Press with Water Bottles',cat:'Home Exercise',desc:'Lie on floor. Press water bottles up from chest. Lower slowly.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Chest,Triceps,Deltoids',video:''},
-  {id:'hx38',name:'Seated Resistance Band Rowing',cat:'Home Exercise',desc:'Sit on floor. Band around feet. Row hands to sides of chest.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Rhomboids,Biceps,Mid/Lower Trapezius',video:''},
-  {id:'hx39',name:'Crab Walk',cat:'Home Exercise',desc:'Band around ankles in mini squat. Step sideways maintaining tension.',sets:'3',reps:'15 each',hold:'',rest:'60s',muscles:'Glute Med,Hip Abductors',video:''},
-  {id:'hx40',name:'Monster Walk',cat:'Home Exercise',desc:'Band around ankles. Walk forward in wide stance. Maintain hip hinge position.',sets:'3',reps:'20',hold:'',rest:'60s',muscles:'Glutes,Hip Abductors,Quadriceps',video:''},
-  {id:'hx41',name:'Isometric Wall Push',cat:'Home Exercise',desc:'Stand sideways to wall. Push palm into wall with extended arm. Hold.',sets:'3',reps:'1 each',hold:'10s',rest:'30s',muscles:'Deltoids,Rotator Cuff',video:''},
-  {id:'hx42',name:'Isometric Squat Hold',cat:'Home Exercise',desc:'Lower to squat position. Hold still. Increases muscular endurance.',sets:'3',reps:'1',hold:'30s',rest:'60s',muscles:'Quadriceps,Glutes,Hamstrings',video:''},
-  {id:'hx43',name:'Plank to Downward Dog',cat:'Home Exercise',desc:'Start in plank. Push hips up into downward dog. Return to plank.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Core,Deltoids,Hamstrings',video:''},
-  {id:'hx44',name:'Inchworm',cat:'Home Exercise',desc:'Stand and bend to touch floor. Walk hands out to plank. Walk feet to hands. Stand.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Hamstrings,Core,Deltoids',video:'https://www.youtube.com/watch?v=Ls3VQGkBhQA'},
-  {id:'hx45',name:'Reverse Nordic Curl',cat:'Home Exercise',desc:'Kneel with feet anchored. Lean back from knees while maintaining straight hip. Return.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Quadriceps,Hip Flexors',video:''},
-  {id:'hx46',name:'Copenhagen Plank',cat:'Home Exercise',desc:'Side plank with top foot on chair or couch. Lift bottom leg to meet top.',sets:'3',reps:'8 each',hold:'3s',rest:'60s',muscles:'Hip Adductors,Core,Obliques',video:''},
-  {id:'hx47',name:'Box Breathing Exercise',cat:'Home Exercise',desc:'Inhale 4 counts. Hold 4 counts. Exhale 4 counts. Hold 4 counts. Repeat.',sets:'3',reps:'5',hold:'',rest:'30s',muscles:'Breathing Muscles',video:''},
-  {id:'hx48',name:'Shoulder Blade Squeeze',cat:'Home Exercise',desc:'Stand or sit. Squeeze shoulder blades together. Hold. Release. Strengthens postural muscles.',sets:'3',reps:'15',hold:'5s',rest:'30s',muscles:'Rhomboids,Mid/Lower Trapezius',video:''},
-  {id:'hx49',name:'Neck Retraction',cat:'Home Exercise',desc:'Gently tuck chin in without flexing. Hold. Strengthens deep cervical flexors.',sets:'3',reps:'10',hold:'5s',rest:'30s',muscles:'Cervical Flexors',video:''},
-  {id:'hx50',name:'Diaphragmatic Breathing',cat:'Home Exercise',desc:'Lie on back. Place hands on belly. Breathe in expanding belly. Exhale slowly through pursed lips.',sets:'3',reps:'10',hold:'5s',rest:'30s',muscles:'Breathing Muscles,Core',video:''},
-
-  // ══════════════════════════════════════════════════════
-  // GYM MACHINES (common)
-  // ══════════════════════════════════════════════════════
-  {id:'gm1',name:'Leg Press',cat:'Lower Limb',desc:'Seated, feet on platform. Push plate away extending legs. Do not lock knees. Lower slowly.',sets:'3',reps:'12',hold:'',rest:'90s',muscles:'Quadriceps,Glutes,Hamstrings',video:''},
-  {id:'gm2',name:'Leg Extension Machine',cat:'Lower Limb',desc:'Seated, pad against shins. Extend knees to straight. Control lowering.',sets:'3',reps:'12',hold:'2s',rest:'90s',muscles:'Quadriceps,VMO',video:'https://www.youtube.com/watch?v=YyvSfVjQeL0'},
-  {id:'gm3',name:'Leg Curl Machine - Prone',cat:'Lower Limb',desc:'Lie face down. Curl heels toward buttocks. Control lowering.',sets:'3',reps:'12',hold:'2s',rest:'90s',muscles:'Hamstrings',video:''},
-  {id:'gm4',name:'Leg Curl Machine - Seated',cat:'Lower Limb',desc:'Seated. Curl heels under seat. Control the eccentric phase.',sets:'3',reps:'12',hold:'2s',rest:'90s',muscles:'Hamstrings',video:''},
-  {id:'gm5',name:'Hip Abduction Machine',cat:'Lower Limb',desc:'Seated, pads against outer thighs. Push legs apart against resistance. Return slowly.',sets:'3',reps:'15',hold:'2s',rest:'60s',muscles:'Glute Med,Hip Abductors',video:''},
-  {id:'gm6',name:'Hip Adduction Machine',cat:'Lower Limb',desc:'Seated, pads against inner thighs. Squeeze legs together. Control return.',sets:'3',reps:'15',hold:'2s',rest:'60s',muscles:'Hip Adductors',video:''},
-  {id:'gm7',name:'Calf Raise Machine',cat:'Lower Limb',desc:'Shoulders under pads. Rise onto toes. Lower heels below platform.',sets:'3',reps:'15',hold:'2s',rest:'60s',muscles:'Calves,Gastrocnemius,Soleus',video:'https://www.youtube.com/watch?v=MmxkHMNqVOY'},
-  {id:'gm8',name:'Seated Calf Raise Machine',cat:'Lower Limb',desc:'Pads on thighs. Rise onto toes. Targets soleus more than standing variation.',sets:'3',reps:'15',hold:'2s',rest:'60s',muscles:'Soleus,Calves',video:''},
-  {id:'gm9',name:'Chest Press Machine',cat:'Upper Limb',desc:'Seated, handles at chest. Push forward until arms extended. Control return.',sets:'3',reps:'12',hold:'',rest:'90s',muscles:'Chest,Triceps,Deltoids',video:''},
-  {id:'gm10',name:'Pec Deck / Chest Fly Machine',cat:'Upper Limb',desc:'Seated, arms open. Bring arms together in front. Squeeze chest.',sets:'3',reps:'12',hold:'2s',rest:'90s',muscles:'Chest,Pectorals',video:''},
-  {id:'gm11',name:'Shoulder Press Machine',cat:'Upper Limb',desc:'Seated, press handles overhead. Control lowering. Keep core engaged.',sets:'3',reps:'12',hold:'',rest:'90s',muscles:'Deltoids,Triceps,Upper Trapezius',video:''},
-  {id:'gm12',name:'Lateral Raise Machine',cat:'Upper Limb',desc:'Seated, pads against arms. Raise arms to shoulder height. Control lowering.',sets:'3',reps:'12',hold:'2s',rest:'90s',muscles:'Deltoids',video:''},
-  {id:'gm13',name:'Lat Pulldown Machine',cat:'Upper Limb',desc:'Seated, grip bar wide. Pull bar to upper chest. Control return.',sets:'3',reps:'12',hold:'',rest:'90s',muscles:'Latissimus Dorsi,Biceps,Rhomboids',video:'https://www.youtube.com/watch?v=CAwf7n6Luuc'},
-  {id:'gm14',name:'Seated Row Machine',cat:'Upper Limb',desc:'Seated, pull handles to lower chest. Squeeze shoulder blades.',sets:'3',reps:'12',hold:'2s',rest:'90s',muscles:'Rhomboids,Latissimus Dorsi,Biceps',video:''},
-  {id:'gm15',name:'Cable Row - Low',cat:'Upper Limb',desc:'Seated at cable. Pull handle to lower chest keeping elbows in.',sets:'3',reps:'12',hold:'2s',rest:'90s',muscles:'Rhomboids,Mid/Lower Trapezius,Biceps',video:''},
-  {id:'gm16',name:'Cable Row - High',cat:'Upper Limb',desc:'Pull cable from high position to face level. Targets rear deltoids.',sets:'3',reps:'12',hold:'2s',rest:'90s',muscles:'Rhomboids,Posterior Deltoids',video:''},
-  {id:'gm17',name:'Cable Chest Fly - Low to High',cat:'Upper Limb',desc:'Pull cables from low to high crossing in front. Targets upper chest.',sets:'3',reps:'12',hold:'2s',rest:'90s',muscles:'Chest,Deltoids',video:''},
-  {id:'gm18',name:'Cable Chest Fly - High to Low',cat:'Upper Limb',desc:'Pull cables from high to low crossing in front. Targets lower chest.',sets:'3',reps:'12',hold:'2s',rest:'90s',muscles:'Chest,Pectorals',video:''},
-  {id:'gm19',name:'Cable Bicep Curl',cat:'Upper Limb',desc:'Stand at cable. Curl bar or rope up to shoulders. Control lowering.',sets:'3',reps:'12',hold:'',rest:'90s',muscles:'Biceps,Forearms',video:'https://www.youtube.com/watch?v=NFzTWp2qpiE'},
-  {id:'gm20',name:'Cable Tricep Pushdown',cat:'Upper Limb',desc:'Stand at cable, elbows at sides. Push rope down extending arms. Control return.',sets:'3',reps:'12',hold:'',rest:'90s',muscles:'Triceps',video:'https://www.youtube.com/watch?v=2-LAMcpzODU'},
-  {id:'gm21',name:'Cable Lateral Raise',cat:'Upper Limb',desc:'Stand side-on to cable. Raise arm out to side to shoulder height.',sets:'3',reps:'12 each',hold:'2s',rest:'90s',muscles:'Deltoids',video:''},
-  {id:'gm22',name:'Cable Face Pull',cat:'Upper Limb',desc:'Pull rope to face level flaring elbows out. Targets rear deltoids and rotator cuff.',sets:'3',reps:'15',hold:'2s',rest:'60s',muscles:'Rotator Cuff,Rhomboids,Posterior Deltoids',video:'https://www.youtube.com/watch?v=rep-qVOkqgk'},
-  {id:'gm23',name:'Cable Pull Through',cat:'Lower Limb',desc:'Stand facing away from cable. Hinge forward pulling cable between legs. Hip hinge pattern.',sets:'3',reps:'12',hold:'',rest:'90s',muscles:'Glutes,Hamstrings,Erector Spinae',video:''},
-  {id:'gm24',name:'Cable Hip Abduction',cat:'Lower Limb',desc:'Stand side-on to cable attached to ankle. Raise leg out to side.',sets:'3',reps:'12 each',hold:'2s',rest:'60s',muscles:'Glute Med,Hip Abductors',video:''},
-  {id:'gm25',name:'Smith Machine Squat',cat:'Lower Limb',desc:'Bar on Smith machine. Squat to parallel. Machine guides vertical bar path.',sets:'3',reps:'12',hold:'',rest:'90s',muscles:'Quadriceps,Glutes,Hamstrings',video:''},
-  {id:'gm26',name:'Smith Machine Lunge',cat:'Lower Limb',desc:'Bar on Smith machine. Step forward into lunge. Maintain upright torso.',sets:'3',reps:'10 each',hold:'',rest:'90s',muscles:'Quadriceps,Glutes,Hamstrings',video:''},
-  {id:'gm27',name:'Smith Machine Hip Thrust',cat:'Lower Limb',desc:'Shoulders on bench. Bar across hips. Drive hips up. Squeeze glutes at top.',sets:'3',reps:'12',hold:'3s',rest:'90s',muscles:'Glutes,Hamstrings,Core',video:''},
-  {id:'gm28',name:'Hack Squat Machine',cat:'Lower Limb',desc:'Shoulders under pads. Squat keeping knees tracking toes. Emphasises quads.',sets:'3',reps:'12',hold:'',rest:'90s',muscles:'Quadriceps,Glutes',video:''},
-  {id:'gm29',name:'Assisted Pull Up Machine',cat:'Upper Limb',desc:'Kneel on platform. Pull up to bar. Machine reduces bodyweight needed.',sets:'3',reps:'10',hold:'',rest:'90s',muscles:'Latissimus Dorsi,Biceps,Rhomboids',video:''},
-  {id:'gm30',name:'Assisted Dip Machine',cat:'Upper Limb',desc:'Kneel on platform. Dip by bending elbows. Machine reduces bodyweight.',sets:'3',reps:'10',hold:'',rest:'90s',muscles:'Triceps,Chest,Deltoids',video:''},
-  {id:'gm31',name:'Rotary Torso Machine',cat:'Core',desc:'Seated. Rotate machine against resistance. Trains obliques through rotation.',sets:'3',reps:'12 each',hold:'2s',rest:'60s',muscles:'Obliques,Core',video:''},
-  {id:'gm32',name:'Ab Crunch Machine',cat:'Core',desc:'Seated. Curl torso forward against resistance. Control extension back.',sets:'3',reps:'15',hold:'2s',rest:'60s',muscles:'Rectus Abdominis,Core',video:''},
-  {id:'gm33',name:'Back Extension Machine',cat:'Core',desc:'Seated. Extend spine against resistance. Targets lower back extensors.',sets:'3',reps:'12',hold:'3s',rest:'90s',muscles:'Erector Spinae,Multifidus',video:''},
-  {id:'gm34',name:'Reverse Hyper Machine',cat:'Lower Limb',desc:'Lie prone. Swing legs up behind engaging glutes and hamstrings.',sets:'3',reps:'12',hold:'2s',rest:'90s',muscles:'Glutes,Hamstrings,Erector Spinae',video:''},
-  {id:'gm35',name:'Pendulum Squat Machine',cat:'Lower Limb',desc:'Heels elevated on pendulum. Squat through full range. Excellent quad targeting.',sets:'3',reps:'12',hold:'',rest:'90s',muscles:'Quadriceps,Glutes',video:''},
-  {id:'gm36',name:'Seated Chest Press Machine - Narrow',cat:'Upper Limb',desc:'Narrow grip on chest press machine. More tricep and inner chest involvement.',sets:'3',reps:'12',hold:'',rest:'90s',muscles:'Chest,Triceps',video:''},
-  {id:'gm37',name:'Rope Lat Pulldown',cat:'Upper Limb',desc:'Rope attachment on pulldown. Pull down and apart to shoulders.',sets:'3',reps:'12',hold:'2s',rest:'90s',muscles:'Latissimus Dorsi,Rhomboids',video:''},
-  {id:'gm38',name:'Incline Chest Press Machine',cat:'Upper Limb',desc:'Inclined machine targets upper chest. Press from shoulder to overhead.',sets:'3',reps:'12',hold:'',rest:'90s',muscles:'Chest,Deltoids,Triceps',video:''},
-  {id:'gm39',name:'Decline Chest Press Machine',cat:'Upper Limb',desc:'Declined machine targets lower chest. Press from lower chest angle.',sets:'3',reps:'12',hold:'',rest:'90s',muscles:'Chest,Triceps',video:''},
-  {id:'gm40',name:'Cable Crunch',cat:'Core',desc:'Kneel at cable. Pull rope to forehead. Crunch down engaging abs.',sets:'3',reps:'15',hold:'2s',rest:'60s',muscles:'Rectus Abdominis,Core',video:''},
-  {id:'gm41',name:'Cable Woodchop - High to Low',cat:'Core',desc:'Rotate pulling cable from high to low across body. Targets obliques.',sets:'3',reps:'12 each',hold:'',rest:'60s',muscles:'Obliques,Core,Erector Spinae',video:''},
-  {id:'gm42',name:'Cable Woodchop - Low to High',cat:'Core',desc:'Rotate pulling cable from low to high. Reverse woodchop pattern.',sets:'3',reps:'12 each',hold:'',rest:'60s',muscles:'Obliques,Core',video:''},
-  {id:'gm43',name:'Seated Shoulder External Rotation Machine',cat:'Upper Limb',desc:'Elbow supported. Rotate forearm outward against resistance. Rotator cuff strengthening.',sets:'3',reps:'15 each',hold:'2s',rest:'60s',muscles:'Rotator Cuff',video:''},
-  {id:'gm44',name:'Glute Drive Machine',cat:'Lower Limb',desc:'Back against pad, bar across hips. Drive hips forward. Targeted glute activation.',sets:'3',reps:'12',hold:'3s',rest:'90s',muscles:'Glutes,Hamstrings',video:''},
-  {id:'gm45',name:'Sissy Squat Machine',cat:'Lower Limb',desc:'Heels elevated, lean back. Squat keeping hips extended. Extreme quad isolation.',sets:'3',reps:'10',hold:'',rest:'90s',muscles:'Quadriceps',video:''},
-  {id:'gm46',name:'Row Machine - Ergometer',cat:'Cardio',desc:'Full body rowing action. Drive with legs, lean back, pull to lower chest.',sets:'1',reps:'10 min',hold:'',rest:'',muscles:'Quadriceps,Glutes,Latissimus Dorsi,Cardiovascular',video:''},
-  {id:'gm47',name:'Ski Erg',cat:'Cardio',desc:'Pull ropes down from overhead in double pole skiing action.',sets:'3',reps:'2 min',hold:'',rest:'90s',muscles:'Latissimus Dorsi,Core,Cardiovascular',video:''},
-  {id:'gm48',name:'Air Bike',cat:'Cardio',desc:'Push/pull handlebars while pedalling. Full body high intensity cardio.',sets:'3',reps:'1 min',hold:'',rest:'90s',muscles:'Cardiovascular,Quadriceps,Deltoids',video:''},
-  {id:'gm49',name:'Seated Leg Press - Single Leg',cat:'Lower Limb',desc:'One foot on platform. Single leg press. Identifies and corrects strength asymmetry.',sets:'3',reps:'10 each',hold:'',rest:'90s',muscles:'Quadriceps,Glutes,Hamstrings',video:''},
-  {id:'gm50',name:'Plate Loaded Hip Thrust Machine',cat:'Lower Limb',desc:'Back on pad, plate loaded across hips. Drive hips to full extension.',sets:'3',reps:'12',hold:'3s',rest:'90s',muscles:'Glutes,Hamstrings',video:''},
-];
 
 
-const LIBRARY_3 = [
-
-  // ══════════════════════════════════════════════════
-  // PILATES REFORMER (50)
-  // ══════════════════════════════════════════════════
-  {id:'pr1b', name:'Footwork — Parallel Heels',cat:'Pilates',desc:'Lie supine on reformer. Press platform away through heels in parallel. Return with control.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Quadriceps,Hamstrings,Calves',video:''},
-  {id:'pr2b', name:'Footwork — Parallel Toes',cat:'Pilates',desc:'Lie supine. Press through balls of feet in parallel position. Heels lifted throughout.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Quadriceps,Calves,Gastrocnemius',video:''},
-  {id:'pr3b', name:'Footwork — V Position',cat:'Pilates',desc:'Heels together toes apart (Pilates V). Press carriage away maintaining turnout.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Hip Rotators,Quadriceps,Glutes',video:''},
-  {id:'pr4b', name:'Footwork — Wide Parallel',cat:'Pilates',desc:'Feet wide apart in parallel. Press through mid foot. Targets inner thighs.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Hip Adductors,Quadriceps',video:''},
-  {id:'pr5b', name:'Hundred on Reformer',cat:'Pilates',desc:'Supine with legs in tabletop or extended. Pump arms 100 times synchronised with breath.',sets:'1',reps:'100 pumps',hold:'',rest:'60s',muscles:'Core,Transversus Abdominis,Rectus Abdominis',video:''},
-  {id:'pr6b', name:'Short Spine Massage',cat:'Pilates',desc:'Loop straps on feet. Roll spine up and over, then slowly articulate vertebra by vertebra back down.',sets:'3',reps:'5',hold:'',rest:'60s',muscles:'Erector Spinae,Hamstrings,Core',video:''},
-  {id:'pr7b', name:'Long Spine Massage',cat:'Pilates',desc:'Like short spine but extended legs. Roll pelvis up, over, and down in one long movement.',sets:'3',reps:'5',hold:'',rest:'60s',muscles:'Erector Spinae,Core,Hamstrings',video:''},
-  {id:'pr8b', name:'Coordination',cat:'Pilates',desc:'Supine. Curl up, extend legs, open/close legs, bend knees, lower. One flowing sequence.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Core,Hip Flexors,Transversus Abdominis',video:''},
-  {id:'pr9b', name:'Elephant',cat:'Pilates',desc:'Stand on platform facing springs. Round spine, push platform back with feet keeping legs straight.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Hamstrings,Core,Erector Spinae',video:''},
-  {id:'pr10b',name:'Running on Reformer',cat:'Pilates',desc:'Supine footwork position. Alternate pressing through each heel in a running rhythm.',sets:'3',reps:'20 each',hold:'',rest:'60s',muscles:'Calves,Quadriceps,Hamstrings',video:''},
-  {id:'pr11b',name:'Knee Stretch — Round Back',cat:'Pilates',desc:'Kneel on carriage. Round spine, press carriage back with knees. Maintain curl.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Core,Erector Spinae,Quadriceps',video:''},
-  {id:'pr12b',name:'Knee Stretch — Arch Back',cat:'Pilates',desc:'Kneel on carriage with arched spine. Press carriage back maintaining extension.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Erector Spinae,Quadriceps,Glutes',video:''},
-  {id:'pr13b',name:'Long Stretch',cat:'Pilates',desc:'Plank on reformer. Push carriage back maintaining rigid plank. Return with control.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Core,Deltoids,Chest,Erector Spinae',video:''},
-  {id:'pr14b',name:'Down Stretch',cat:'Pilates',desc:'Kneel upright on carriage. Tip forward pushing carriage back. Arc chest through.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Erector Spinae,Glutes,Core',video:''},
-  {id:'pr15b',name:'Up Stretch',cat:'Pilates',desc:'Inverted V position. Push carriage back then pull in while rounding spine.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Core,Hamstrings,Deltoids',video:''},
-  {id:'pr16b',name:'Stomach Massage — Round',cat:'Pilates',desc:'Sit on edge of carriage. Round spine. Press platform away through toes.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Core,Quadriceps,Erector Spinae',video:''},
-  {id:'pr17b',name:'Stomach Massage — Reach',cat:'Pilates',desc:'Sit upright. Extend arms and legs simultaneously as platform moves away.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Core,Quadriceps,Deltoids',video:''},
-  {id:'pr18b',name:'Rowing Front',cat:'Pilates',desc:'Seated facing springs. Perform rowing movement pulling handles toward body.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Rhomboids,Latissimus Dorsi,Biceps,Core',video:''},
-  {id:'pr19b',name:'Rowing Back',cat:'Pilates',desc:'Seated facing away from springs. Row handles backward with spinal extension.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Latissimus Dorsi,Deltoids,Core',video:''},
-  {id:'pr20b',name:'Tree on Reformer',cat:'Pilates',desc:'Supine. One leg extended to ceiling held at ankle. Walk hands up leg, lie back, roll up.',sets:'3',reps:'5 each',hold:'',rest:'60s',muscles:'Hamstrings,Core,Erector Spinae',video:''},
-  {id:'pr21b',name:'Leg Circles on Reformer',cat:'Pilates',desc:'Supine with feet in straps. Circle legs outward then inward maintaining pelvis stability.',sets:'3',reps:'8 each',hold:'',rest:'60s',muscles:'Hip Flexors,Glute Med,Core',video:''},
-  {id:'pr22b',name:'Frog on Reformer',cat:'Pilates',desc:'Supine with feet in straps heels together toes out. Press legs away then bend back in.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Hip Adductors,Quadriceps,Glutes',video:''},
-  {id:'pr23b',name:'Side Splits on Reformer',cat:'Pilates',desc:'Stand sideways on reformer. Push standing platform out to the side. Return using inner thigh.',sets:'3',reps:'10 each',hold:'',rest:'60s',muscles:'Hip Adductors,Glute Med,Balance',video:''},
-  {id:'pr24b',name:'Front Splits on Reformer',cat:'Pilates',desc:'Lunge position — one foot on carriage, one on platform. Push carriage back into lunge.',sets:'3',reps:'8 each',hold:'',rest:'60s',muscles:'Hip Flexors,Quadriceps,Glutes',video:''},
-  {id:'pr25b',name:'Snake on Reformer',cat:'Pilates',desc:'Side plank position on box. Push carriage away, arc through, return.',sets:'3',reps:'5 each',hold:'',rest:'60s',muscles:'Core,Obliques,Deltoids',video:''},
-  {id:'pr26b',name:'Tendon Stretch on Reformer',cat:'Pilates',desc:'Stand on platform. Lower heels below edge. Rise onto toes. Control descent.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Calves,Ankle Stabilisers,Balance',video:''},
-  {id:'pr27b',name:'Chest Expansion on Reformer',cat:'Pilates',desc:'Kneel facing away. Pull handles down by sides. Look right then left. Release.',sets:'3',reps:'8',hold:'3s',rest:'60s',muscles:'Deltoids,Rotator Cuff,Cervical Flexors',video:''},
-  {id:'pr28b',name:'Thigh Stretch on Reformer',cat:'Pilates',desc:'Kneel upright on carriage. Lean back from knees maintaining alignment. Return.',sets:'3',reps:'6',hold:'3s',rest:'60s',muscles:'Quadriceps,Hip Flexors,Core',video:''},
-  {id:'pr29b',name:'Arm Circles on Reformer',cat:'Pilates',desc:'Seated or supine. Circle arms with straps maintaining shoulder blade stability.',sets:'3',reps:'8 each',hold:'',rest:'60s',muscles:'Deltoids,Rotator Cuff,Serratus Anterior',video:''},
-  {id:'pr30b',name:'Backstroke on Reformer',cat:'Pilates',desc:'Supine. Circle arms overhead like backstroke. Coordinate with leg extension.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Deltoids,Core,Rectus Abdominis',video:''},
-  {id:'pr31b',name:'Teaser on Reformer',cat:'Pilates',desc:'Supine. Roll up to V-sit while pressing legs away. Maintain V-balance.',sets:'3',reps:'5',hold:'3s',rest:'60s',muscles:'Core,Hip Flexors,Rectus Abdominis',video:''},
-  {id:'pr32b',name:'Hip Rolls on Reformer',cat:'Pilates',desc:'Supine feet on bar. Bridge up, hold, lower. Focus on segmental spinal articulation.',sets:'3',reps:'8',hold:'3s',rest:'60s',muscles:'Glutes,Hamstrings,Erector Spinae,Core',video:''},
-  {id:'pr33b',name:'Kneeling Lunge on Reformer',cat:'Pilates',desc:'Kneeling rear lunge with front foot on carriage. Press carriage back stretching hip flexor.',sets:'3',reps:'8 each',hold:'3s',rest:'60s',muscles:'Hip Flexors,Quadriceps,Glutes',video:''},
-  {id:'pr34b',name:'Side Kick Kneeling on Reformer',cat:'Pilates',desc:'Kneel sideways. Kick top leg forward and back maintaining pelvic stability.',sets:'3',reps:'10 each',hold:'',rest:'60s',muscles:'Glute Med,Hip Flexors,Core',video:''},
-  {id:'pr35b',name:'Mermaid on Reformer',cat:'Pilates',desc:'Seated sideways. Reach top arm overhead, push carriage away. Arc side stretch.',sets:'3',reps:'6 each',hold:'3s',rest:'60s',muscles:'Obliques,Latissimus Dorsi,Core',video:''},
-  {id:'pr36b',name:'Plank to Pike on Reformer',cat:'Pilates',desc:'Feet on carriage in plank. Pike hips to ceiling pulling carriage in. Return.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Core,Deltoids,Hamstrings',video:''},
-  {id:'pr37b',name:'Reverse Plank on Reformer',cat:'Pilates',desc:'Seated facing away from footbar. Hands on footbar. Lift hips to reverse plank.',sets:'3',reps:'6',hold:'5s',rest:'60s',muscles:'Glutes,Triceps,Core',video:''},
-  {id:'pr38b',name:'Star on Reformer',cat:'Pilates',desc:'Side plank on one hand on platform. Push carriage away with top foot. Lift into star.',sets:'3',reps:'5 each',hold:'',rest:'60s',muscles:'Obliques,Glute Med,Deltoids,Core',video:''},
-  {id:'pr39b',name:'Squat on Reformer',cat:'Pilates',desc:'Stand on carriage facing footbar. Squat down and back. Return to standing.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Quadriceps,Glutes,Hamstrings,Balance',video:''},
-  {id:'pr40b',name:'Lunge Series on Reformer',cat:'Pilates',desc:'Step one foot back onto carriage. Lunge forward, press carriage back, return.',sets:'3',reps:'8 each',hold:'',rest:'60s',muscles:'Quadriceps,Glutes,Hip Flexors',video:''},
-  {id:'pr41b',name:'Grasshopper on Reformer',cat:'Pilates',desc:'Prone on box. Bend and extend knees using straps. Squeeze glutes throughout.',sets:'3',reps:'10',hold:'2s',rest:'60s',muscles:'Hamstrings,Glutes,Erector Spinae',video:''},
-  {id:'pr42b',name:'Swan on Reformer',cat:'Pilates',desc:'Prone on box. Extend spine lifting chest while pressing carriage away.',sets:'3',reps:'8',hold:'3s',rest:'60s',muscles:'Erector Spinae,Glutes,Deltoids',video:''},
-  {id:'pr43b',name:'Balance Control Front on Reformer',cat:'Pilates',desc:'Supine. Roll up, balance on shoulders, lower legs toward platform. Control.',sets:'3',reps:'5',hold:'',rest:'60s',muscles:'Core,Hamstrings,Erector Spinae',video:''},
-  {id:'pr44b',name:'Cardio Jumping on Reformer',cat:'Pilates',desc:'Supine footwork position. Spring jump carriage away and land softly. Continuous rhythm.',sets:'3',reps:'20',hold:'',rest:'60s',muscles:'Quadriceps,Calves,Cardiovascular',video:''},
-  {id:'pr45b',name:'Splits on Box — Reformer',cat:'Pilates',desc:'One foot on box one on carriage. Press into splits range. Control return.',sets:'3',reps:'6 each',hold:'5s',rest:'60s',muscles:'Hamstrings,Hip Flexors,Hip Adductors',video:''},
-  {id:'pr46b',name:'Pulling Straps on Box',cat:'Pilates',desc:'Prone on box. Pull straps by sides lifting chest. Arc into extension.',sets:'3',reps:'8',hold:'3s',rest:'60s',muscles:'Latissimus Dorsi,Rhomboids,Erector Spinae',video:''},
-  {id:'pr47b',name:'T Pull on Box',cat:'Pilates',desc:'Prone on box arms in T. Pull straps back maintaining T position.',sets:'3',reps:'8',hold:'3s',rest:'60s',muscles:'Mid/Lower Trapezius,Rhomboids,Deltoids',video:''},
-  {id:'pr48b',name:'Hamstring Curl on Reformer',cat:'Pilates',desc:'Prone feet in straps. Curl heels toward glutes against spring resistance.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Hamstrings,Glutes',video:''},
-  {id:'pr49b',name:'Abdominal Series on Reformer',cat:'Pilates',desc:'Supine. Perform single leg stretch, double leg stretch, and scissors using springs.',sets:'3',reps:'8 each',hold:'',rest:'60s',muscles:'Core,Hip Flexors,Transversus Abdominis',video:''},
-  {id:'pr50b',name:'Control Push Up on Reformer',cat:'Pilates',desc:'Hands on footbar feet on carriage. Push up then pike hips. Return to plank.',sets:'3',reps:'6',hold:'',rest:'60s',muscles:'Chest,Triceps,Core,Deltoids',video:''},
-
-  // ══════════════════════════════════════════════════
-  // STRETCHES (50)
-  // ══════════════════════════════════════════════════
-  {id:'st1', name:'Standing Quad Stretch',cat:'Mobility',desc:'Stand on one leg. Pull opposite ankle to glute. Keep knees together and stand tall.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Quadriceps,Hip Flexors',video:''},
-  {id:'st2', name:'Standing Calf Stretch',cat:'Mobility',desc:'Step one foot back. Press heel into floor. Keep back leg straight. Lean toward wall.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Calves,Gastrocnemius',video:''},
-  {id:'st3', name:'Seated Hamstring Stretch',cat:'Mobility',desc:'Sit on edge of chair. Extend one leg. Hinge forward at hips until hamstring stretch felt.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Hamstrings',video:''},
-  {id:'st4', name:'Supine Hamstring Stretch',cat:'Mobility',desc:'Lie on back. Lift one leg and hold behind knee or calf. Straighten leg gently.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Hamstrings',video:''},
-  {id:'st5', name:'Figure Four Hip Stretch',cat:'Mobility',desc:'Lie on back. Cross ankle over opposite knee. Pull thigh toward chest.',sets:'2',reps:'1 each',hold:'45s',rest:'30s',muscles:'Glutes,Hip Rotators,Piriformis',video:''},
-  {id:'st6', name:'Kneeling Hip Flexor Stretch',cat:'Mobility',desc:'Half kneeling. Drive hips forward maintaining upright torso. Feel stretch in front of rear hip.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Hip Flexors,Quadriceps',video:''},
-  {id:'st7', name:'Butterfly Groin Stretch',cat:'Mobility',desc:'Sit with soles of feet together. Gently press knees toward floor with elbows.',sets:'2',reps:'1',hold:'45s',rest:'30s',muscles:'Hip Adductors,Groin',video:''},
-  {id:'st8', name:'Wide Leg Forward Fold',cat:'Mobility',desc:'Stand with legs wide. Hinge forward folding toward floor. Walk hands between feet.',sets:'2',reps:'1',hold:'45s',rest:'30s',muscles:'Hamstrings,Hip Adductors,Erector Spinae',video:''},
-  {id:'st9', name:'Seated Glute Stretch',cat:'Mobility',desc:'Sit on floor. Cross one leg in front. Fold forward over crossed leg.',sets:'2',reps:'1 each',hold:'45s',rest:'30s',muscles:'Glutes,Hip Rotators,Piriformis',video:''},
-  {id:'st10',name:'Child Pose',cat:'Mobility',desc:'Kneel and sit back on heels. Reach arms forward resting forehead on floor.',sets:'2',reps:'1',hold:'45s',rest:'30s',muscles:'Erector Spinae,Latissimus Dorsi,Hip Flexors',video:''},
-  {id:'st11',name:'Thread the Needle',cat:'Mobility',desc:'On hands and knees. Slide one arm under body rotating thoracic spine. Rest shoulder on floor.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Mid/Lower Trapezius,Erector Spinae,Rhomboids',video:''},
-  {id:'st12',name:'Supine Spinal Twist',cat:'Mobility',desc:'Lie on back. Pull one knee across body to floor. Extend arm in opposite direction.',sets:'2',reps:'1 each',hold:'45s',rest:'30s',muscles:'Erector Spinae,Obliques,Glutes',video:'https://www.youtube.com/watch?v=QKPZS9J0kxI'},
-  {id:'st13',name:'Chest Doorway Stretch',cat:'Mobility',desc:'Stand in doorway. Forearms on frame. Step through until chest stretch felt.',sets:'2',reps:'1',hold:'30s',rest:'30s',muscles:'Chest,Pectorals,Deltoids',video:''},
-  {id:'st14',name:'Cross Body Shoulder Stretch',cat:'Mobility',desc:'Bring one arm across chest. Press at elbow with opposite hand.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Deltoids,Rotator Cuff',video:''},
-  {id:'st15',name:'Overhead Tricep Stretch',cat:'Mobility',desc:'Raise one arm overhead. Bend elbow reaching hand down spine. Press elbow with opposite hand.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Triceps',video:''},
-  {id:'st16',name:'Pec Minor Stretch',cat:'Mobility',desc:'Arm at 90° on wall, elbow shoulder height. Rotate body away. Feel deep chest stretch.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Pectorals,Serratus Anterior',video:''},
-  {id:'st17',name:'Latissimus Dorsi Stretch',cat:'Mobility',desc:'Hold doorframe or pole overhead. Lean back and laterally until lat stretch felt.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Latissimus Dorsi',video:''},
-  {id:'st18',name:'Upper Trapezius Stretch',cat:'Mobility',desc:'Tilt ear to shoulder. Reach opposite hand behind back. Add gentle overpressure.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Upper Trapezius',video:''},
-  {id:'st19',name:'Levator Scapulae Stretch',cat:'Mobility',desc:'Look down toward armpit at 45°. Add gentle overpressure with hand on back of head.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Upper Trapezius,Cervical Extensors',video:''},
-  {id:'st20',name:'Chin Tuck Stretch',cat:'Mobility',desc:'Tuck chin to lengthen back of neck. Add gentle overpressure with fingers at base of skull.',sets:'3',reps:'10',hold:'5s',rest:'30s',muscles:'Cervical Extensors,Upper Trapezius',video:''},
-  {id:'st21',name:'Scalene Stretch',cat:'Mobility',desc:'Tilt ear to shoulder. Look slightly up. Depress opposite shoulder actively.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Cervical Flexors',video:''},
-  {id:'st22',name:'Standing IT Band Stretch',cat:'Mobility',desc:'Cross one foot behind other. Lean laterally away from crossed leg. Feel outer hip/thigh.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'IT Band,Glute Med,Obliques',video:''},
-  {id:'st23',name:'Soleus Stretch',cat:'Mobility',desc:'Like calf stretch but bend the back knee. Targets the deeper soleus muscle.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Soleus,Calves',video:''},
-  {id:'st24',name:'Tibialis Anterior Stretch',cat:'Mobility',desc:'Kneel on floor. Sit back on heels tops of feet flat. Feel stretch down front of shin.',sets:'2',reps:'1',hold:'30s',rest:'30s',muscles:'Tibialis Anterior',video:''},
-  {id:'st25',name:'Ankle Plantar Flexion Stretch',cat:'Mobility',desc:'Kneel. Lift one knee and point toes behind. Sit back gently stretching top of foot.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Tibialis Anterior,Foot Intrinsics',video:''},
-  {id:'st26',name:'Prone Quad Stretch',cat:'Mobility',desc:'Lie face down. Bend one knee reaching for ankle. Pull gently. Keep hips down.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Quadriceps,Hip Flexors',video:''},
-  {id:'st27',name:'Sidelying Quad Stretch',cat:'Mobility',desc:'Lie on side. Pull top ankle to glute. Push hips forward to increase stretch.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Quadriceps,Hip Flexors',video:''},
-  {id:'st28',name:'Runners Lunge Stretch',cat:'Mobility',desc:'Deep lunge position. Lower back knee to floor. Sink hips down. Reach arms up.',sets:'2',reps:'1 each',hold:'45s',rest:'30s',muscles:'Hip Flexors,Quadriceps,Groin',video:''},
-  {id:'st29',name:'Lizard Lunge Stretch',cat:'Mobility',desc:'Deep lunge with front foot outside hand. Drop rear knee. Sink deep into hip.',sets:'2',reps:'1 each',hold:'45s',rest:'30s',muscles:'Hip Flexors,Groin,Hip Adductors',video:''},
-  {id:'st30',name:'Standing Figure Four Stretch',cat:'Mobility',desc:'Stand. Cross ankle over opposite thigh. Sit back into single leg squat. Hold chair if needed.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Glutes,Hip Rotators,Piriformis',video:''},
-  {id:'st31',name:'Supine Psoas Stretch',cat:'Mobility',desc:'Lie on edge of table/bed. Hug one knee to chest. Lower other leg off edge.',sets:'2',reps:'1 each',hold:'45s',rest:'30s',muscles:'Hip Flexors,Psoas',video:''},
-  {id:'st32',name:'Wall Calf Stretch',cat:'Mobility',desc:'Stand facing wall. Place ball of foot on wall keeping heel on floor. Lean in.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Calves,Gastrocnemius,Soleus',video:''},
-  {id:'st33',name:'Forearm Flexor Stretch',cat:'Mobility',desc:'Extend arm palm up. Gently bend wrist back with other hand. Rotate arm slightly.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Forearms,Biceps',video:''},
-  {id:'st34',name:'Prayer Stretch (Wrists)',cat:'Mobility',desc:'Press palms together in prayer position at chest. Lower hands while keeping palms flat.',sets:'2',reps:'1',hold:'30s',rest:'30s',muscles:'Forearms',video:''},
-  {id:'st35',name:'Neck Rotation Stretch',cat:'Mobility',desc:'Slowly rotate head to look over shoulder. Add gentle overpressure with hand on chin.',sets:'2',reps:'1 each',hold:'20s',rest:'30s',muscles:'Cervical Flexors,Cervical Extensors',video:''},
-  {id:'st36',name:'Seated Piriformis Stretch',cat:'Mobility',desc:'Sit tall. Cross ankle over knee. Lean forward maintaining straight back.',sets:'2',reps:'1 each',hold:'45s',rest:'30s',muscles:'Piriformis,Glutes,Hip Rotators',video:''},
-  {id:'st37',name:'Doorway Bicep Stretch',cat:'Mobility',desc:'Stand in doorway. Place hand on frame at hip height, thumb down. Turn body away.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Biceps,Chest',video:''},
-  {id:'st38',name:'Standing Side Bend Stretch',cat:'Mobility',desc:'Stand tall. Reach one arm overhead and bend laterally. Feel stretch along ribs.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Obliques,Latissimus Dorsi',video:''},
-  {id:'st39',name:'Seated Spinal Rotation',cat:'Mobility',desc:'Sit tall with legs extended. Twist torso placing hand behind. Look over shoulder.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Erector Spinae,Obliques',video:''},
-  {id:'st40',name:'Cobra Stretch',cat:'Mobility',desc:'Lie prone. Place hands under shoulders. Straighten arms lifting chest. Hips stay down.',sets:'3',reps:'1',hold:'20s',rest:'30s',muscles:'Erector Spinae,Abdominals',video:'https://www.youtube.com/watch?v=JqIMfbEnGAo'},
-  {id:'st41',name:'Sphinx Stretch',cat:'Mobility',desc:'Lie prone propped on forearms. Gentle lumbar extension held passively.',sets:'2',reps:'1',hold:'45s',rest:'30s',muscles:'Erector Spinae',video:''},
-  {id:'st42',name:'Standing Hip Extension Stretch',cat:'Mobility',desc:'Stand. Swing one leg back and hold. Or lunge back and hold at end range.',sets:'2',reps:'1 each',hold:'20s',rest:'30s',muscles:'Hip Flexors,Quadriceps',video:''},
-  {id:'st43',name:'Supine Knee to Chest',cat:'Mobility',desc:'Lie on back. Pull one or both knees to chest. Rock gently side to side.',sets:'2',reps:'1',hold:'45s',rest:'30s',muscles:'Erector Spinae,Glutes,Hip Flexors',video:'https://www.youtube.com/watch?v=EVp7B8qnFzI'},
-  {id:'st44',name:'Thoracic Extension over Roller',cat:'Mobility',desc:'Lie over foam roller placed horizontally across mid back. Arms overhead. Relax.',sets:'2',reps:'1',hold:'45s',rest:'30s',muscles:'Erector Spinae,Chest,Pectorals',video:''},
-  {id:'st45',name:'Open Book Stretch',cat:'Mobility',desc:'Sidelying knees bent. Rotate top arm to open chest. Follow hand with eyes.',sets:'2',reps:'10 each',hold:'3s',rest:'30s',muscles:'Mid/Lower Trapezius,Chest,Erector Spinae',video:'https://www.youtube.com/watch?v=Rl8gtMSxGz0'},
-  {id:'st46',name:'Neck Flexion Stretch',cat:'Mobility',desc:'Gently drop chin to chest. Clasp hands lightly at back of head. No forcing.',sets:'2',reps:'1',hold:'30s',rest:'30s',muscles:'Cervical Extensors',video:''},
-  {id:'st47',name:'Hip 90-90 Stretch',cat:'Mobility',desc:'Sit with both legs in 90° position. Rotate from one side to other. Sit tall.',sets:'2',reps:'1 each',hold:'45s',rest:'30s',muscles:'Hip Rotators,Glutes,Piriformis',video:''},
-  {id:'st48',name:'Supine Groin Stretch',cat:'Mobility',desc:'Lie on back. Let one leg fall out to side with bent knee. Feel inner thigh stretch.',sets:'2',reps:'1 each',hold:'45s',rest:'30s',muscles:'Hip Adductors,Groin',video:''},
-  {id:'st49',name:'Wall Shoulder Stretch',cat:'Mobility',desc:'Stand side on to wall. Place palm on wall. Rotate body away feeling chest and shoulder.',sets:'2',reps:'1 each',hold:'30s',rest:'30s',muscles:'Chest,Deltoids,Biceps',video:''},
-  {id:'st50',name:'Active Thoracic Rotation',cat:'Mobility',desc:'Sit or stand. Rotate torso maximally each direction holding 3 seconds. Increase range with each rep.',sets:'3',reps:'10 each',hold:'3s',rest:'30s',muscles:'Erector Spinae,Obliques',video:''},
-
-  // ══════════════════════════════════════════════════
-  // HOME EXERCISES (50)
-  // ══════════════════════════════════════════════════
-  {id:'hx1b', name:'Theraband Squat',cat:'Home Exercise',desc:'Stand on band. Hold handles at shoulders. Squat keeping chest tall and knees over toes.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Quadriceps,Glutes,Hamstrings',video:''},
-  {id:'hx2b', name:'Theraband Chest Press',cat:'Home Exercise',desc:'Anchor band behind at shoulder height. Press forward extending arms. Control return.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Chest,Triceps,Deltoids',video:''},
-  {id:'hx3b', name:'Theraband Pull Apart',cat:'Home Exercise',desc:'Hold band with both hands at chest width. Pull apart stretching band across chest.',sets:'3',reps:'15',hold:'2s',rest:'60s',muscles:'Rhomboids,Mid/Lower Trapezius,Rotator Cuff',video:''},
-  {id:'hx4b', name:'Theraband External Rotation Standing',cat:'Home Exercise',desc:'Band anchored at elbow height. Hold with elbow at side. Rotate arm outward.',sets:'3',reps:'15 each',hold:'2s',rest:'60s',muscles:'Rotator Cuff',video:''},
-  {id:'hx5b', name:'Seated Leg Extension (Theraband)',cat:'Home Exercise',desc:'Anchor band at ankle. Sit in chair. Extend knee against resistance.',sets:'3',reps:'12 each',hold:'2s',rest:'60s',muscles:'Quadriceps,VMO',video:''},
-  {id:'hx6b', name:'Standing Hip Flexion (Theraband)',cat:'Home Exercise',desc:'Band anchored low behind ankle. Lift knee forward against resistance.',sets:'3',reps:'12 each',hold:'2s',rest:'60s',muscles:'Hip Flexors,Core',video:''},
-  {id:'hx7b', name:'Theraband Deadlift',cat:'Home Exercise',desc:'Stand on band. Hinge at hips lowering hands toward floor. Drive through heels to return.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Hamstrings,Glutes,Erector Spinae',video:''},
-  {id:'hx8b', name:'Wall Sit',cat:'Home Exercise',desc:'Back against wall. Slide down to 90° knee bend. Hold position.',sets:'3',reps:'1',hold:'30s',rest:'60s',muscles:'Quadriceps,Glutes',video:''},
-  {id:'hx9b', name:'Glute Bridge',cat:'Home Exercise',desc:'Lie on back knees bent. Drive hips to ceiling squeezing glutes at top. Lower.',sets:'3',reps:'15',hold:'2s',rest:'60s',muscles:'Glutes,Hamstrings',video:''},
-  {id:'hx10b',name:'Single Leg Glute Bridge',cat:'Home Exercise',desc:'Glute bridge with one leg extended. Drive through heel of planted foot.',sets:'3',reps:'12 each',hold:'2s',rest:'60s',muscles:'Glutes,Hamstrings,Core',video:''},
-  {id:'hx11b',name:'Marching Glute Bridge',cat:'Home Exercise',desc:'In glute bridge position. Alternate lifting each knee maintaining level hips.',sets:'3',reps:'10 each',hold:'',rest:'60s',muscles:'Glutes,Core,Hip Flexors',video:''},
-  {id:'hx12b',name:'Incline Push Up',cat:'Home Exercise',desc:'Hands on bench or couch. Push up at incline. Easier than standard push up.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Chest,Triceps,Deltoids',video:''},
-  {id:'hx13b',name:'Decline Push Up',cat:'Home Exercise',desc:'Feet elevated on chair. Hands on floor. Push up with greater upper chest load.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Chest,Deltoids,Triceps',video:''},
-  {id:'hx14b',name:'Diamond Push Up',cat:'Home Exercise',desc:'Hands close together forming diamond shape. Push up keeping elbows narrow.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Triceps,Chest,Deltoids',video:''},
-  {id:'hx15b',name:'Reverse Crunch',cat:'Home Exercise',desc:'Lie on back. Pull knees to chest lifting hips off floor. Lower with control.',sets:'3',reps:'15',hold:'',rest:'60s',muscles:'Core,Rectus Abdominis,Hip Flexors',video:''},
-  {id:'hx16b',name:'Leg Raises',cat:'Home Exercise',desc:'Lie on back. Raise both legs to 90° keeping lower back flat. Lower slowly.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Rectus Abdominis,Hip Flexors,Core',video:''},
-  {id:'hx17b',name:'Flutter Kicks',cat:'Home Exercise',desc:'Lie on back legs raised slightly. Alternately kick up and down in small rapid movements.',sets:'3',reps:'30',hold:'',rest:'60s',muscles:'Hip Flexors,Core,Rectus Abdominis',video:''},
-  {id:'hx18b',name:'Scissor Kicks',cat:'Home Exercise',desc:'Lie on back. Cross legs over each other in scissor motion keeping them elevated.',sets:'3',reps:'20',hold:'',rest:'60s',muscles:'Core,Hip Flexors,Hip Adductors',video:''},
-  {id:'hx19b',name:'Plank to Downward Dog',cat:'Home Exercise',desc:'Start in plank. Push hips up into downward dog. Return to plank. Repeat.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Core,Deltoids,Hamstrings',video:''},
-  {id:'hx20b',name:'Mountain Climbers',cat:'Home Exercise',desc:'In plank position. Alternately drive knees toward chest in running motion.',sets:'3',reps:'20 each',hold:'',rest:'60s',muscles:'Core,Hip Flexors,Cardiovascular',video:'https://www.youtube.com/watch?v=nmwgirgXLYM'},
-  {id:'hx21b',name:'Burpee (Modified)',cat:'Home Exercise',desc:'From standing. Squat down place hands on floor. Step or jump feet back to plank. Return.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Core,Quadriceps,Chest,Cardiovascular',video:''},
-  {id:'hx22b',name:'Jumping Jacks',cat:'Home Exercise',desc:'Jump feet wide while raising arms overhead. Return to start. Repeat rhythmically.',sets:'3',reps:'30',hold:'',rest:'60s',muscles:'Cardiovascular,Glute Med,Deltoids',video:''},
-  {id:'hx23b',name:'High Knees',cat:'Home Exercise',desc:'March or run in place lifting knees to hip height. Pump arms in coordination.',sets:'3',reps:'30',hold:'',rest:'60s',muscles:'Hip Flexors,Cardiovascular,Core',video:''},
-  {id:'hx24b',name:'Lateral Lunge',cat:'Home Exercise',desc:'Step wide to one side. Bend that knee keeping other leg straight. Push back.',sets:'3',reps:'10 each',hold:'',rest:'60s',muscles:'Hip Adductors,Quadriceps,Glutes',video:''},
-  {id:'hx25b',name:'Curtsy Lunge',cat:'Home Exercise',desc:'Step one foot behind and across to opposite side. Lower knee. Return.',sets:'3',reps:'10 each',hold:'',rest:'60s',muscles:'Glutes,Glute Med,Quadriceps',video:''},
-  {id:'hx26b',name:'Sumo Squat',cat:'Home Exercise',desc:'Wide stance toes out. Lower hips keeping knees tracking over toes. Return.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Hip Adductors,Quadriceps,Glutes',video:''},
-  {id:'hx27b',name:'Squat Pulse',cat:'Home Exercise',desc:'Hold squat at bottom. Pulse up and down in small range for set time.',sets:'3',reps:'20',hold:'',rest:'60s',muscles:'Quadriceps,Glutes',video:''},
-  {id:'hx28b',name:'Good Mornings',cat:'Home Exercise',desc:'Stand feet hip width. Hinge forward at hips with slight knee bend. Return.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Hamstrings,Glutes,Erector Spinae',video:''},
-  {id:'hx29b',name:'Superman Hold',cat:'Home Exercise',desc:'Lie prone. Simultaneously lift arms and legs off floor. Hold. Lower with control.',sets:'3',reps:'10',hold:'3s',rest:'60s',muscles:'Erector Spinae,Glutes,Multifidus',video:'https://www.youtube.com/watch?v=z6PJMT2y8GQ'},
-  {id:'hx30b',name:'Hip Circles',cat:'Home Exercise',desc:'Stand with hands on hips. Circle hips in large circle clockwise then anti-clockwise.',sets:'2',reps:'10 each',hold:'',rest:'30s',muscles:'Core,Hip Flexors,Erector Spinae',video:''},
-  {id:'hx31b',name:'Inchworm',cat:'Home Exercise',desc:'Stand. Walk hands to plank. Walk feet to hands. Stand. Repeat.',sets:'3',reps:'8',hold:'',rest:'60s',muscles:'Core,Hamstrings,Deltoids',video:''},
-  {id:'hx32b',name:'Bear Crawl',cat:'Home Exercise',desc:'On hands and toes with knees hovering. Crawl forward alternating opposite hand and foot.',sets:'3',reps:'5m',hold:'',rest:'60s',muscles:'Core,Deltoids,Hip Flexors',video:''},
-  {id:'hx33b',name:'Donkey Kicks',cat:'Home Exercise',desc:'On hands and knees. Drive one heel toward ceiling maintaining bent knee.',sets:'3',reps:'15 each',hold:'2s',rest:'60s',muscles:'Glutes,Hamstrings',video:'https://www.youtube.com/watch?v=SxHMeRhRSzg'},
-  {id:'hx34b',name:'Fire Hydrant',cat:'Home Exercise',desc:'On hands and knees. Lift one knee out to side like dog at fire hydrant.',sets:'3',reps:'15 each',hold:'2s',rest:'60s',muscles:'Glute Med,Hip Abductors',video:''},
-  {id:'hx35b',name:'Standing Kickback',cat:'Home Exercise',desc:'Hold chair for balance. Swing leg back maintaining straight back. Squeeze glute at top.',sets:'3',reps:'15 each',hold:'2s',rest:'60s',muscles:'Glutes,Hamstrings',video:''},
-  {id:'hx36b',name:'Squat to Calf Raise',cat:'Home Exercise',desc:'Squat down then as you stand rise onto toes at top. Lower heels and repeat.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Quadriceps,Glutes,Calves',video:''},
-  {id:'hx37b',name:'Alternating Superman',cat:'Home Exercise',desc:'Prone. Lift opposite arm and leg simultaneously. Alternate sides.',sets:'3',reps:'12 each',hold:'3s',rest:'60s',muscles:'Erector Spinae,Glutes,Multifidus',video:''},
-  {id:'hx38b',name:'Dead Bug',cat:'Home Exercise',desc:'Supine arms up knees at 90°. Lower opposite arm and leg. Return. Alternate.',sets:'3',reps:'10 each',hold:'',rest:'60s',muscles:'Core,Transversus Abdominis,Erector Spinae',video:''},
-  {id:'hx39b',name:'Staggered Push Up',cat:'Home Exercise',desc:'One hand forward one hand back. Push up then switch hand positions.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Chest,Triceps,Core',video:''},
-  {id:'hx40b',name:'Pike Push Up',cat:'Home Exercise',desc:'Inverted V position. Bend elbows lowering head toward floor. Push back up.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Deltoids,Triceps,Chest',video:''},
-  {id:'hx41b',name:'Plank Shoulder Taps',cat:'Home Exercise',desc:'In plank. Alternately tap each shoulder with opposite hand. Minimise hip rotation.',sets:'3',reps:'10 each',hold:'',rest:'60s',muscles:'Core,Deltoids,Obliques',video:''},
-  {id:'hx42b',name:'Single Leg Deadlift (Bodyweight)',cat:'Home Exercise',desc:'Balance on one leg. Hinge forward reaching hands toward floor. Return.',sets:'3',reps:'10 each',hold:'',rest:'60s',muscles:'Hamstrings,Glutes,Balance',video:''},
-  {id:'hx43b',name:'Tricep Bench Dip',cat:'Home Exercise',desc:'Hands on chair edge behind. Lower body bending elbows. Push back up.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Triceps,Chest',video:''},
-  {id:'hx44b',name:'Resistance Band Bicycle',cat:'Home Exercise',desc:'Band around feet. Lie on back. Pedal legs in bicycle motion against resistance.',sets:'3',reps:'20 each',hold:'',rest:'60s',muscles:'Core,Hip Flexors,Quadriceps',video:''},
-  {id:'hx45b',name:'Tuck Jumps',cat:'Home Exercise',desc:'Jump and pull knees to chest at peak of jump. Land softly bending knees.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Quadriceps,Calves,Cardiovascular',video:''},
-  {id:'hx46b',name:'Lateral Band Walk (Home)',cat:'Home Exercise',desc:'Band above ankles. Step side to side maintaining slight squat position.',sets:'3',reps:'20 each',hold:'',rest:'60s',muscles:'Glute Med,Hip Abductors',video:''},
-  {id:'hx47b',name:'Y-T-W Exercise',cat:'Home Exercise',desc:'Prone on floor. Lift arms into Y shape then T shape then W shape. Hold each.',sets:'3',reps:'8 each',hold:'3s',rest:'60s',muscles:'Mid/Lower Trapezius,Rhomboids,Rotator Cuff',video:''},
-  {id:'hx48b',name:'Hollow Body Rock',cat:'Home Exercise',desc:'Lie on back. Press lower back to floor. Arms overhead legs raised. Rock forward and back.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Core,Transversus Abdominis,Rectus Abdominis',video:''},
-  {id:'hx49b',name:'Reverse Hyperextension',cat:'Home Exercise',desc:'Lie prone on table/bench hips at edge. Lift legs to horizontal. Lower with control.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Glutes,Hamstrings,Erector Spinae',video:''},
-  {id:'hx50b',name:'Isometric Squat Hold',cat:'Home Exercise',desc:'Lower to parallel squat. Hold static position maintaining upright torso.',sets:'3',reps:'1',hold:'45s',rest:'60s',muscles:'Quadriceps,Glutes,Hamstrings',video:''},
-
-  // ══════════════════════════════════════════════════
-  // GYM MACHINES (most commonly used)
-  // ══════════════════════════════════════════════════
-  {id:'gm1b', name:'Leg Press Machine',cat:'Lower Limb',desc:'Sit in seat. Place feet shoulder width on platform. Press away extending legs. Lower with control.',sets:'3',reps:'12',hold:'',rest:'90s',muscles:'Quadriceps,Glutes,Hamstrings',video:''},
-  {id:'gm2b', name:'Leg Extension Machine',cat:'Lower Limb',desc:'Sit upright. Hook ankles under pad. Extend knees to straight. Lower with control.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Quadriceps,VMO',video:''},
-  {id:'gm3b', name:'Leg Curl Machine (Lying)',cat:'Lower Limb',desc:'Lie prone. Hook ankles over pad. Curl heels toward glutes. Lower with control.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Hamstrings',video:''},
-  {id:'gm4b', name:'Leg Curl Machine (Seated)',cat:'Lower Limb',desc:'Sit with thighs on pad. Curl ankles downward against resistance.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Hamstrings',video:''},
-  {id:'gm5b', name:'Hip Abduction Machine',cat:'Lower Limb',desc:'Sit with pads on outside of knees. Push legs apart against resistance. Return.',sets:'3',reps:'15',hold:'2s',rest:'60s',muscles:'Glute Med,Hip Abductors',video:''},
-  {id:'gm6b', name:'Hip Adduction Machine',cat:'Lower Limb',desc:'Sit with pads on inside of knees. Squeeze legs together against resistance.',sets:'3',reps:'15',hold:'2s',rest:'60s',muscles:'Hip Adductors',video:''},
-  {id:'gm7b', name:'Calf Raise Machine',cat:'Lower Limb',desc:'Stand on platform with pads on shoulders. Rise onto toes. Lower heels below platform.',sets:'3',reps:'15',hold:'2s',rest:'60s',muscles:'Calves,Gastrocnemius,Soleus',video:''},
-  {id:'gm8b', name:'Seated Calf Raise Machine',cat:'Lower Limb',desc:'Sit with pads on thighs. Rise onto toes against resistance. Lower with control.',sets:'3',reps:'15',hold:'2s',rest:'60s',muscles:'Soleus,Calves',video:''},
-  {id:'gm9b', name:'Hack Squat Machine',cat:'Lower Limb',desc:'Back against pad feet on platform. Lower bending knees. Press through heels to return.',sets:'3',reps:'12',hold:'',rest:'90s',muscles:'Quadriceps,Glutes,Hamstrings',video:''},
-  {id:'gm10b',name:'Smith Machine Squat',cat:'Lower Limb',desc:'Bar on shoulders guided by Smith machine. Squat to parallel. Drive through heels up.',sets:'3',reps:'12',hold:'',rest:'90s',muscles:'Quadriceps,Glutes,Hamstrings',video:''},
-  {id:'gm11b',name:'Chest Press Machine',cat:'Upper Limb',desc:'Sit with back supported. Grip handles at chest height. Press forward extending arms.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Chest,Triceps,Deltoids',video:''},
-  {id:'gm12b',name:'Pec Fly Machine',cat:'Upper Limb',desc:'Sit with arms out in T position. Bring arms together in front squeezing chest.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Chest,Pectorals',video:''},
-  {id:'gm13b',name:'Lat Pulldown Machine',cat:'Upper Limb',desc:'Grip bar wide overhand. Pull bar to chest squeezing shoulder blades. Control return.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Latissimus Dorsi,Biceps,Rhomboids',video:''},
-  {id:'gm14b',name:'Seated Cable Row',cat:'Upper Limb',desc:'Sit upright. Pull handles to lower chest. Squeeze shoulder blades. Extend back.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Rhomboids,Latissimus Dorsi,Biceps',video:'https://www.youtube.com/watch?v=GZbfZ033f74'},
-  {id:'gm15b',name:'Shoulder Press Machine',cat:'Upper Limb',desc:'Sit with back supported. Press handles overhead extending arms. Lower with control.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Deltoids,Triceps,Upper Trapezius',video:''},
-  {id:'gm16b',name:'Lateral Raise Machine',cat:'Upper Limb',desc:'Sit with pads on forearms. Raise arms to shoulder height against resistance.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Deltoids',video:''},
-  {id:'gm17b',name:'Rear Delt Fly Machine',cat:'Upper Limb',desc:'Sit facing pad. Grip handles in front. Push arms out and back squeezing rear delts.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Deltoids,Rhomboids,Rotator Cuff',video:''},
-  {id:'gm18b',name:'Bicep Curl Machine',cat:'Upper Limb',desc:'Sit with upper arms on pad. Curl handles toward shoulders. Lower with control.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Biceps',video:''},
-  {id:'gm19b',name:'Tricep Extension Machine',cat:'Upper Limb',desc:'Sit upright. Press handles downward extending elbows. Return with control.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Triceps',video:''},
-  {id:'gm20b',name:'Cable Bicep Curl',cat:'Upper Limb',desc:'Stand facing low cable. Curl bar to shoulders keeping elbows at sides.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Biceps',video:''},
-  {id:'gm21b',name:'Cable Tricep Pushdown',cat:'Upper Limb',desc:'Stand facing high cable. Push bar down extending elbows keeping upper arms fixed.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Triceps',video:''},
-  {id:'gm22b',name:'Cable Chest Fly',cat:'Upper Limb',desc:'Stand between cables set at shoulder height. Pull handles together in front of chest.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Chest,Pectorals,Deltoids',video:''},
-  {id:'gm23b',name:'Cable Lateral Raise',cat:'Upper Limb',desc:'Stand sideways to low cable. Raise handle out to side reaching shoulder height.',sets:'3',reps:'12 each',hold:'2s',rest:'60s',muscles:'Deltoids',video:''},
-  {id:'gm24b',name:'Cable Face Pull',cat:'Upper Limb',desc:'Stand facing high cable with rope. Pull to face splitting rope apart at eye level.',sets:'3',reps:'15',hold:'2s',rest:'60s',muscles:'Rotator Cuff,Rhomboids,Mid/Lower Trapezius',video:''},
-  {id:'gm25b',name:'Cable Woodchop',cat:'Core',desc:'High cable. Pull diagonally downward across body rotating through core.',sets:'3',reps:'12 each',hold:'',rest:'60s',muscles:'Obliques,Core,Rotator Cuff',video:''},
-  {id:'gm26b',name:'Cable Crunch',cat:'Core',desc:'Kneel facing high cable with rope. Pull down curling spine. Squeeze abs at bottom.',sets:'3',reps:'15',hold:'2s',rest:'60s',muscles:'Rectus Abdominis,Core',video:''},
-  {id:'gm27b',name:'Cable Pull Through',cat:'Lower Limb',desc:'Stand facing away from low cable. Hinge forward reaching between legs for cable. Drive hips forward.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Glutes,Hamstrings,Erector Spinae',video:''},
-  {id:'gm28b',name:'Hip Thrust on Smith Machine',cat:'Lower Limb',desc:'Shoulders on bench bar across hips. Drive hips to ceiling squeezing glutes.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Glutes,Hamstrings',video:''},
-  {id:'gm29b',name:'Assisted Pull Up Machine',cat:'Upper Limb',desc:'Kneel on pad which counterbalances weight. Perform pull up with assistance.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Latissimus Dorsi,Biceps,Rhomboids',video:''},
-  {id:'gm30b',name:'Assisted Dip Machine',cat:'Upper Limb',desc:'Kneel on counterbalanced pad. Perform dip with arms. Press back to start.',sets:'3',reps:'10',hold:'',rest:'60s',muscles:'Triceps,Chest,Deltoids',video:''},
-  {id:'gm31b',name:'Rowing Machine (Cardio)',cat:'Cardio',desc:'Drive with legs first then lean back pulling handle to sternum. Extend forward and repeat.',sets:'1',reps:'15 min',hold:'',rest:'',muscles:'Cardiovascular,Latissimus Dorsi,Quadriceps,Core',video:'https://www.youtube.com/watch?v=H0r_KTFeZTc'},
-  {id:'gm32b',name:'Ski Erg',cat:'Cardio',desc:'Stand facing machine. Pull cables down powerfully engaging core and upper body.',sets:'3',reps:'2 min',hold:'',rest:'60s',muscles:'Cardiovascular,Latissimus Dorsi,Core',video:''},
-  {id:'gm33b',name:'Assault Bike',cat:'Cardio',desc:'Pedal and push/pull handles simultaneously. High intensity full body cardio.',sets:'5',reps:'30s',hold:'',rest:'90s',muscles:'Cardiovascular,Quadriceps,Deltoids',video:''},
-  {id:'gm34b',name:'Treadmill Walking Incline',cat:'Cardio',desc:'Walk on treadmill at 8-12% incline. Maintain upright posture. Do not hold rails.',sets:'1',reps:'20 min',hold:'',rest:'',muscles:'Cardiovascular,Glutes,Calves',video:''},
-  {id:'gm35b',name:'Smith Machine Bench Press',cat:'Upper Limb',desc:'Lie on bench. Lower bar to chest in controlled path. Press back up.',sets:'3',reps:'12',hold:'',rest:'90s',muscles:'Chest,Triceps,Deltoids',video:''},
-  {id:'gm36b',name:'Smith Machine Row',cat:'Upper Limb',desc:'Bend forward gripping bar. Pull bar to lower chest squeezing shoulder blades.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Latissimus Dorsi,Rhomboids,Biceps',video:''},
-  {id:'gm37b',name:'Glute Kickback Machine',cat:'Lower Limb',desc:'Stand facing machine. Hook ankle into pad. Kick leg back extending hip.',sets:'3',reps:'12 each',hold:'2s',rest:'60s',muscles:'Glutes,Hamstrings',video:''},
-  {id:'gm38b',name:'Seated Hip Flexion Machine',cat:'Lower Limb',desc:'Sit upright. Lift thigh against resistance bringing knee toward chest.',sets:'3',reps:'12 each',hold:'2s',rest:'60s',muscles:'Hip Flexors,Core',video:''},
-  {id:'gm39b',name:'Cable Romanian Deadlift',cat:'Lower Limb',desc:'Stand facing low cable. Hinge at hips maintaining straight back. Return.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Hamstrings,Glutes,Erector Spinae',video:''},
-  {id:'gm40b',name:'Cable Hip Abduction',cat:'Lower Limb',desc:'Ankle cuff on low cable. Stand sideways. Lift leg out to side. Return.',sets:'3',reps:'12 each',hold:'2s',rest:'60s',muscles:'Glute Med,Hip Abductors',video:''},
-  {id:'gm41b',name:'Seated Chest Press Machine (Converging)',cat:'Upper Limb',desc:'Arcing path brings handles together at end range. Better chest activation.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Chest,Pectorals,Deltoids',video:''},
-  {id:'gm42b',name:'High Row Machine',cat:'Upper Limb',desc:'Sit. Pull handles from overhead down to upper chest. Squeeze lats at bottom.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Latissimus Dorsi,Mid/Lower Trapezius,Biceps',video:''},
-  {id:'gm43b',name:'Low Row Machine (Chest Supported)',cat:'Upper Limb',desc:'Lie prone on chest pad. Row handles toward lower chest. Squeeze scapulae.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Rhomboids,Mid/Lower Trapezius,Latissimus Dorsi',video:''},
-  {id:'gm44b',name:'Inner/Outer Thigh Machine Combined',cat:'Lower Limb',desc:'Alternate between abduction and adduction settings. Targets both muscle groups.',sets:'3',reps:'15',hold:'2s',rest:'60s',muscles:'Hip Adductors,Glute Med,Hip Abductors',video:''},
-  {id:'gm45b',name:'Total Gym Squat',cat:'Lower Limb',desc:'Reclined squat on incline platform. Feet on board. Press to full extension.',sets:'3',reps:'15',hold:'',rest:'60s',muscles:'Quadriceps,Glutes,Hamstrings',video:''},
-  {id:'gm46b',name:'Functional Trainer Press',cat:'Upper Limb',desc:'Dual cables at chest height. Press forward in functional press pattern.',sets:'3',reps:'12',hold:'',rest:'60s',muscles:'Chest,Deltoids,Triceps,Core',video:''},
-  {id:'gm47b',name:'Torso Rotation Machine',cat:'Core',desc:'Sit. Rotate torso against resistance. Control both directions equally.',sets:'3',reps:'12 each',hold:'2s',rest:'60s',muscles:'Obliques,Core,Erector Spinae',video:''},
-  {id:'gm48b',name:'Back Extension Machine',cat:'Core',desc:'Sit or lie in machine. Extend spine against resistance. Return with control.',sets:'3',reps:'12',hold:'2s',rest:'60s',muscles:'Erector Spinae,Multifidus,Glutes',video:''},
-  {id:'gm49b',name:'Abdominal Crunch Machine',cat:'Core',desc:'Sit. Pull handles/pads curling spine into crunch. Control extension.',sets:'3',reps:'15',hold:'2s',rest:'60s',muscles:'Rectus Abdominis,Core',video:''},
-  {id:'gm50b',name:'Multi Hip Machine',cat:'Lower Limb',desc:'Four-way hip machine. Train flexion, extension, abduction and adduction in sequence.',sets:'3',reps:'12 each',hold:'2s',rest:'60s',muscles:'Hip Flexors,Glutes,Glute Med,Hip Adductors',video:''},
-
-];
 
 // ── UNIT NORMALISATION ──
 // Clients type "30kg" / "2s" into fields and some display code appended another
@@ -3915,7 +3237,109 @@ function dedupeLibrary(arr) {
   });
   return out;
 }
-const ALL_EXERCISES = dedupeLibrary([...EXERCISES, ...NEW_EXERCISES, ...EXTRA_EXERCISES, ...LIBRARY_2, ...LIBRARY_3]);
+// ── EXERCISE LIBRARY: loaded from exercises.json ──
+// The built-in exercise list (names, descriptions, sets/reps AND the looping
+// video + start/end photo links) lives in exercises.json beside this file so
+// it can be edited without touching the app. A copy is cached on the device so
+// the library still works offline / if the file can't be fetched.
+const ALL_EXERCISES = [];
+var EX_BY_KEY = {};
+var EX_JSON_CACHE_KEY = 'bep_exercises_json_v1';
+var EX_JSON_STATUS = 'loading';
+function exResolveMedia(u, base) {
+  u = String(u || '').trim();
+  if (!u) return '';
+  if (/^(https?:)?\/\//i.test(u) || /^data:/i.test(u) || u.charAt(0) === '/' || u.indexOf('./') === 0 || u.indexOf('../') === 0) return u;
+  return String(base || '') + u;
+}
+function isVideoUrl(u) {
+  u = String(u || '').trim();
+  if (!u) return false;
+  if (/youtube\.com|youtu\.be/i.test(u)) return false;   // old YouTube links are no longer used
+  return /^(https?:)?\/\//i.test(u) || u.charAt(0) === '/' || u.indexOf('./') === 0 || u.indexOf('../') === 0;
+}
+function applyExerciseData(json) {
+  var list = (json && json.exercises) || (Array.isArray(json) ? json : []);
+  var vBase = (json && json.videoBase) || '', iBase = (json && json.imageBase) || './media/';
+  var out = [];
+  list.forEach(function(e) {
+    if (!e || !e.name) return;
+    var x = Object.assign({}, e);
+    x.ytUrl = '';
+    var _yc = e.youtube || e.oldYoutube || '';
+    if (_yc && typeof ytVideoId === 'function' && ytVideoId(_yc)) x.ytUrl = String(_yc).trim();
+    delete x.oldYoutube; delete x.youtube;
+    x.videoUrl = exResolveMedia(e.video || e.videoUrl, vBase);
+    delete x.video;
+    x.startImage = exResolveMedia(e.startImage, iBase);
+    x.endImage = exResolveMedia(e.endImage, iBase);
+    out.push(x);
+  });
+  var deduped = dedupeLibrary(out);
+  ALL_EXERCISES.splice(0, ALL_EXERCISES.length);
+  deduped.forEach(function(x) { ALL_EXERCISES.push(x); });
+  EX_BY_KEY = {};
+  ALL_EXERCISES.forEach(function(x) { EX_BY_KEY[normNameKey(x.name)] = x; });
+  return ALL_EXERCISES.length;
+}
+// Video + start/end photos for an exercise: exercises.json is the source of
+// truth; falls back to a link saved on the program's own copy or a custom entry.
+function exMedia(ex) {
+  var m = { video: '', start: '', end: '', yt: '' };
+  if (!ex) return m;
+  var lib = EX_BY_KEY[normNameKey(ex.name)] || (ex.substitutedFor && EX_BY_KEY[normNameKey(ex.substitutedFor)]) || null;
+  if (lib) { m.video = lib.videoUrl || ''; m.start = lib.startImage || ''; m.end = lib.endImage || ''; m.yt = lib.ytUrl || ''; }
+  if (!m.video) {
+    var c = [ex.videoUrl];
+    try {
+      var k = normNameKey(ex.name);
+      (typeof customExercises !== 'undefined' ? customExercises : []).forEach(function(ce) { if (normNameKey(ce.name) === k) c.push(ce.videoUrl || ce.video); });
+    } catch (e) {}
+    for (var i = 0; i < c.length; i++) { if (isVideoUrl(c[i])) { m.video = String(c[i]).trim(); break; } }
+  }
+  if (!m.video && !m.yt) {
+    var yc = [ex.videoUrl];
+    try {
+      var k2 = normNameKey(ex.name);
+      (typeof customExercises !== 'undefined' ? customExercises : []).forEach(function(ce) { if (normNameKey(ce.name) === k2) yc.push(ce.videoUrl || ce.video); });
+    } catch (e) {}
+    for (var j = 0; j < yc.length; j++) { if (typeof ytVideoId === 'function' && ytVideoId(yc[j])) { m.yt = String(yc[j]).trim(); break; } }
+  }
+  return m;
+}
+function exAfterLibraryLoad() {
+  try { if (typeof renderLib === 'function' && document.getElementById('viewApp') && document.getElementById('viewApp').style.display !== 'none') renderLib(); } catch (e) {}
+  try { if (typeof renderDropZone === 'function' && typeof getProg === 'function' && getProg()) renderDropZone(); } catch (e) {}
+  try {
+    var vc = document.getElementById('viewClient');
+    if (vc && vc.style.display !== 'none' && typeof cvData !== 'undefined' && cvData && typeof renderCV === 'function' && (!cvState || !Object.keys(cvState).length)) renderCV();
+  } catch (e) {}
+}
+(function exHydrateFromCache() {
+  try {
+    var raw = localStorage.getItem(EX_JSON_CACHE_KEY);
+    if (raw) { applyExerciseData(JSON.parse(raw)); EX_JSON_STATUS = 'cached'; }
+  } catch (e) {}
+})();
+async function exFetchLibrary() {
+  try {
+    // 10-minute cache-buster so edits to exercises.json show up quickly everywhere
+    var res = await fetch('exercises.json?v=' + Math.floor(Date.now() / 600000), { cache: 'no-cache' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var txt = await res.text();
+    var json = JSON.parse(txt);
+    var n = applyExerciseData(json);
+    EX_JSON_STATUS = 'live';
+    try { localStorage.setItem(EX_JSON_CACHE_KEY, txt); } catch (e) {}
+    exAfterLibraryLoad();
+    return n;
+  } catch (err) {
+    console.warn('exercises.json could not be loaded:', err);
+    if (EX_JSON_STATUS === 'loading') EX_JSON_STATUS = 'failed';
+    return 0;
+  }
+}
+exFetchLibrary();
 
 const CAT_COLORS = {
   "Lower Limb":"#1A7BA4","Upper Limb":"#5BBFAA","Core":"#9B7EC8",
@@ -4843,15 +4267,25 @@ function openDrawer(id) {
   const ps = [ex.sets?`${ex.sets} sets`:'',ex.reps?`${ex.reps} reps`:'',ex.hold||'',ex.rest?`Rest: ${ex.rest}`:''].filter(Boolean);
   document.getElementById('drParams').innerHTML = ps.map(p=>`<span class="tag">${p}</span>`).join('');
   document.getElementById('drAddBtn').onclick = () => { addEx(id); closeDrawer(); };
-  // Show YouTube video if available
+  // Show video + start/end photos if available
   var drVid = document.getElementById('drVideoWrap');
   if (drVid) {
     // Look for videoUrl: check override by name first (overrides have different id)
     var vidOverride = customExercises.find(function(e) { return e.name === ex.name && e.videoUrl; });
     var vidUrl = (vidOverride && vidOverride.videoUrl) || ex.videoUrl || '';
-    if (vidUrl && ytVideoId(vidUrl)) {
+    var _dm = exMedia(ex), _dv = _dm.video || (isVideoUrl(vidUrl) ? vidUrl : '');
+    var _dy = (!_dv && _dm.yt) ? _dm.yt : '';
+    if (_dv || _dy || _dm.start || _dm.end) {
       drVid.style.display = '';
-      drVid.innerHTML = ytBtnHTML(vidUrl, '&#9654; Watch Exercise Video on YouTube');
+      var _pair = '';
+      if (_dm.start || _dm.end) {
+        _pair = '<div style="display:flex;gap:8px;margin-top:8px">' +
+          (_dm.start ? '<figure style="flex:1;margin:0"><img src="' + _dm.start + '" loading="lazy" style="width:100%;border-radius:8px;display:block"><figcaption style="font-size:10px;font-weight:700;text-align:center;margin-top:3px;color:var(--text-l)">START</figcaption></figure>' : '') +
+          (_dm.end ? '<figure style="flex:1;margin:0"><img src="' + _dm.end + '" loading="lazy" style="width:100%;border-radius:8px;display:block"><figcaption style="font-size:10px;font-weight:700;text-align:center;margin-top:3px;color:var(--text-l)">END</figcaption></figure>' : '') +
+          '</div>';
+      }
+      drVid.innerHTML = (_dv ? exLoopHTML(_dv, _dm.start) : (_dy ? ytBtnHTML(_dy, '&#9654; Watch Exercise Video on YouTube') : '')) + _pair;
+      cvInitLoops(drVid);
     } else {
       drVid.style.display = 'none';
       drVid.innerHTML = '';
@@ -4972,8 +4406,8 @@ function updExVideo(uid, val) {
   var hint = document.getElementById('vidok_' + uid);
   if (hint) {
     if (!val) { hint.textContent = 'Optional — attaches directly to this exercise'; hint.style.color = '#8B98A5'; }
-    else if (ytVideoId(val)) { hint.textContent = '✓ Video attached to this exercise'; hint.style.color = '#2FD4F5'; }
-    else { hint.textContent = '⚠ Not a valid YouTube link'; hint.style.color = '#e06a5a'; }
+    else if (isVideoUrl(val) || ytVideoId(val)) { hint.textContent = '✓ Video attached to this exercise'; hint.style.color = '#2FD4F5'; }
+    else { hint.textContent = '⚠ Not a valid video link (needs a full https link)'; hint.style.color = '#e06a5a'; }
   }
   const clU = getClient(); if (clU) clU._localUpdatedAt = new Date().toISOString();
   saveDB();
@@ -5122,9 +4556,9 @@ function renderDropZone() {
         <div class="pe-prog" style="margin-top:3px"><label>Progression / Next Goal</label>
           <input type="text" value="${ex.progression||''}" placeholder="e.g. Add 2kg when 3x12 is easy" onchange="updEx(${ex.uid},'progression',this.value)">
         </div>
-        <div class="pe-video" style="margin-top:3px"><label>🎬 Video link (YouTube / Shorts)</label>
-          <input type="text" value="${ex.videoUrl||''}" placeholder="Paste a YouTube or Shorts link" oninput="updExVideo(${ex.uid},this.value)" onchange="updExVideo(${ex.uid},this.value)" onblur="flushExVideo(${ex.uid},this.value)" style="direction:ltr">
-          <span id="vidok_${ex.uid}" style="font-size:11px;color:${ex.videoUrl && ytVideoId(ex.videoUrl) ? '#2FD4F5' : (ex.videoUrl ? '#e06a5a' : '#8B98A5')}">${ex.videoUrl ? (ytVideoId(ex.videoUrl) ? '✓ Video attached to this exercise' : '⚠ Not a valid YouTube link') : 'Optional — attaches directly to this exercise'}</span>
+        <div class="pe-video" style="margin-top:3px"><label>🎬 Video link override (optional — the video from exercises.json is used automatically)</label>
+          <input type="text" value="${ex.videoUrl||''}" placeholder="https://… .mp4 (optional)" oninput="updExVideo(${ex.uid},this.value)" onchange="updExVideo(${ex.uid},this.value)" onblur="flushExVideo(${ex.uid},this.value)" style="direction:ltr">
+          <span id="vidok_${ex.uid}" style="font-size:11px;color:${ex.videoUrl && (isVideoUrl(ex.videoUrl) || ytVideoId(ex.videoUrl)) ? '#2FD4F5' : (ex.videoUrl ? '#e06a5a' : '#8B98A5')}">${ex.videoUrl ? ((isVideoUrl(ex.videoUrl) || ytVideoId(ex.videoUrl)) ? '✓ Video attached to this exercise' : '⚠ Not a valid video link (needs a full https link)') : 'Optional — attaches directly to this exercise'}</span>
         </div>
       </div>
     </div>`).join('')}</div>`;
@@ -6588,28 +6022,9 @@ function getExIllusStr(ex) {
   // have been updated with a newer video under videoUrl; checking video too
   // early here would show a stale thumbnail even though the button (which
   // already skips straight to the library in that case) plays the new one.
-  var vUrl = (ex && ex.videoUrl) || '';
-  if (!vUrl && ex && ex.name && typeof normNameKey === 'function') {
-    var _exKey = normNameKey(ex.name);
-    var _customV = (typeof customExercises !== 'undefined' ? customExercises : []).find(function(le) {
-      return (le.videoUrl || le.video) && normNameKey(le.name) === _exKey;
-    });
-    if (_customV) {
-      vUrl = _customV.videoUrl || _customV.video;
-    } else {
-      var _libV = (typeof ALL_EXERCISES !== 'undefined' ? ALL_EXERCISES : []).find(function(le) {
-        return (le.videoUrl || le.video) && normNameKey(le.name) === _exKey;
-      });
-      if (_libV) vUrl = _libV.videoUrl || _libV.video || '';
-    }
-  }
-  // Last resort: an older "video" field on the program's own copy, only used
-  // if the exercise couldn't be found in the shared library at all (e.g. it
-  // was later renamed or removed there).
-  if (!vUrl && ex && ex.video) vUrl = ex.video;
-  var _vid = (typeof ytVideoId === 'function') ? ytVideoId(vUrl) : null;
-  if (_vid) {
-    return '<img src="https://img.youtube.com/vi/' + _vid + '/hqdefault.jpg" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:8px">';
+  var _mm = exMedia(ex);
+  if (_mm.start) {
+    return '<img src="' + _mm.start + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:8px">';
   }
 
   // 2. No video - fall back to a manually-set reference photo for this
@@ -6771,34 +6186,12 @@ function renderCV() {
         '<button onclick="cvSaveClientNoteNow(' + i + ')" style="flex-shrink:0;background:#1F2A33;border:1.5px solid #2FD4F5;color:#2FD4F5;font-size:10px;font-weight:700;padding:6px 10px;border-radius:8px;cursor:pointer">Save</button>' +
       '</div>' +
       '<div id="cvNoteStatus' + i + '" style="font-size:10px;min-height:13px;margin-bottom:6px"></div>';
-      // YouTube video button — check customExercises FIRST (overrides), then ALL_EXERCISES
-      var exVideoUrl = ex.videoUrl || '';
-      if (!exVideoUrl) {
-        // Match by NORMALISED name, not exact string. Program exercises and
-        // library entries often differ only in casing/spacing/punctuation
-        // ("Dead Bug" vs "Deadbug", "Glute Bridge" vs "Glute bridge"), and
-        // exact matching silently lost the video for hundreds of exercises.
-        var _exKey = (typeof normNameKey === 'function') ? normNameKey(ex.name) : (ex.name||'').toLowerCase();
-        // Check custom/override exercises first (practitioner-added videos)
-        var customEx = customExercises.find(function(le) {
-          return (le.videoUrl || le.video) && normNameKey(le.name) === _exKey;
-        });
-        if (customEx) {
-          exVideoUrl = customEx.videoUrl || customEx.video;
-        } else {
-          // Fallback to full library
-          var libEx = ALL_EXERCISES.find(function(le) {
-            return (le.videoUrl || le.video) && normNameKey(le.name) === _exKey;
-          });
-          if (libEx) exVideoUrl = libEx.videoUrl || libEx.video || '';
-        }
-      }
-      if (exVideoUrl && ytVideoId(exVideoUrl)) {
-        h += '<div class="cv-yt-panel" id="cvVid' + i + '" data-url="' + exVideoUrl + '">';
-        h += '<button class="cv-yt-btn" onclick="cvToggleVideo(' + i + ')">';
-        h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>';
-        h += 'Watch Exercise Video</button>';
-        h += '</div>';
+      // Looping exercise video (from exercises.json; muted, plays when scrolled into view)
+      var _cm = exMedia(ex);
+      if (_cm.video) h += exLoopHTML(_cm.video, _cm.start);
+      else if (_cm.yt && ytVideoId(_cm.yt)) {
+        h += '<div class="cv-yt-panel" id="cvVid' + i + '" data-url="' + _cm.yt.replace(/"/g,'&quot;') + '">' +
+          '<button class="cv-yt-btn" onclick="cvToggleVideo(' + i + ')"><svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>Watch Exercise Video</button></div>';
       }
       if (ex.progression) h += '<div style="font-size:10px;color:var(--teal);margin-bottom:10px">&#8593; Goal: ' + ex.progression + '</div>';
 
@@ -6919,6 +6312,7 @@ function renderCV() {
   h += '</div>';
 
   document.getElementById('cvBody').innerHTML = h;
+  try { cvInitLoops(document.getElementById('cvBody')); } catch (eL) {}
   // Force select to show correct program selected
   var _progSel = document.getElementById('cvProgSel');
   if (_progSel && !cvCustomWorkout) _progSel.value = 'prog_' + cvProgIdx;
@@ -8143,18 +7537,22 @@ async function generatePDF(cl, p) {
         var libEx = getAllExercises().find(function(e) { return e.name === ex.name; }) ||
                     getAllExercises().find(function(e) { return e.name === (ex.substitutedFor || ex.name); }) || {};
         var ex1 = Object.assign({}, ex);
-        ex1._photo = libEx.photo1 || ex.photo1 || customPhotos[ex.name] || ex.photo || null;
+        // Start / end position photos come from exercises.json (made absolute so the
+        // PDF can fetch them); older uploaded photos are only a fallback.
+        var _pm = exMedia(ex);
+        var _abs = function(u) { try { return u ? new URL(u, location.href).href : ''; } catch (e) { return u || ''; } };
+        ex1._photo = _abs(_pm.start) || libEx.photo1 || ex.photo1 || customPhotos[ex.name] || ex.photo || null;
         await renderSVGtoPDF(doc, ex1, ph1x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
         // Photo box 2 - use photo2 if available, else same as photo1
         doc.setFillColor(...SAND);
         doc.roundedRect(ph2x, phY, PHOTO_SIZE, PHOTO_SIZE, 2, 2, 'F');
         var ex2 = Object.assign({}, ex);
-        ex2._photo = libEx.photo2 || ex.photo2 || null;
+        ex2._photo = _abs(_pm.end) || libEx.photo2 || ex.photo2 || null;
         await renderSVGtoPDF(doc, ex2, ph2x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
         // Small number labels under photos
         setFont(7, 'normal', [150,150,150]);
-        text('1', ph1x + PHOTO_SIZE/2, phY + PHOTO_SIZE + 3.5, {align:'center'});
-        text('2', ph2x + PHOTO_SIZE/2, phY + PHOTO_SIZE + 3.5, {align:'center'});
+        text('START', ph1x + PHOTO_SIZE/2, phY + PHOTO_SIZE + 3.5, {align:'center'});
+        text('END', ph2x + PHOTO_SIZE/2, phY + PHOTO_SIZE + 3.5, {align:'center'});
       }
 
       // Text column
@@ -8392,7 +7790,7 @@ function filterLib() {
     var vidOk = true;
     if (libVideoFilter) {
       var ovr = (typeof customExercises !== 'undefined') ? customExercises.find(function(ce){ return ce.name === ex.name && (ce.videoUrl || ce.video); }) : null;
-      vidOk = !(ex.videoUrl || ex.video || ovr);
+      vidOk = !(exMedia(ex).video || ex.videoUrl || ex.video || ovr);
     }
     return catOk && muscleOk && searchOk && vidOk;
   });
@@ -8826,7 +8224,7 @@ function cvSubListHTML(idx, query) {
   var prog = cvData.programs[cvProgIdx] || cvData.programs[0];
   var currentEx = prog.exercises[idx];
   var q = (query || '').toLowerCase().trim();
-  var pool = (typeof getAllExercises === 'function' ? getAllExercises() : EXERCISES).filter(function(ex) {
+  var pool = (typeof getAllExercises === 'function' ? getAllExercises() : ALL_EXERCISES).filter(function(ex) {
     if (ex.name === currentEx.name) return false;
     if (!q) return ex.cat === currentEx.cat;
     return ex.name.toLowerCase().indexOf(q) !== -1 || (ex.cat||'').toLowerCase().indexOf(q) !== -1;
@@ -8843,7 +8241,7 @@ function cvSubListHTML(idx, query) {
 function cvDoSub(idx, newExId) {
   var prog = cvData.programs[cvProgIdx] || cvData.programs[0];
   var oldEx = prog.exercises[idx];
-  var newExBase = (typeof getAllExercises === 'function' ? getAllExercises() : EXERCISES).find(function(e) { return String(e.id) === String(newExId); });
+  var newExBase = (typeof getAllExercises === 'function' ? getAllExercises() : ALL_EXERCISES).find(function(e) { return String(e.id) === String(newExId); });
   if (!newExBase) return;
   // Keep prescription fields, swap exercise
   var newEx = Object.assign({}, oldEx, {
@@ -9554,7 +8952,7 @@ function renderCVHome() {
         h += '<div class="announce-box" style="margin-bottom:8px">';
         h += '<div class="announce-hdr"><span class="announce-icon">&#128226;</span>';
         h += '<span class="announce-title">From Beachside EP</span></div>';
-        h += '<div class="announce-body">' + ann.text.replace(/</g,'&lt;') + '</div>';
+        h += '<div class="announce-body">' + annLinkify(ann.text) + '</div>';
         h += '<div class="announce-date">' + ann.date + '</div>';
         h += '</div>';
       });
@@ -10129,10 +9527,9 @@ function cvShowBooking() {
 function cvCloseBooking() { var el=document.getElementById('cvBookingModal'); if(el) el.remove(); }
 
 // ════════════════════════════════════════════════════
-// YOUTUBE VIDEO HELPERS
+// VIDEO + DATE HELPERS
 // ════════════════════════════════════════════════════
 
-// Extract YouTube video ID from any YouTube URL format
 // Parses this app's log-entry date strings (e.g. "25 Aug 2026 at 05:58 pm" or
 // "9 Jul 2026 at 03:56 pm"). The browser's native `new Date(...)` cannot read
 // this format at all - it silently returns Invalid Date for every one of
@@ -10157,6 +9554,7 @@ function parseLogDate(str) {
   return new Date(y, m, d);
 }
 
+// ── YOUTUBE FALLBACK (used only when an exercise has no release video) ──
 function ytVideoId(url) {
   if (!url) return null;
   url = url.trim();
@@ -10183,39 +9581,6 @@ function ytBtnHTML(videoUrl, label) {
   return '<a class="yt-btn" href="https://www.youtube.com/watch?v=' + id + '" target="_blank" rel="noopener">' +
     '<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>' +
     label + '</a>';
-}
-
-// Build an embedded YouTube player div
-function ytEmbedHTML(videoUrl) {
-  var id = ytVideoId(videoUrl);
-  if (!id) return '';
-  return '<div class="yt-embed"><iframe src="https://www.youtube-nocookie.com/embed/' + id +
-    '?rel=0&modestbranding=1" allowfullscreen loading="lazy"></iframe></div>';
-}
-
-// Client view: toggle between button and embedded player
-
-// ── CLIENT LIGHT / DARK MODE ──
-function cvApplyTheme(mode) {
-  var vc = document.getElementById('viewClient');
-  if (!vc) return;
-  if (mode === 'light') {
-    vc.setAttribute('data-theme', 'light');
-  } else {
-    vc.removeAttribute('data-theme');
-  }
-  var btn = document.getElementById('cvThemeToggle');
-  if (btn) btn.textContent = (mode === 'light') ? '☀️' : '🌙';
-}
-function cvToggleTheme() {
-  var current = localStorage.getItem('bep_cv_theme') || 'dark';
-  var next = current === 'light' ? 'dark' : 'light';
-  localStorage.setItem('bep_cv_theme', next);
-  cvApplyTheme(next);
-}
-function cvInitTheme() {
-  var saved = localStorage.getItem('bep_cv_theme') || 'dark';
-  cvApplyTheme(saved);
 }
 
 function cvToggleVideo(exIdx) {
@@ -10245,6 +9610,62 @@ function cvToggleVideo(exIdx) {
   }
 }
 
+
+
+// ── LOOPING EXERCISE VIDEO (native HTML5, unbranded) ──
+function exLoopHTML(url, poster) {
+  var q = function(x) { return String(x || '').replace(/"/g, '&quot;'); };
+  // Tap-to-play (no autoplay, no looping): the client taps the picture to start it.
+  return '<div class="cv-loop"><video class="cv-loop-v" data-src="' + q(url) + '"' + (poster ? ' poster="' + q(poster) + '"' : '') +
+    ' controls muted playsinline webkit-playsinline preload="' + (poster ? 'none' : 'metadata') + '" disablepictureinpicture disableremoteplayback' +
+    ' controlslist="nodownload noremoteplayback" oncontextmenu="return false"></video></div>';
+}
+function cvLoopFail(v) {
+  var w = v.parentNode; if (!w) return;
+  var p = v.getAttribute('poster');
+  if (p) { w.innerHTML = '<img src="' + p + '" alt="" style="width:100%;display:block;border-radius:12px">'; }
+  else { w.style.display = 'none'; }
+}
+function cvInitLoops(root) {
+  root = root || document;
+  var vids = root.querySelectorAll('video.cv-loop-v');
+  Array.prototype.forEach.call(vids, function(v) {
+    if (v._loopInit) return; v._loopInit = true;
+    v.muted = true; v.defaultMuted = true;
+    v.loop = false; v.autoplay = false;
+    v.addEventListener('error', function() { cvLoopFail(v); });
+    // Only one video plays at a time
+    v.addEventListener('play', function() {
+      Array.prototype.forEach.call(document.querySelectorAll('video.cv-loop-v'), function(o) { if (o !== v && !o.paused) o.pause(); });
+    });
+    v.src = v.getAttribute('data-src');
+  });
+}
+
+// Client view: toggle between button and embedded player
+
+// ── CLIENT LIGHT / DARK MODE ──
+function cvApplyTheme(mode) {
+  var vc = document.getElementById('viewClient');
+  if (!vc) return;
+  if (mode === 'light') {
+    vc.setAttribute('data-theme', 'light');
+  } else {
+    vc.removeAttribute('data-theme');
+  }
+  var btn = document.getElementById('cvThemeToggle');
+  if (btn) btn.textContent = (mode === 'light') ? '☀️' : '🌙';
+}
+function cvToggleTheme() {
+  var current = localStorage.getItem('bep_cv_theme') || 'dark';
+  var next = current === 'light' ? 'dark' : 'light';
+  localStorage.setItem('bep_cv_theme', next);
+  cvApplyTheme(next);
+}
+function cvInitTheme() {
+  var saved = localStorage.getItem('bep_cv_theme') || 'dark';
+  cvApplyTheme(saved);
+}
 
 // ════════════════════════════════════════════════════
 // CLIENT VIEW — LIVE SYNC
@@ -11100,6 +10521,19 @@ function cvExitCustomWorkout() {
 // ANNOUNCEMENTS
 // ════════════════════════════════════════════════════
 window._announcements = [];
+// Turns web addresses typed into an announcement into tappable links.
+// Text is escaped first so nothing typed can run as code; only http(s):// and www. addresses become links.
+function annLinkify(text) {
+  var esc = String(text == null ? '' : text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return esc.replace(/\b((?:https?:\/\/|www\.)[^\s<]+)/gi, function(m) {
+    var trail = '';
+    var t;
+    while ((t = m.match(/[.,;:!?)\]']+$|&quot;$|&gt;$/))) { trail = t[0] + trail; m = m.slice(0, m.length - t[0].length); }
+    if (!m) return trail;
+    var href = /^www\./i.test(m) ? 'https://' + m : m;
+    return '<a href="' + href + '" target="_blank" rel="noopener noreferrer" class="ann-link" onclick="event.stopPropagation()">' + m + '</a>' + trail;
+  });
+}
 
 async function loadAnnouncements() {
   try {
@@ -11161,7 +10595,7 @@ function renderAnnList() {
   el.innerHTML = window._announcements.map(function(ann) {
     return '<div class="ann-item">' +
       '<div class="ann-item-body">' +
-        '<div>' + ann.text.replace(/</g,'&lt;') + '</div>' +
+        '<div>' + annLinkify(ann.text) + '</div>' +
         '<div class="ann-item-date">Posted ' + ann.date + '</div>' +
       '</div>' +
       '<button onclick="deleteAnnouncement(\'' + ann.id + '\')" ' +
@@ -12805,17 +12239,6 @@ function cvOpenExDetail(exIdx) {
   var existing = document.getElementById('cvExDetailOverlay');
   if (existing) existing.remove();
 
-  // Get YouTube video ID
-  var videoId = '';
-  if (ex.video) {
-    var m = ex.video.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
-    if (m) videoId = m[1];
-  }
-
-  // Get thumbnail URL
-  var thumbSrc = '';
-  if (videoId) thumbSrc = 'https://img.youtube.com/vi/' + videoId + '/hqdefault.jpg';
-
   // Build session history for this exercise
   var history = [];
   (prog.log || []).forEach(function(entry) {
@@ -12861,16 +12284,6 @@ function cvOpenExDetail(exIdx) {
   // exercise RESULTS/history only. Videos live on the exercise card's own
   // "Watch Video" button, so they're not duplicated here.
   var videoHTML = '';
-  if (false) {
-    videoHTML = '<div class="cv-ex-detail-video" onclick="cvPlayExVideo(\'' + videoId + '\')">' +
-      '<img src="' + thumbSrc + '" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'">' +
-      '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">' +
-        '<div style="width:60px;height:60px;background:rgba(255,0,0,.9);border-radius:50%;display:flex;align-items:center;justify-content:center">' +
-          '<svg viewBox="0 0 24 24" fill="white" width="28" height="28"><polygon points="8,5 19,12 8,19"/></svg>' +
-        '</div>' +
-      '</div>' +
-    '</div>';
-  }
 
   var histHTML = '';
   if (history.length) {
@@ -12924,11 +12337,6 @@ function cvOpenExDetail(exIdx) {
   overlay.scrollTop = 0;
 }
 
-function cvPlayExVideo(videoId) {
-  var container = document.querySelector('.cv-ex-detail-video');
-  if (!container) return;
-  container.innerHTML = '<iframe src="https://www.youtube.com/embed/' + videoId + '?autoplay=1" frameborder="0" allow="autoplay;encrypted-media" allowfullscreen style="width:100%;height:100%;border:none"></iframe>';
-}
 
 
 // ════════════════════════════════════════════════════
