@@ -2873,6 +2873,32 @@ function cvChartSVG(hist, useLoad) {
   return s;
 }
 
+// Progress charts (weight + reps) for one exercise, as HTML. Used by the exercise screen.
+function cvProgressChartsHTML(ex) {
+  var hist = cvCollectExerciseHistory(ex.name);
+  var isCardio = ex.cat === 'Cardio';
+  var hasLoad = !isCardio && hist.some(function(h) { return h.load !== null; });
+  var hasReps = hist.some(function(h) { return h.reps !== null; });
+  var html = '<div class="cv-howto-h" style="margin-top:22px">Your progress</div>';
+  if (!hist.length || (!hasLoad && !hasReps)) {
+    return html + '<div style="padding:14px 0 6px;font-size:13px;color:#8B949E">Complete and submit a workout with this exercise and your progress graph will appear here.</div>';
+  }
+  if (hasLoad) {
+    var lh = hist.filter(function(h) { return h.load !== null; });
+    var delta = Math.round((lh[lh.length - 1].load - lh[0].load) * 10) / 10;
+    html += '<div style="font-size:13px;font-weight:700;margin:6px 0 2px;color:#E6EDF3">Weight (kg)' +
+      (lh.length > 1 && delta !== 0 ? ' <span style="color:' + (delta > 0 ? '#5BBFAA' : '#8B949E') + ';font-weight:600">' + (delta > 0 ? '&#9650; +' : '&#9660; ') + delta + 'kg since your first session</span>' : '') + '</div>';
+    html += cvChartSVG(lh, true);
+  }
+  if (hasReps) {
+    var rh = hist.filter(function(h) { return h.reps !== null; });
+    html += '<div style="font-size:13px;font-weight:700;margin:14px 0 2px;color:#E6EDF3">' + (isCardio ? 'Duration' : 'Reps (best set)') + '</div>';
+    html += cvChartSVG(rh, false);
+  }
+  html += '<div style="font-size:11px;color:#8B949E;margin-top:8px">' + hist.length + ' logged session' + (hist.length === 1 ? '' : 's') + ' &middot; best set per session</div>';
+  return html;
+}
+
 function cvShowProgress(exIdx) {
   try {
     var prog = cvData.programs[cvProgIdx];
@@ -12335,38 +12361,7 @@ function cvOpenExDetail(exIdx) {
   else if (_dm2.yt && ytVideoId(_dm2.yt)) videoHTML = '<div class="cv-detail-vid"><div class="cv-yt-panel" id="cvVid' + exIdx + '" data-url="' + _dm2.yt.replace(/"/g, '&quot;') + '"><button class="cv-yt-btn" onclick="cvToggleVideo(' + exIdx + ')"><svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>Watch Exercise Video</button></div></div>';
 
   var histHTML = '';
-  if (history.length) {
-    histHTML += '<div class="cv-ex-history-title">Session History</div>';
-    if (best1RM) {
-      histHTML += '<div class="cv-ex-pb"><div class="cv-ex-pb-label">Personal Best To Beat</div>' +
-        '<div style="display:flex;align-items:baseline;gap:4px"><span style="font-size:13px;color:#FFFFFF">Estimated 1 rep max</span></div>' +
-        '<div class="cv-ex-pb-val">' + best1RM.toFixed(1) + '<span style="font-size:13px;font-weight:400;color:#8B949E"> kg</span></div>' +
-      '</div>';
-    }
-    history.forEach(function(h) {
-      histHTML += '<div style="margin-bottom:14px">';
-      histHTML += '<div style="display:flex;justify-content:space-between;margin-bottom:6px">';
-      histHTML += '<span style="font-size:13px;font-weight:600;color:#FFFFFF">' + h.prog + '</span>';
-      histHTML += '<span style="font-size:13px;color:#FFFFFF">' + h.date + '</span>';
-      histHTML += '</div>';
-      h.sets.forEach(function(s, si) {
-        // Parse "12 reps @ 20kg" or "12 reps @ 20 (prescribed)" format
-        var repsM = s.match(/(\d+(?:-\d+)?)\s*reps?/i);
-        var loadM = s.match(/@\s*([\d.]+)/i) || s.match(/([\d.]+)\s*kg/i);
-        var holdM = s.match(/hold\s*(\d+)/i);
-        var setDisplay = '';
-        if (repsM) setDisplay += repsM[1] + ' reps';
-        if (loadM && loadM[1]) setDisplay += (setDisplay ? ' × ' : '') + loadM[1] + ' kg';
-        if (holdM) setDisplay += (setDisplay ? ' · ' : '') + holdM[1] + 's hold';
-        if (!setDisplay) setDisplay = s.replace(/\(prescribed\)/i,'').replace(/\d+ sets?:/i,'').trim();
-        histHTML += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1F2A33">';
-        histHTML += '<span style="font-size:13px;color:#FFFFFF;min-width:44px">Set ' + (si+1) + '</span>';
-        histHTML += '<span style="font-size:14px;font-weight:600;color:#C9D1D9">' + setDisplay + '</span>';
-        histHTML += '</div>';
-      });
-      histHTML += '</div>';
-    });
-  }
+  try { histHTML = cvProgressChartsHTML(ex); } catch (e) { histHTML = ''; }
 
   overlay.innerHTML =
     // Back button - dark theme
