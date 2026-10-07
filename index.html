@@ -6050,6 +6050,7 @@ async function loadClientView(user) {
   }
 }
 
+var GENERIC_PLACEHOLDER = '<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="60" fill="#D4EAF3" rx="6"/><circle cx="30" cy="10" r="4" fill="#1A7BA4"/><path d="M30 14 L30 30" stroke="#1A7BA4" stroke-width="2.5" stroke-linecap="round"/></svg>';
 function getExIllusStr(ex) {
   // 1. If this exercise has a video, its thumbnail always comes from that
   //    video - this takes priority over any older reference photo, since the
@@ -6078,13 +6079,23 @@ function getExIllusStr(ex) {
   // Older program exercises that still carry their own inline photo field.
   if (ex && ex.photo) return '<img src="' + ex.photo + '" style="width:100%;height:100%;object-fit:cover;display:block">';
 
-  // 3. Only a YouTube link exists: use YouTube's own preview picture (ahead of the illustration)
+  // 3. Only a YouTube link exists: use YouTube's own preview picture (ahead of the illustration).
+  //    If YouTube has no preview (video removed/private) the picture swaps itself for the illustration.
   if (_mm.yt && typeof ytVideoId === 'function' && ytVideoId(_mm.yt)) {
-    return '<img src="https://i.ytimg.com/vi/' + ytVideoId(_mm.yt) + '/mqdefault.jpg" loading="lazy" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:8px">';
+    return '<img src="https://i.ytimg.com/vi/' + ytVideoId(_mm.yt) + '/mqdefault.jpg" loading="lazy" alt="" data-n="' + encodeURIComponent(ex.name || '') + '" onload="exYtThumbOk(this)" onerror="exYtThumbBad(this)" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:8px">';
   }
   // 4. Nothing above - the hand-drawn illustration, then the generic default icon.
-  if (typeof EXERCISE_SVG_MAP !== 'undefined' && EXERCISE_SVG_MAP[ex.name]) return EXERCISE_SVG_MAP[ex.name];
-  return '<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="60" fill="#D4EAF3" rx="6"/><circle cx="30" cy="10" r="4" fill="#1A7BA4"/><path d="M30 14 L30 30" stroke="#1A7BA4" stroke-width="2.5" stroke-linecap="round"/></svg>';
+  return exIllusFallbackStr(ex);
+}
+function exIllusFallbackStr(ex) {
+  if (ex && typeof EXERCISE_SVG_MAP !== 'undefined' && EXERCISE_SVG_MAP[ex.name]) return EXERCISE_SVG_MAP[ex.name];
+  return GENERIC_PLACEHOLDER;
+}
+function exYtThumbOk(img) { if (img.naturalWidth && img.naturalWidth <= 120) exYtThumbBad(img); }   // 120px wide = YouTube's grey "no video" placeholder
+function exYtThumbBad(img) {
+  var p = img.parentNode; if (!p) return;
+  var n = ''; try { n = decodeURIComponent(img.getAttribute('data-n') || ''); } catch (e) {}
+  p.innerHTML = exIllusFallbackStr({ name: n });
 }
 
 function renderCV() {
