@@ -1,5 +1,5 @@
 {
- "_readme": "Central exercise list. The app loads this file every time it opens. Edit video / startImage / endImage for any exercise. Values can be a plain file name (e.g. leg-press.mp4 - looked up in videoBase / imageBase below), a full https:// link, or ./path (relative to the app page). videoBase points at your 'Media For App' release using GitHub's 'latest' link, so it works whatever the release's tag is - but it must be your NEWEST published release (not a draft or pre-release). Type the video's file name EXACTLY as it is listed under Assets on the release page - GitHub changes some characters (spaces and hyphens can become dots), so 'overhead-tricep-extension.mp4' may show as 'overhead.tricep.extension.mp4'. To share one video across variations (e.g. Leg Press and Single-Leg Leg Press), type the same video file name in both entries and give each its own startImage/endImage. 'oldYoutube' is the exercise's YouTube link: the app uses it ONLY when the exercise has no 'video' from your release. As soon as you add a 'video' file name, the release video (and start/end photos) take over and YouTube is no longer shown. Squat and Goblet Squat use TEST media in ./media/ - replace them. 'aliases' lists other names for the same exercise (e.g. a program that says 'Overhead Tricep Extension' still gets the Overhead Tricep Stretch video and photos).",
+ "_readme": "Central exercise list. The app loads this file every time it opens. Edit video / startImage / endImage for any exercise. Values can be a plain file name (e.g. leg-press.mp4 - looked up in videoBase / imageBase below), a full https:// link, or ./path (relative to the app page). videoBase points at your 'Media For App' release using GitHub's 'latest' link, so it works whatever the release's tag is - but it must be your NEWEST published release (not a draft or pre-release). Type the video's file name EXACTLY as it is listed under Assets on the release page - GitHub changes some characters (spaces and hyphens can become dots), so 'overhead-tricep-extension.mp4' may show as 'overhead.tricep.extension.mp4'. To share one video across variations (e.g. Leg Press and Single-Leg Leg Press), type the same video file name in both entries and give each its own startImage/endImage. 'oldYoutube' is the exercise's YouTube link: the app uses it ONLY when the exercise has no 'video' from your release. As soon as you add a 'video' file name, the release video (and start/end photos) take over and YouTube is no longer shown. Squat and Goblet Squat use TEST media in ./media/ - replace them. 'aliases' lists other names for the same exercise (e.g. a program that says 'Overhead Tricep Extension' still gets the Overhead Tricep Stretch video and photos). Overhead Tricep video is served from the repo media folder (./media/overhead-tricep-extension.mp4) because that plays reliably on every phone; videos on the release can be blocked by some phones.",
  "videoBase": "https://github.com/BeachsideEP/exerciseprogram/releases/latest/download/",
  "imageBase": "./media/",
  "exercises": [
@@ -4298,7 +4298,7 @@
    "hold": "30s",
    "rest": "15s",
    "load": "",
-   "video": "overhead.tricep.extension.mp4",
+   "video": "./media/overhead-tricep-extension.mp4",
    "startImage": "overhead-tricep-extension-start.jpg",
    "endImage": "overhead-tricep-extension-end.jpg",
    "aliases": [
@@ -7889,7 +7889,7 @@
    "hold": "2s",
    "rest": "60s",
    "load": "",
-   "video": "overhead.tricep.extension.mp4",
+   "video": "./media/overhead-tricep-extension.mp4",
    "startImage": "overhead-tricep-extension-start.jpg",
    "endImage": "overhead-tricep-extension-end.jpg"
   },
