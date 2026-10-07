@@ -743,6 +743,13 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   border-radius:10px;background:#000}
 .cv-yt-embed iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:10px}
 .cv-loop{position:relative;margin:8px 0 10px;border-radius:12px;overflow:hidden;background:#000;line-height:0;-webkit-tap-highlight-color:transparent}
+.cv-loop-btn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:52px;height:52px;border-radius:50%;border:none;background:rgba(0,0,0,.62);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;line-height:0;transition:opacity .25s;-webkit-tap-highlight-color:transparent;box-shadow:0 2px 10px rgba(0,0,0,.35)}
+.cv-loop-btn svg{display:block}
+.cv-loop-btn .ic-pause{display:none}
+.cv-loop:not(.paused) .cv-loop-btn .ic-play{display:none}
+.cv-loop:not(.paused) .cv-loop-btn .ic-pause{display:block}
+.cv-loop.paused .cv-loop-btn .ic-play{margin-left:3px}
+.cv-loop.idle .cv-loop-btn{opacity:0;pointer-events:none}
 .cv-loop video{width:100%;max-height:300px;display:block;object-fit:cover;background:#0B0F12;border-radius:12px}
 
 /* Anna AI tab */
@@ -3280,6 +3287,8 @@ function applyExerciseData(json) {
   deduped.forEach(function(x) { ALL_EXERCISES.push(x); });
   EX_BY_KEY = {};
   ALL_EXERCISES.forEach(function(x) { EX_BY_KEY[normNameKey(x.name)] = x; });
+  // Alternative names ("aliases" in exercises.json) so programs that use a different name still get this exercise's video/photos
+  ALL_EXERCISES.forEach(function(x) { (Array.isArray(x.aliases) ? x.aliases : []).forEach(function(al) { var k = normNameKey(al); if (k && !(k in EX_BY_KEY)) EX_BY_KEY[k] = x; }); });
   return ALL_EXERCISES.length;
 }
 // Video + start/end photos for an exercise: exercises.json is the source of
@@ -9615,10 +9624,15 @@ function cvToggleVideo(exIdx) {
 // ── LOOPING EXERCISE VIDEO (native HTML5, unbranded) ──
 function exLoopHTML(url, poster) {
   var q = function(x) { return String(x || '').replace(/"/g, '&quot;'); };
-  // Tap-to-play (no autoplay, no looping): the client taps the picture to start it.
-  return '<div class="cv-loop"><video class="cv-loop-v" data-src="' + q(url) + '"' + (poster ? ' poster="' + q(poster) + '"' : '') +
-    ' controls muted playsinline webkit-playsinline preload="' + (poster ? 'none' : 'metadata') + '" disablepictureinpicture disableremoteplayback' +
-    ' controlslist="nodownload noremoteplayback" oncontextmenu="return false"></video></div>';
+  // Tap-to-play, no autoplay, no looping. No browser controls: one small
+  // play/pause button sits in the centre of the video (like the YouTube player).
+  return '<div class="cv-loop paused"><video class="cv-loop-v" data-src="' + q(url) + '"' + (poster ? ' poster="' + q(poster) + '"' : '') +
+    ' muted playsinline webkit-playsinline preload="' + (poster ? 'none' : 'metadata') + '" disablepictureinpicture disableremoteplayback' +
+    ' controlslist="nodownload noremoteplayback" oncontextmenu="return false"></video>' +
+    '<button type="button" class="cv-loop-btn" aria-label="Play video">' +
+    '<svg class="ic-play" viewBox="0 0 24 24" width="22" height="22"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>' +
+    '<svg class="ic-pause" viewBox="0 0 24 24" width="22" height="22"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>' +
+    '</button></div>';
 }
 function cvLoopFail(v) {
   var w = v.parentNode; if (!w) return;
@@ -9631,9 +9645,33 @@ function cvInitLoops(root) {
   var vids = root.querySelectorAll('video.cv-loop-v');
   Array.prototype.forEach.call(vids, function(v) {
     if (v._loopInit) return; v._loopInit = true;
+    var wrap = v.parentNode, btn = wrap.querySelector('.cv-loop-btn'), hideT = null;
     v.muted = true; v.defaultMuted = true;
-    v.loop = false; v.autoplay = false;
+    v.loop = false; v.autoplay = false; v.controls = false;
     v.addEventListener('error', function() { cvLoopFail(v); });
+    function showBtn() { wrap.classList.remove('idle'); clearTimeout(hideT); }
+    function sync() {
+      var playing = !v.paused && !v.ended;
+      wrap.classList.toggle('paused', !playing);
+      btn.setAttribute('aria-label', playing ? 'Pause video' : 'Play video');
+      if (playing) { clearTimeout(hideT); hideT = setTimeout(function() { wrap.classList.add('idle'); }, 1600); }
+      else showBtn();
+    }
+    function toggle(ev) {
+      if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+      if (!v.paused && !v.ended) { v.pause(); }
+      else {
+        if (v.ended) { try { v.currentTime = 0; } catch (e) {} }
+        var pr = v.play(); if (pr && pr.catch) pr.catch(function() {});
+      }
+      showBtn();
+    }
+    btn.addEventListener('click', toggle);
+    v.addEventListener('click', function(ev) {
+      if (!v.paused && wrap.classList.contains('idle')) { showBtn(); sync(); return; }   // first tap while playing: just show the button
+      toggle(ev);
+    });
+    ['play', 'playing', 'pause', 'ended'].forEach(function(n) { v.addEventListener(n, sync); });
     // Only one video plays at a time
     v.addEventListener('play', function() {
       Array.prototype.forEach.call(document.querySelectorAll('video.cv-loop-v'), function(o) { if (o !== v && !o.paused) o.pause(); });
