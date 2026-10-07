@@ -6215,7 +6215,7 @@ function renderCV() {
     var _chipLib = EX_BY_KEY[normNameKey(ex.name)] || (ex.substitutedFor && EX_BY_KEY[normNameKey(ex.substitutedFor)]) || null;
     var _chipHasVid = !!(_chipM.video || (_chipM.yt && ytVideoId(_chipM.yt)));
     var _chipHasDesc = !!((_chipLib && _chipLib.desc) || ex.desc);
-    if (_chipHasVid || _chipHasDesc) h += '<div class="cv-vid-chip">' + (_chipHasVid ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Tap for video &amp; how-to' : 'Tap for how-to') + '</div>';
+    h += '<div class="cv-vid-chip">' + (_chipHasVid ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Tap for video &amp; how-to' : 'Tap for how-to') + '</div>';
     h += '</div>';
     // Substitute + menu icons
     h += '<div class="cv-ex-card-actions">';
@@ -12375,7 +12375,7 @@ function cvOpenExDetail(exIdx) {
     videoHTML +
     '<div class="cv-ex-detail-content">' +
       '<div class="cv-ex-detail-title">' + ex.name + '</div>' +
-      (_howTo ? '<div class="cv-howto-h">How to perform</div><div class="cv-ex-detail-desc" style="color:#C9D1D9">' + _howTo.replace(/\d+\)/g, '<br><strong style="color:#FFFFFF">$&</strong>') + '</div>' : '') +
+      (_howTo ? '<div class="cv-howto-h">How to perform</div><div class="cv-ex-detail-desc" style="color:#C9D1D9">' + _howTo.replace(/\d+\)/g, '<br><strong style="color:#FFFFFF">$&</strong>') + '</div>' : '<div class="cv-howto-h">How to perform</div><div class="cv-ex-detail-desc" style="color:#8B949E">Written instructions for this exercise are coming soon. Ask your Exercise Physiologist if you\'re unsure how to do it.</div>')+
       (ex.notes ? '<div style="background:#0D1F2D;border-left:3px solid #2FD4F5;padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:16px;font-size:13px;color:#C9D1D9">' + ex.notes + '</div>' : '') +
       histHTML +
     '</div>';
