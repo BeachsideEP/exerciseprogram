@@ -743,6 +743,14 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
   border-radius:10px;background:#000}
 .cv-yt-embed iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:10px}
 .cv-loop{position:relative;margin:8px 0 10px;border-radius:12px;overflow:hidden;background:#000;line-height:0;-webkit-tap-highlight-color:transparent}
+.cv-vid-chip{display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:10.5px;font-weight:700;color:#2FD4F5}
+.cv-detail-vid{padding:14px 16px 0}
+.cv-detail-vid .cv-loop{margin:0}
+.cv-detail-vid .cv-loop video{max-height:62vh;width:100%;object-fit:contain;background:#000}
+.cv-howto-h{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8B949E;margin:4px 0 6px}
+.cv-loop-failed{background:#12181D;border:1px solid #22303A;border-radius:12px;overflow:hidden;line-height:1.4}
+.cv-loop-fail{padding:12px 14px;font-size:13px;color:#C9D1D9}
+.cv-loop-yt{display:block;margin:0 14px 14px;padding:10px;border-radius:8px;background:#CC0000;color:#fff;text-align:center;font-size:13px;font-weight:700;text-decoration:none}
 .cv-loop-btn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:52px;height:52px;border-radius:50%;border:none;background:rgba(0,0,0,.62);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;line-height:0;transition:opacity .25s;-webkit-tap-highlight-color:transparent;box-shadow:0 2px 10px rgba(0,0,0,.35)}
 .cv-loop-btn svg{display:block}
 .cv-loop-btn .ic-pause{display:none}
@@ -6177,6 +6185,8 @@ function renderCV() {
     h += '<div class="cv-ex-card-params">' + paramsStr;
     if (tickedSets > 0) h += ' <span style="color:#5BBFAA;font-weight:700">' + tickedSets + '/' + sets + '</span>';
     h += '</div>';
+    var _chipM = exMedia(ex);
+    if (_chipM.video || (_chipM.yt && ytVideoId(_chipM.yt))) h += '<div class="cv-vid-chip"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Tap for video &amp; how-to</div>';
     h += '</div>';
     // Substitute + menu icons
     h += '<div class="cv-ex-card-actions">';
@@ -6195,13 +6205,6 @@ function renderCV() {
         '<button onclick="cvSaveClientNoteNow(' + i + ')" style="flex-shrink:0;background:#1F2A33;border:1.5px solid #2FD4F5;color:#2FD4F5;font-size:10px;font-weight:700;padding:6px 10px;border-radius:8px;cursor:pointer">Save</button>' +
       '</div>' +
       '<div id="cvNoteStatus' + i + '" style="font-size:10px;min-height:13px;margin-bottom:6px"></div>';
-      // Looping exercise video (from exercises.json; muted, plays when scrolled into view)
-      var _cm = exMedia(ex);
-      if (_cm.video) h += exLoopHTML(_cm.video, _cm.start);
-      else if (_cm.yt && ytVideoId(_cm.yt)) {
-        h += '<div class="cv-yt-panel" id="cvVid' + i + '" data-url="' + _cm.yt.replace(/"/g,'&quot;') + '">' +
-          '<button class="cv-yt-btn" onclick="cvToggleVideo(' + i + ')"><svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>Watch Exercise Video</button></div>';
-      }
       if (ex.progression) h += '<div style="font-size:10px;color:var(--teal);margin-bottom:10px">&#8593; Goal: ' + ex.progression + '</div>';
 
       // Per-set table rendered inside st.open block below
@@ -9622,11 +9625,11 @@ function cvToggleVideo(exIdx) {
 
 
 // ── LOOPING EXERCISE VIDEO (native HTML5, unbranded) ──
-function exLoopHTML(url, poster) {
+function exLoopHTML(url, poster, yt) {
   var q = function(x) { return String(x || '').replace(/"/g, '&quot;'); };
   // Tap-to-play, no autoplay, no looping. No browser controls: one small
   // play/pause button sits in the centre of the video (like the YouTube player).
-  return '<div class="cv-loop paused"><video class="cv-loop-v" data-src="' + q(url) + '"' + (poster ? ' poster="' + q(poster) + '"' : '') +
+  return '<div class="cv-loop paused"' + (yt ? ' data-yt="' + q(yt) + '"' : '') + '><video class="cv-loop-v" data-src="' + q(url) + '"' + (poster ? ' poster="' + q(poster) + '"' : '') +
     ' muted playsinline webkit-playsinline preload="' + (poster ? 'none' : 'metadata') + '" disablepictureinpicture disableremoteplayback' +
     ' controlslist="nodownload noremoteplayback" oncontextmenu="return false"></video>' +
     '<button type="button" class="cv-loop-btn" aria-label="Play video">' +
@@ -9637,8 +9640,11 @@ function exLoopHTML(url, poster) {
 function cvLoopFail(v) {
   var w = v.parentNode; if (!w) return;
   var p = v.getAttribute('poster');
-  if (p) { w.innerHTML = '<img src="' + p + '" alt="" style="width:100%;display:block;border-radius:12px">'; }
-  else { w.style.display = 'none'; }
+  var yt = w.getAttribute('data-yt') || '';
+  var msg = '<div class="cv-loop-fail">Video couldn\u2019t load right now.' + (yt && ytVideoId(yt) ? '' : ' Please try again later.') + '</div>';
+  var yb = (yt && ytVideoId(yt)) ? '<a class="cv-loop-yt" href="https://www.youtube.com/watch?v=' + ytVideoId(yt) + '" target="_blank" rel="noopener">&#9654; Watch on YouTube instead</a>' : '';
+  w.className = 'cv-loop-failed';
+  w.innerHTML = (p ? '<img src="' + p + '" alt="" style="width:100%;display:block;border-radius:12px 12px 0 0">' : '') + msg + yb;
 }
 function cvInitLoops(root) {
   root = root || document;
@@ -12321,7 +12327,12 @@ function cvOpenExDetail(exIdx) {
   // Video intentionally omitted from this detail view — this section shows
   // exercise RESULTS/history only. Videos live on the exercise card's own
   // "Watch Video" button, so they're not duplicated here.
+  var _dm2 = exMedia(ex);
+  var _libx = (typeof EX_BY_KEY !== 'undefined' && (EX_BY_KEY[normNameKey(ex.name)] || (ex.substitutedFor && EX_BY_KEY[normNameKey(ex.substitutedFor)]))) || null;
+  var _howTo = ex.desc || (_libx && _libx.desc) || '';
   var videoHTML = '';
+  if (_dm2.video) videoHTML = '<div class="cv-detail-vid">' + exLoopHTML(_dm2.video, _dm2.start, _dm2.yt) + '</div>';
+  else if (_dm2.yt && ytVideoId(_dm2.yt)) videoHTML = '<div class="cv-detail-vid"><div class="cv-yt-panel" id="cvVid' + exIdx + '" data-url="' + _dm2.yt.replace(/"/g, '&quot;') + '"><button class="cv-yt-btn" onclick="cvToggleVideo(' + exIdx + ')"><svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>Watch Exercise Video</button></div></div>';
 
   var histHTML = '';
   if (history.length) {
@@ -12366,13 +12377,14 @@ function cvOpenExDetail(exIdx) {
     videoHTML +
     '<div class="cv-ex-detail-content">' +
       '<div class="cv-ex-detail-title">' + ex.name + '</div>' +
-      (ex.desc ? '<div class="cv-ex-detail-desc" style="color:#C9D1D9">' + ex.desc.replace(/\d+\)/g, '<br><strong style="color:#FFFFFF">$&</strong>') + '</div>' : '') +
+      (_howTo ? '<div class="cv-howto-h">How to perform</div><div class="cv-ex-detail-desc" style="color:#C9D1D9">' + _howTo.replace(/\d+\)/g, '<br><strong style="color:#FFFFFF">$&</strong>') + '</div>' : '') +
       (ex.notes ? '<div style="background:#0D1F2D;border-left:3px solid #2FD4F5;padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:16px;font-size:13px;color:#C9D1D9">' + ex.notes + '</div>' : '') +
       histHTML +
     '</div>';
 
   document.body.appendChild(overlay);
   overlay.scrollTop = 0;
+  try { cvInitLoops(overlay); } catch (e) {}
 }
 
 
