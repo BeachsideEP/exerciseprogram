@@ -6078,8 +6078,11 @@ function getExIllusStr(ex) {
   // Older program exercises that still carry their own inline photo field.
   if (ex && ex.photo) return '<img src="' + ex.photo + '" style="width:100%;height:100%;object-fit:cover;display:block">';
 
-  // 3. Neither a video nor a saved photo - unchanged fallback to the
-  //    hand-drawn illustration, then the generic default icon.
+  // 3. Only a YouTube link exists: use YouTube's own preview picture (ahead of the illustration)
+  if (_mm.yt && typeof ytVideoId === 'function' && ytVideoId(_mm.yt)) {
+    return '<img src="https://i.ytimg.com/vi/' + ytVideoId(_mm.yt) + '/mqdefault.jpg" loading="lazy" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:8px">';
+  }
+  // 4. Nothing above - the hand-drawn illustration, then the generic default icon.
   if (typeof EXERCISE_SVG_MAP !== 'undefined' && EXERCISE_SVG_MAP[ex.name]) return EXERCISE_SVG_MAP[ex.name];
   return '<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="60" fill="#D4EAF3" rx="6"/><circle cx="30" cy="10" r="4" fill="#1A7BA4"/><path d="M30 14 L30 30" stroke="#1A7BA4" stroke-width="2.5" stroke-linecap="round"/></svg>';
 }
