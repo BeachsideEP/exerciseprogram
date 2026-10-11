@@ -7338,11 +7338,13 @@ async function renderSVGtoPDF(doc, ex, x, y, w, h) {
       if (imgData.startsWith('http')) {
         try {
           var resp = await fetch(imgData);
+          if (!resp.ok) return false;   // missing file (404) - let the caller fall back
           var blob = await resp.blob();
+          if (blob.type && blob.type.indexOf('image') !== 0) return false;
           imgData = await new Promise(function(res) {
             var r = new FileReader(); r.onload = function(e) { res(e.target.result); }; r.readAsDataURL(blob);
           });
-        } catch(fe) { return; } // skip if can't fetch
+        } catch(fe) { return false; } // skip if can't fetch
       }
       // Detect image type from base64 header
       var imgType = 'JPEG';
@@ -7352,8 +7354,8 @@ async function renderSVGtoPDF(doc, ex, x, y, w, h) {
         if (parts.length > 1) { imgType = parts[0].indexOf('png') > -1 ? 'PNG' : 'JPEG'; imgData = parts[1]; }
       }
       doc.addImage(imgData, imgType, x, y, w, h, undefined, 'FAST');
-    } catch(e) {}
-    return;
+      return true;
+    } catch(e) { return false; }
   }
   // Look up SVG from map
   if (typeof ALL_SVG_MAP !== 'undefined' && ALL_SVG_MAP[ex.name]) {
@@ -7363,8 +7365,9 @@ async function renderSVGtoPDF(doc, ex, x, y, w, h) {
   }
   if (!svgStr) {
     // Fallback: generic coloured square
-    return;
+    return false;
   }
+  var _drew = false;
   try {
     await new Promise(function(resolve) {
       // High-res canvas (4x for crisp PDF output)
@@ -7382,7 +7385,7 @@ async function renderSVGtoPDF(doc, ex, x, y, w, h) {
         ctx.drawImage(img, 0, 0, SIZE, SIZE);
         URL.revokeObjectURL(url);
         try {
-          doc.addImage(c.toDataURL('image/png'), 'PNG', x, y, w, h);
+          doc.addImage(c.toDataURL('image/png'), 'PNG', x, y, w, h); _drew = true;
         } catch(e) {}
         resolve();
       };
@@ -7393,6 +7396,7 @@ async function renderSVGtoPDF(doc, ex, x, y, w, h) {
       img.src = url;
     });
   } catch(e) {}
+  return _drew;
 }
 
 
@@ -7587,27 +7591,46 @@ async function generatePDF(cl, p) {
         // Photo box 1
         doc.setFillColor(...SAND);
         doc.roundedRect(ph1x, phY, PHOTO_SIZE, PHOTO_SIZE, 2, 2, 'F');
-        // Set _photo from customPhotos or photo field for renderSVGtoPDF
-        // Look up fresh library data for latest photos - check name and original name
+        // Start / end position photos come from exercises.json (made absolute so the
+        // PDF can fetch them); older uploaded photos are only a fallback. If a photo
+        // can't be loaded we fall back to the hand-drawn illustration so no box is blank.
         var libEx = getAllExercises().find(function(e) { return e.name === ex.name; }) ||
                     getAllExercises().find(function(e) { return e.name === (ex.substitutedFor || ex.name); }) || {};
-        var ex1 = Object.assign({}, ex);
-        // Start / end position photos come from exercises.json (made absolute so the
-        // PDF can fetch them); older uploaded photos are only a fallback.
         var _pm = exMedia(ex);
         var _abs = function(u) { try { return u ? new URL(u, location.href).href : ''; } catch (e) { return u || ''; } };
-        ex1._photo = _abs(_pm.start) || libEx.photo1 || ex.photo1 || customPhotos[ex.name] || ex.photo || null;
-        await renderSVGtoPDF(doc, ex1, ph1x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
-        // Photo box 2 - use photo2 if available, else same as photo1
-        doc.setFillColor(...SAND);
-        doc.roundedRect(ph2x, phY, PHOTO_SIZE, PHOTO_SIZE, 2, 2, 'F');
-        var ex2 = Object.assign({}, ex);
-        ex2._photo = _abs(_pm.end) || libEx.photo2 || ex.photo2 || null;
-        await renderSVGtoPDF(doc, ex2, ph2x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
-        // Small number labels under photos
+        var _startSrc = [_abs(_pm.start), libEx.photo1, ex.photo1, customPhotos[ex.name], ex.photo].filter(Boolean);
+        var _endSrc = [_abs(_pm.end), libEx.photo2, ex.photo2].filter(Boolean);
+        var _drewStart = false, _drewEnd = false;
+        for (var _si = 0; _si < _startSrc.length && !_drewStart; _si++) {
+          var _e1 = Object.assign({}, ex); _e1._photo = _startSrc[_si];
+          _drewStart = await renderSVGtoPDF(doc, _e1, ph1x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
+        }
+        var _drewIllus1 = false;
+        if (!_drewStart) {
+          var _e1b = Object.assign({}, ex); _e1b._photo = null;
+          _drewIllus1 = await renderSVGtoPDF(doc, _e1b, ph1x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
+        }
+        // Photo box 2 (end position) - only drawn when there is a real end photo
+        for (var _ei = 0; _ei < _endSrc.length && !_drewEnd; _ei++) {
+          doc.setFillColor(...SAND);
+          doc.roundedRect(ph2x, phY, PHOTO_SIZE, PHOTO_SIZE, 2, 2, 'F');
+          var _e2 = Object.assign({}, ex); _e2._photo = _endSrc[_ei];
+          _drewEnd = await renderSVGtoPDF(doc, _e2, ph2x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
+        }
+        var _hasSvg = !!((typeof ALL_SVG_MAP !== 'undefined' && ALL_SVG_MAP[ex.name]) || (typeof EXERCISE_SVG_MAP !== 'undefined' && EXERCISE_SVG_MAP[ex.name]));
+        if (!_drewEnd && _drewStart && _hasSvg) {
+          // Only one photo for this exercise: show the illustration next to it if there is one
+          doc.setFillColor(...SAND);
+          doc.roundedRect(ph2x, phY, PHOTO_SIZE, PHOTO_SIZE, 2, 2, 'F');
+          var _e2b = Object.assign({}, ex); _e2b._photo = null;
+          _drewEnd = await renderSVGtoPDF(doc, _e2b, ph2x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
+        }
+        // Small labels under photos
         setFont(7, 'normal', [150,150,150]);
-        text('START', ph1x + PHOTO_SIZE/2, phY + PHOTO_SIZE + 3.5, {align:'center'});
-        text('END', ph2x + PHOTO_SIZE/2, phY + PHOTO_SIZE + 3.5, {align:'center'});
+        if (_drewStart && _drewEnd && _endSrc.length) {
+          text('START', ph1x + PHOTO_SIZE/2, phY + PHOTO_SIZE + 3.5, {align:'center'});
+          text('END', ph2x + PHOTO_SIZE/2, phY + PHOTO_SIZE + 3.5, {align:'center'});
+        }
       }
 
       // Text column
