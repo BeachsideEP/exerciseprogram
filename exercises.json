@@ -3440,9 +3440,13 @@
    "hold": "",
    "rest": "60s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": ""
+   "video": "./media/reformer-hundreds.mp4",
+   "startImage": "reformer-hundreds-start.jpg",
+   "endImage": "reformer-hundreds-end.jpg",
+   "aliases": [
+    "hundreds on reformer",
+    "Reformer Hundreds"
+   ]
   },
   {
    "id": "pr7",
@@ -3695,9 +3699,12 @@
    "hold": "",
    "rest": "30s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": ""
+   "video": "./media/hug-a-tree.mp4",
+   "startImage": "hug-a-tree-start.jpg",
+   "endImage": "hug-a-tree-end.jpg",
+   "aliases": [
+    "Hug a Tree on Reformer"
+   ]
   },
   {
    "id": "pr24",
@@ -3725,9 +3732,13 @@
    "hold": "",
    "rest": "60s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": ""
+   "video": "./media/front-facing-bicep-curl.mp4",
+   "startImage": "front-facing-bicep-curl-start.jpg",
+   "endImage": "front-facing-bicep-curl-end.jpg",
+   "aliases": [
+    "Front Facing Bicep Curl",
+    "Reformer Bicep Curl"
+   ]
   },
   {
    "id": "pr26",
@@ -6471,9 +6482,13 @@
    "hold": "",
    "rest": "60s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": ""
+   "video": "./media/supine-arm-circles.mp4",
+   "startImage": "supine-arm-circles-start.jpg",
+   "endImage": "supine-arm-circles-end.jpg",
+   "aliases": [
+    "Supine Arm Circles",
+    "Reformer Arm Circles"
+   ]
   },
   {
    "id": "pr32b",
@@ -8373,9 +8388,9 @@
    "hold": "",
    "rest": "60s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": ""
+   "video": "./media/trx-row.mp4",
+   "startImage": "trx-row-start.jpg",
+   "endImage": "trx-row-end.jpg"
   },
   {
    "id": "nx13",
@@ -8866,9 +8881,13 @@
    "hold": "",
    "rest": "45s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": ""
+   "video": "./media/reformer-jumpboard-leg-press.mp4",
+   "startImage": "reformer-jumpboard-leg-press-start.jpg",
+   "endImage": "reformer-jumpboard-leg-press-end.jpg",
+   "aliases": [
+    "Reformer leg press",
+    "Reformer Jumpboard Leg Press"
+   ]
   },
   {
    "id": "nx45",
@@ -8927,6 +8946,178 @@
     "Chest Supported Row",
     "Incline DB Row",
     "Chest Supported Row (DB)"
+   ]
+  },
+  {
+   "id": "nx48",
+   "name": "Bow and Arrow on Reformer",
+   "cat": "Pilates",
+   "desc": "Kneel on the reformer carriage facing the side with a spring-loaded strap in each hand. Start with both hands together in front of your chest at shoulder height. Keeping your ribs down and your trunk tall, draw one hand back and out to the side like pulling a bow while rotating through your upper back, and let your eyes follow. Return with control and repeat to both sides. Keep your hips square and avoid leaning.",
+   "muscles": "Core,Transversus Abdominis,Rectus Abdominis",
+   "sets": "1",
+   "reps": "100 pumps",
+   "hold": "",
+   "rest": "60s",
+   "load": "",
+   "video": "./media/bow-and-arrow.mp4",
+   "startImage": "bow-and-arrow-start.jpg",
+   "endImage": "bow-and-arrow-end.jpg",
+   "aliases": [
+    "Bow and Arrow",
+    "Reformer Bow and Arrow"
+   ]
+  },
+  {
+   "id": "nx49",
+   "name": "Draw the Sword on Reformer",
+   "cat": "Pilates",
+   "desc": "Kneel on the reformer carriage holding a strap in one hand at hip height. Smoothly draw the strap diagonally up and across your body to above the opposite shoulder, as if drawing a sword, rotating through your trunk. Return slowly to the start without letting the springs pull you. Keep your hips square and your ribs down. Repeat on both sides.",
+   "muscles": "Core,Transversus Abdominis,Rectus Abdominis",
+   "sets": "1",
+   "reps": "100 pumps",
+   "hold": "",
+   "rest": "60s",
+   "load": "",
+   "video": "./media/draw-the-sword.mp4",
+   "startImage": "draw-the-sword-start.jpg",
+   "endImage": "draw-the-sword-end.jpg",
+   "aliases": [
+    "Reformer Draw the sword",
+    "Draw the Sword"
+   ]
+  },
+  {
+   "id": "nx50",
+   "name": "Plough on Reformer",
+   "cat": "Pilates",
+   "desc": "Kneel or sit tall on the reformer facing the front with a strap in each hand and arms by your sides. Sweep both arms forward and down in a ploughing motion keeping your spine long and shoulders relaxed away from your ears. Control the return against the spring tension. Keep your trunk steady throughout.",
+   "muscles": "Core,Transversus Abdominis,Rectus Abdominis",
+   "sets": "1",
+   "reps": "100 pumps",
+   "hold": "",
+   "rest": "60s",
+   "load": "",
+   "video": "./media/front-facing-plough.mp4",
+   "startImage": "front-facing-plough-start.jpg",
+   "endImage": "front-facing-plough-end.jpg",
+   "aliases": [
+    "plough reformer",
+    "Front Facing Plough"
+   ]
+  },
+  {
+   "id": "nx51",
+   "name": "Front Facing Arm Raise on Reformer",
+   "cat": "Pilates",
+   "desc": "Kneel on the reformer facing the front with a strap in each hand and arms low by your sides. Raise both arms out to the sides up to shoulder height, then lower slowly under control. Keep your ribs down, spine tall and shoulders relaxed. Do not let the springs pull your arms back quickly.",
+   "muscles": "Core,Transversus Abdominis,Rectus Abdominis",
+   "sets": "1",
+   "reps": "100 pumps",
+   "hold": "",
+   "rest": "60s",
+   "load": "",
+   "video": "./media/front-facing-raise.mp4",
+   "startImage": "front-facing-raise-start.jpg",
+   "endImage": "front-facing-raise-end.jpg",
+   "aliases": [
+    "Front Facing Raise",
+    "Front Facing Arm Raise"
+   ]
+  },
+  {
+   "id": "nx52",
+   "name": "Offering on Reformer",
+   "cat": "Pilates",
+   "desc": "Kneel tall on the reformer with a strap in each hand and palms facing up in front of you, as if offering something. Open your arms out to the sides and slightly up while keeping your shoulders down and chest open. Return slowly with control. Keep your trunk tall and avoid arching your lower back.",
+   "muscles": "Core,Transversus Abdominis,Rectus Abdominis",
+   "sets": "1",
+   "reps": "100 pumps",
+   "hold": "",
+   "rest": "60s",
+   "load": "",
+   "video": "./media/offering.mp4",
+   "startImage": "offering-start.jpg",
+   "endImage": "offering-end.jpg",
+   "aliases": [
+    "Offering (Reformer)",
+    "Offering"
+   ]
+  },
+  {
+   "id": "nx53",
+   "name": "Shoulder Press on Reformer",
+   "cat": "Pilates",
+   "desc": "Kneel on the reformer with a strap in each hand, hands at shoulder height and elbows bent. Press both hands up overhead until your arms are nearly straight, then lower back under control against the spring tension. Keep your ribs down, spine tall and neck relaxed. Do not shrug your shoulders.",
+   "muscles": "Core,Transversus Abdominis,Rectus Abdominis",
+   "sets": "1",
+   "reps": "100 pumps",
+   "hold": "",
+   "rest": "60s",
+   "load": "",
+   "video": "./media/shoulder-press.mp4",
+   "startImage": "shoulder-press-start.jpg",
+   "endImage": "shoulder-press-end.jpg",
+   "aliases": [
+    "Reformer Shoulder Press",
+    "Kneeling Shoulder Press on Reformer"
+   ]
+  },
+  {
+   "id": "nx54",
+   "name": "Jumpboard Squat Jump",
+   "cat": "Pilates",
+   "desc": "Lie on the reformer carriage with your feet on the jumpboard, knees bent. Push through your feet to extend your legs and gently spring off the board, then land softly with your knees bent and absorb the landing back into the start position. Keep your hips and pelvis steady and knees tracking over your toes. Use a light spring setting and stop if you feel pain.",
+   "muscles": "Core,Transversus Abdominis,Rectus Abdominis",
+   "sets": "1",
+   "reps": "100 pumps",
+   "hold": "",
+   "rest": "60s",
+   "load": "",
+   "video": "./media/jumpboard-squat-jump.mp4",
+   "startImage": "jumpboard-squat-jump-start.jpg",
+   "endImage": "jumpboard-squat-jump-end.jpg",
+   "aliases": [
+    "Jump board - reformer",
+    "Cardio Jumping on Reformer",
+    "Jumpboard Jumps"
+   ]
+  },
+  {
+   "id": "nx55",
+   "name": "Side Lying Leg in Strap Press",
+   "cat": "Pilates",
+   "desc": "Lie on your side on the reformer with your top foot in a strap. Keep your trunk stable and your hips stacked. Press the leg out and away against the spring tension, then bring it back with control. Keep your pelvis still and avoid rolling backwards. Repeat on both sides.",
+   "muscles": "Core,Transversus Abdominis,Rectus Abdominis",
+   "sets": "1",
+   "reps": "100 pumps",
+   "hold": "",
+   "rest": "60s",
+   "load": "",
+   "video": "./media/side-lying-leg-in-strap-press.mp4",
+   "startImage": "side-lying-leg-in-strap-press-start.jpg",
+   "endImage": "side-lying-leg-in-strap-press-end.jpg",
+   "aliases": [
+    "Reformer legs in straps",
+    "Side Lying Leg Press in Straps"
+   ]
+  },
+  {
+   "id": "nx56",
+   "name": "Side Lying 90/90 Clam in Strap",
+   "cat": "Pilates",
+   "desc": "Lie on your side on the reformer with your top leg in a strap, hip and knee bent to about 90 degrees. Keeping your feet together and your pelvis still, open the top knee up and out like a clamshell against the spring tension, then lower slowly. Do not roll your hips backward. Repeat on both sides.",
+   "muscles": "Core,Transversus Abdominis,Rectus Abdominis",
+   "sets": "1",
+   "reps": "100 pumps",
+   "hold": "",
+   "rest": "60s",
+   "load": "",
+   "video": "./media/side-lying-leg-in-strap-9090-clam.mp4",
+   "startImage": "side-lying-leg-in-strap-9090-clam-start.jpg",
+   "endImage": "side-lying-leg-in-strap-9090-clam-end.jpg",
+   "aliases": [
+    "Clamshell on reformer",
+    "Reformer Clamshell"
    ]
   }
  ]
