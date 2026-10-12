@@ -12386,36 +12386,39 @@ function cvOpenExDetail(exIdx) {
   if (_dm2.video) videoHTML = '<div class="cv-detail-vid">' + exLoopHTML(_dm2.video, _dm2.start, _dm2.yt) + '</div>';
   else if (_dm2.yt && ytVideoId(_dm2.yt)) videoHTML = '<div class="cv-detail-vid"><div class="cv-yt-panel" id="cvVid' + exIdx + '" data-url="' + _dm2.yt.replace(/"/g, '&quot;') + '"><button class="cv-yt-btn" onclick="cvToggleVideo(' + exIdx + ')"><svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>Watch Exercise Video</button></div></div>';
 
-  // Recent sessions (last 3, newest first) - plain results instead of graphs
   var histHTML = '';
-  try {
-    var _recent = (typeof history !== 'undefined' && Array.isArray(history)) ? history.slice(0, 3) : [];
-    if (_recent.length) {
-      histHTML += '<div class="cv-ex-history-title">Recent Sessions</div>';
-      _recent.forEach(function(h) {
-        histHTML += '<div style="margin-bottom:14px">';
-        histHTML += '<div style="display:flex;justify-content:space-between;margin-bottom:6px">';
-        histHTML += '<span style="font-size:13px;font-weight:600;color:#FFFFFF">' + h.prog + '</span>';
-        histHTML += '<span style="font-size:13px;color:#FFFFFF">' + h.date + '</span>';
-        histHTML += '</div>';
-        h.sets.forEach(function(s, si) {
-          var repsM = s.match(/(\d+(?:-\d+)?)\s*reps?/i);
-          var loadM = s.match(/@\s*([\d.]+)/i) || s.match(/([\d.]+)\s*kg/i);
-          var holdM = s.match(/hold\s*(\d+)/i);
-          var setDisplay = '';
-          if (repsM) setDisplay += repsM[1] + ' reps';
-          if (loadM && loadM[1] && ex.cat !== 'Cardio') setDisplay += (setDisplay ? ' \u00d7 ' : '') + loadM[1] + ' kg';
-          if (holdM) setDisplay += (setDisplay ? ' \u00b7 ' : '') + holdM[1] + 's hold';
-          if (!setDisplay) setDisplay = s.replace(/\(prescribed\)/i,'').replace(/\d+ sets?:/i,'').trim();
-          histHTML += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1F2A33">';
-          histHTML += '<span style="font-size:13px;color:#FFFFFF;min-width:44px">Set ' + (si+1) + '</span>';
-          histHTML += '<span style="font-size:14px;font-weight:600;color:#C9D1D9">' + setDisplay + '</span>';
-          histHTML += '</div>';
-        });
+  if (history.length) {
+    histHTML += '<div class="cv-ex-history-title">Session History</div>';
+    if (best1RM) {
+      histHTML += '<div class="cv-ex-pb"><div class="cv-ex-pb-label">Personal Best To Beat</div>' +
+        '<div style="display:flex;align-items:baseline;gap:4px"><span style="font-size:13px;color:#FFFFFF">Estimated 1 rep max</span></div>' +
+        '<div class="cv-ex-pb-val">' + best1RM.toFixed(1) + '<span style="font-size:13px;font-weight:400;color:#8B949E"> kg</span></div>' +
+      '</div>';
+    }
+    history.forEach(function(h) {
+      histHTML += '<div style="margin-bottom:14px">';
+      histHTML += '<div style="display:flex;justify-content:space-between;margin-bottom:6px">';
+      histHTML += '<span style="font-size:13px;font-weight:600;color:#FFFFFF">' + h.prog + '</span>';
+      histHTML += '<span style="font-size:13px;color:#FFFFFF">' + h.date + '</span>';
+      histHTML += '</div>';
+      h.sets.forEach(function(s, si) {
+        // Parse "12 reps @ 20kg" or "12 reps @ 20 (prescribed)" format
+        var repsM = s.match(/(\d+(?:-\d+)?)\s*reps?/i);
+        var loadM = s.match(/@\s*([\d.]+)/i) || s.match(/([\d.]+)\s*kg/i);
+        var holdM = s.match(/hold\s*(\d+)/i);
+        var setDisplay = '';
+        if (repsM) setDisplay += repsM[1] + ' reps';
+        if (loadM && loadM[1]) setDisplay += (setDisplay ? ' × ' : '') + loadM[1] + ' kg';
+        if (holdM) setDisplay += (setDisplay ? ' · ' : '') + holdM[1] + 's hold';
+        if (!setDisplay) setDisplay = s.replace(/\(prescribed\)/i,'').replace(/\d+ sets?:/i,'').trim();
+        histHTML += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1F2A33">';
+        histHTML += '<span style="font-size:13px;color:#FFFFFF;min-width:44px">Set ' + (si+1) + '</span>';
+        histHTML += '<span style="font-size:14px;font-weight:600;color:#C9D1D9">' + setDisplay + '</span>';
         histHTML += '</div>';
       });
-    }
-  } catch (e) { histHTML = ''; }
+      histHTML += '</div>';
+    });
+  }
 
   overlay.innerHTML =
     // Back button - dark theme
