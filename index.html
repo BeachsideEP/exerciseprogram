@@ -7617,20 +7617,6 @@ async function generatePDF(cl, p) {
           var _e2 = Object.assign({}, ex); _e2._photo = _endSrc[_ei];
           _drewEnd = await renderSVGtoPDF(doc, _e2, ph2x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
         }
-        var _hasSvg = !!((typeof ALL_SVG_MAP !== 'undefined' && ALL_SVG_MAP[ex.name]) || (typeof EXERCISE_SVG_MAP !== 'undefined' && EXERCISE_SVG_MAP[ex.name]));
-        if (!_drewEnd && _drewStart && _hasSvg) {
-          // Only one photo for this exercise: show the illustration next to it if there is one
-          doc.setFillColor(...SAND);
-          doc.roundedRect(ph2x, phY, PHOTO_SIZE, PHOTO_SIZE, 2, 2, 'F');
-          var _e2b = Object.assign({}, ex); _e2b._photo = null;
-          _drewEnd = await renderSVGtoPDF(doc, _e2b, ph2x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
-        }
-        // Small labels under photos
-        setFont(7, 'normal', [150,150,150]);
-        if (_drewStart && _drewEnd && _endSrc.length) {
-          text('START', ph1x + PHOTO_SIZE/2, phY + PHOTO_SIZE + 3.5, {align:'center'});
-          text('END', ph2x + PHOTO_SIZE/2, phY + PHOTO_SIZE + 3.5, {align:'center'});
-        }
       }
 
       // Text column
@@ -12400,8 +12386,36 @@ function cvOpenExDetail(exIdx) {
   if (_dm2.video) videoHTML = '<div class="cv-detail-vid">' + exLoopHTML(_dm2.video, _dm2.start, _dm2.yt) + '</div>';
   else if (_dm2.yt && ytVideoId(_dm2.yt)) videoHTML = '<div class="cv-detail-vid"><div class="cv-yt-panel" id="cvVid' + exIdx + '" data-url="' + _dm2.yt.replace(/"/g, '&quot;') + '"><button class="cv-yt-btn" onclick="cvToggleVideo(' + exIdx + ')"><svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>Watch Exercise Video</button></div></div>';
 
+  // Recent sessions (last 3, newest first) - plain results instead of graphs
   var histHTML = '';
-  try { histHTML = cvProgressChartsHTML(ex); } catch (e) { histHTML = ''; }
+  try {
+    var _recent = (typeof history !== 'undefined' && Array.isArray(history)) ? history.slice(0, 3) : [];
+    if (_recent.length) {
+      histHTML += '<div class="cv-ex-history-title">Recent Sessions</div>';
+      _recent.forEach(function(h) {
+        histHTML += '<div style="margin-bottom:14px">';
+        histHTML += '<div style="display:flex;justify-content:space-between;margin-bottom:6px">';
+        histHTML += '<span style="font-size:13px;font-weight:600;color:#FFFFFF">' + h.prog + '</span>';
+        histHTML += '<span style="font-size:13px;color:#FFFFFF">' + h.date + '</span>';
+        histHTML += '</div>';
+        h.sets.forEach(function(s, si) {
+          var repsM = s.match(/(\d+(?:-\d+)?)\s*reps?/i);
+          var loadM = s.match(/@\s*([\d.]+)/i) || s.match(/([\d.]+)\s*kg/i);
+          var holdM = s.match(/hold\s*(\d+)/i);
+          var setDisplay = '';
+          if (repsM) setDisplay += repsM[1] + ' reps';
+          if (loadM && loadM[1] && ex.cat !== 'Cardio') setDisplay += (setDisplay ? ' \u00d7 ' : '') + loadM[1] + ' kg';
+          if (holdM) setDisplay += (setDisplay ? ' \u00b7 ' : '') + holdM[1] + 's hold';
+          if (!setDisplay) setDisplay = s.replace(/\(prescribed\)/i,'').replace(/\d+ sets?:/i,'').trim();
+          histHTML += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1F2A33">';
+          histHTML += '<span style="font-size:13px;color:#FFFFFF;min-width:44px">Set ' + (si+1) + '</span>';
+          histHTML += '<span style="font-size:14px;font-weight:600;color:#C9D1D9">' + setDisplay + '</span>';
+          histHTML += '</div>';
+        });
+        histHTML += '</div>';
+      });
+    }
+  } catch (e) { histHTML = ''; }
 
   overlay.innerHTML =
     // Back button - dark theme
