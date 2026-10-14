@@ -169,8 +169,8 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 
 
 /* MODALS */
-.overlay{position:fixed;inset:0;background:rgba(10,20,28,.65);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .2s}
-.overlay.open{opacity:1;pointer-events:all}
+.overlay{position:fixed;inset:0;background:rgba(10,20,28,.65);z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;visibility:hidden;transition:opacity .2s,visibility 0s linear .2s}
+.overlay.open{opacity:1;pointer-events:all;visibility:visible;backdrop-filter:blur(3px);transition:opacity .2s,visibility 0s}
 .modal{background:#fff;border-radius:14px;padding:20px;width:540px;max-width:95vw;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);transform:translateY(8px);transition:transform .22s}
 .modal.wide{width:680px}
 .overlay.open .modal{transform:translateY(0)}
