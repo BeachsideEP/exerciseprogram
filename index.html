@@ -10370,8 +10370,7 @@ function renderCVCustomWorkout() {
 
       // Card header
       h += '<div class="cwo-card" data-cwo-i="' + i + '" style="background:#12181D;border-radius:12px;margin-bottom:10px;border:1px solid ' + (allDone ? '#5BBFAA' : '#1F2A33') + ';overflow:hidden">';
-      h += '<div style="display:flex;align-items:center;gap:8px;padding:12px 10px 12px 6px">';
-      h += '<div class="cwo-handle" data-cwo-i="' + i + '" title="Drag to reorder" style="touch-action:none;cursor:grab;width:28px;align-self:stretch;display:flex;align-items:center;justify-content:center;color:#8B949E;font-size:20px;user-select:none;-webkit-user-select:none">&#8942;&#8942;</div>';
+      h += '<div style="display:flex;align-items:center;gap:8px;padding:12px 10px">';
       h += '<div style="width:48px;height:48px;border-radius:10px;background:#1F2A33;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center">' + getExIllusStr(ex) + '</div>';
       h += '<div style="flex:1;min-width:0">';
       h += '<div style="font-size:15px;font-weight:700;color:#FFFFFF">' + ex.name + '</div>';
@@ -10383,10 +10382,10 @@ function renderCVCustomWorkout() {
       h += '</div>';
       h += '</div>';
       h += '<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">';
-      h += '<button onclick="cvMoveCustom(' + i + ',' + (i-1) + ')" aria-label="Move up"' + (i === 0 ? ' disabled' : '') + ' style="width:34px;height:30px;background:#1F2A33;border:1.5px solid #26323A;border-radius:8px;color:' + (i === 0 ? '#3a4650' : '#C9D1D9') + ';font-size:14px;cursor:pointer;padding:0">&#9650;</button>';
-      h += '<button onclick="cvMoveCustom(' + i + ',' + (i+1) + ')" aria-label="Move down"' + (i === cvCustomExercises.length-1 ? ' disabled' : '') + ' style="width:34px;height:30px;background:#1F2A33;border:1.5px solid #26323A;border-radius:8px;color:' + (i === cvCustomExercises.length-1 ? '#3a4650' : '#C9D1D9') + ';font-size:14px;cursor:pointer;padding:0">&#9660;</button>';
+      h += '<button onclick="cvMoveCustom(' + i + ',' + (i-1) + ')" aria-label="Move up"' + (i === 0 ? ' disabled' : '') + ' style="width:44px;height:40px;background:#1F2A33;border:1.5px solid #2FD4F5;border-radius:10px;color:' + (i === 0 ? '#3a4650' : '#2FD4F5') + ';font-size:18px;cursor:pointer;padding:0;opacity:' + (i === 0 ? '.4' : '1') + ';x:' + (i === 0 ? '#3a4650' : '#C9D1D9') + ';font-size:14px;cursor:pointer;padding:0">&#9650;</button>';
+      h += '<button onclick="cvMoveCustom(' + i + ',' + (i+1) + ')" aria-label="Move down"' + (i === cvCustomExercises.length-1 ? ' disabled' : '') + ' style="width:44px;height:40px;background:#1F2A33;border:1.5px solid #2FD4F5;border-radius:10px;color:' + (i === cvCustomExercises.length-1 ? '#3a4650' : '#2FD4F5') + ';font-size:18px;cursor:pointer;padding:0;opacity:' + (i === cvCustomExercises.length-1 ? '.4' : '1') + ';x:' + (i === cvCustomExercises.length-1 ? '#3a4650' : '#C9D1D9') + ';font-size:14px;cursor:pointer;padding:0">&#9660;</button>';
       h += '</div>';
-      h += '<button onclick="cvRemoveCustom(' + i + ')" aria-label="Remove exercise" style="background:rgba(232,115,90,.12);border:1.5px solid #E8735A;color:#E8735A;width:38px;height:38px;border-radius:10px;font-size:20px;cursor:pointer;flex-shrink:0;padding:0;line-height:1">&#215;</button>';
+      h += '<button onclick="cvRemoveCustom(' + i + ')" aria-label="Remove exercise" style="background:rgba(232,115,90,.12);border:1.5px solid #E8735A;color:#E8735A;width:44px;height:44px;border-radius:10px;font-size:22px;cursor:pointer;flex-shrink:0;padding:0;line-height:1">&#215;</button>';
       h += '</div>';
 
       // Set table - always open
