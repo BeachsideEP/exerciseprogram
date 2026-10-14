@@ -406,6 +406,8 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 
 
 /* Autosave */
+.ex-card{content-visibility:auto;contain-intrinsic-size:auto 58px}
+.pe{contain:layout style}
 .autosave{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);background:var(--ocean-deep);color:rgba(255,255,255,.7);font-size:9px;padding:4px 10px;border-radius:20px;z-index:800;opacity:0;transition:opacity .3s;pointer-events:none}
 .autosave.show{opacity:1}
 
@@ -3768,29 +3770,37 @@ function slimClientsForStorage(cls, aggressive) {
   });
 }
 
+function _saveLocalNow() {
+  // Write slim clients to localStorage as offline cache (skip if too big / quota)
+  try {
+    var slim = JSON.stringify(slimClientsForStorage(clients));
+    if (slim.length < 4000000) localStorage.setItem(DB_KEY, slim);
+  } catch(e) {}
+}
 function saveDB() {
   var cl = getClient();
   if (cl) cl._localUpdatedAt = new Date().toISOString();
-  // Write slim version to localStorage (strips library-lookupable fields)
-  // Write slim clients to localStorage as offline cache
-  // Skip silently if quota exceeded - Supabase is the source of truth
-  try {
-    var slim = JSON.stringify(slimClientsForStorage(clients));
-    if (slim.length < 4000000) { // Only write if under 4MB
-      localStorage.setItem(DB_KEY, slim);
-    }
-    // else skip localStorage - rely on Supabase
-  } catch(e) {}
   showAutosave();
-  // Deep snapshot of FULL client into closure for cloud push (cloud gets full data)
+  // The heavy work (serialising every client, deep-copying for the cloud) used
+  // to run on EVERY edit and froze the screen for a moment (white flashes).
+  // Now it is batched: it runs once, shortly after the practitioner pauses.
+  if (saveDB._loc) clearTimeout(saveDB._loc);
+  saveDB._loc = setTimeout(function(){ saveDB._loc = null; _saveLocalNow(); }, 700);
   if (cl && userRole === 'practitioner') {
-    var snapCl = JSON.parse(JSON.stringify(cl));
     if (saveDB._timer) clearTimeout(saveDB._timer);
     saveDB._timer = setTimeout(function() {
+      saveDB._timer = null;
+      var snapCl = JSON.parse(JSON.stringify(cl));
       safePushClientToCloud(snapCl);
     }, 3000);
   }
 }
+// If the page is closed/hidden before the batched save fires, save immediately.
+try {
+  var _flushLocal = function(){ if (saveDB._loc) { clearTimeout(saveDB._loc); saveDB._loc = null; _saveLocalNow(); } };
+  window.addEventListener('pagehide', _flushLocal);
+  document.addEventListener('visibilitychange', function(){ if (document.hidden) _flushLocal(); });
+} catch(e) {}
 function showAutosave() { const el=document.getElementById('autosave'); if(!el)return; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),1800); }
 function saveCustomEx() {
   // Strip photo data before writing to localStorage (photos live in Supabase, not localStorage)
@@ -4363,8 +4373,6 @@ function addEx(id) {
   const clStamp = getClient();
   if (clStamp) {
     clStamp._localUpdatedAt = new Date().toISOString();
-    // Also save to localStorage immediately before async push
-    localStorage.setItem(DB_KEY, JSON.stringify(clients));
   }
   saveDB(); renderDropZone(); updatePreview();
   toast(`${ex.name} added`, 'ok');
@@ -5648,7 +5656,7 @@ if (!p) return;
       body: JSON.stringify({ id: cl.id, data: cl, updated_at: now })
     });
     setSyncStatus(r.ok ? 'ok' : 'err');
-    if (r.ok) localStorage.setItem(DB_KEY, JSON.stringify(clients));
+    if (r.ok) _saveLocalNow();
   } catch (e) { setSyncStatus('err'); }
 }
 
