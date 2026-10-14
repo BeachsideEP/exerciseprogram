@@ -10370,22 +10370,23 @@ function renderCVCustomWorkout() {
 
       // Card header
       h += '<div class="cwo-card" data-cwo-i="' + i + '" style="background:#12181D;border-radius:12px;margin-bottom:10px;border:1px solid ' + (allDone ? '#5BBFAA' : '#1F2A33') + ';overflow:hidden">';
-      h += '<div style="display:flex;align-items:center;gap:8px;padding:12px 10px">';
-      h += '<div style="width:48px;height:48px;border-radius:10px;background:#1F2A33;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center">' + getExIllusStr(ex) + '</div>';
+      var _arrow = function(dir, dis) { return '<button onclick="cvMoveCustom(' + i + ',' + (i+dir) + ')" aria-label="Move ' + (dir < 0 ? 'up' : 'down') + '"' + (dis ? ' disabled' : '') + ' style="width:30px;height:26px;background:transparent;border:1px solid #2a3740;border-radius:7px;color:' + (dis ? '#34404a' : '#9FB0BC') + ';font-size:11px;cursor:pointer;padding:0;line-height:1">' + (dir < 0 ? '&#9650;' : '&#9660;') + '</button>'; };
+      var _step = 'width:28px;height:28px;background:transparent;border:1px solid #2a3740;border-radius:7px;color:#2FD4F5;font-size:17px;font-weight:600;cursor:pointer;line-height:1;padding:0';
+      h += '<div style="display:flex;align-items:center;gap:10px;padding:12px 12px 8px">';
+      h += '<div style="width:44px;height:44px;border-radius:10px;background:#1F2A33;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center">' + getExIllusStr(ex) + '</div>';
       h += '<div style="flex:1;min-width:0">';
-      h += '<div style="font-size:15px;font-weight:700;color:#FFFFFF">' + ex.name + '</div>';
-      h += '<div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap">';
-      h += '<button onclick="cvAdjSets(' + i + ',-1)" aria-label="Fewer sets" style="width:30px;height:30px;background:#1F2A33;border:1.5px solid #2FD4F5;border-radius:8px;color:#2FD4F5;font-size:18px;font-weight:700;cursor:pointer;line-height:1;padding:0">&#8722;</button>';
-      h += '<span style="font-size:13px;color:#FFFFFF;font-weight:600;min-width:46px;text-align:center">' + totalSessionSets + ' sets</span>';
-      h += '<button onclick="cvAdjSets(' + i + ',1)" aria-label="More sets" style="width:30px;height:30px;background:#1F2A33;border:1.5px solid #2FD4F5;border-radius:8px;color:#2FD4F5;font-size:18px;font-weight:700;cursor:pointer;line-height:1;padding:0">+</button>';
-      h += '<span style="font-size:13px;color:#FFFFFF">' + (ex.reps ? '&times; ' + ex.reps : '') + (setsDone > 0 ? ' <span style="color:#5BBFAA;font-weight:700">' + setsDone + '/' + totalSessionSets + ' done</span>' : '') + '</span>';
+      h += '<div style="font-size:15px;font-weight:700;color:#FFFFFF;line-height:1.25">' + ex.name + '</div>';
+      h += '<div style="display:flex;align-items:center;gap:8px;margin-top:6px">';
+      h += '<button onclick="cvAdjSets(' + i + ',-1)" aria-label="Fewer sets" style="' + _step + '">&#8722;</button>';
+      h += '<span style="font-size:13px;color:#FFFFFF;font-weight:600;white-space:nowrap">' + totalSessionSets + ' sets' + (ex.reps ? ' <span style="color:#8B949E;font-weight:500">&times; ' + ex.reps + '</span>' : '') + '</span>';
+      h += '<button onclick="cvAdjSets(' + i + ',1)" aria-label="More sets" style="' + _step + '">+</button>';
+      if (setsDone > 0) h += '<span style="color:#5BBFAA;font-weight:700;font-size:12px;white-space:nowrap">' + setsDone + '/' + totalSessionSets + ' done</span>';
       h += '</div>';
       h += '</div>';
-      h += '<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">';
-      h += '<button onclick="cvMoveCustom(' + i + ',' + (i-1) + ')" aria-label="Move up"' + (i === 0 ? ' disabled' : '') + ' style="width:44px;height:40px;background:#1F2A33;border:1.5px solid #2FD4F5;border-radius:10px;color:' + (i === 0 ? '#3a4650' : '#2FD4F5') + ';font-size:18px;cursor:pointer;padding:0;opacity:' + (i === 0 ? '.4' : '1') + ';x:' + (i === 0 ? '#3a4650' : '#C9D1D9') + ';font-size:14px;cursor:pointer;padding:0">&#9650;</button>';
-      h += '<button onclick="cvMoveCustom(' + i + ',' + (i+1) + ')" aria-label="Move down"' + (i === cvCustomExercises.length-1 ? ' disabled' : '') + ' style="width:44px;height:40px;background:#1F2A33;border:1.5px solid #2FD4F5;border-radius:10px;color:' + (i === cvCustomExercises.length-1 ? '#3a4650' : '#2FD4F5') + ';font-size:18px;cursor:pointer;padding:0;opacity:' + (i === cvCustomExercises.length-1 ? '.4' : '1') + ';x:' + (i === cvCustomExercises.length-1 ? '#3a4650' : '#C9D1D9') + ';font-size:14px;cursor:pointer;padding:0">&#9660;</button>';
+      h += '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0">';
+      h += '<div style="display:flex;gap:4px">' + _arrow(-1, i === 0) + _arrow(1, i === cvCustomExercises.length-1) + '</div>';
+      h += '<button onclick="cvRemoveCustom(' + i + ')" aria-label="Remove exercise" style="background:none;border:none;color:#8B949E;font-size:12px;cursor:pointer;padding:4px 6px;text-decoration:underline">Remove</button>';
       h += '</div>';
-      h += '<button onclick="cvRemoveCustom(' + i + ')" aria-label="Remove exercise" style="background:rgba(232,115,90,.12);border:1.5px solid #E8735A;color:#E8735A;width:44px;height:44px;border-radius:10px;font-size:22px;cursor:pointer;flex-shrink:0;padding:0;line-height:1">&#215;</button>';
       h += '</div>';
 
       // Set table - always open
