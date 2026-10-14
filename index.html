@@ -4475,7 +4475,8 @@ function updEx(uid, field, val) {
   const ex = p.exercises.find(e => e.uid === uid);
   if (ex) {
     // Clean doubled units as they're typed ("30kgkg" -> "30kg")
-    const newVal = (typeof val === 'string') ? collapseUnits(val) : val;
+    let newVal = (typeof val === 'string') ? collapseUnits(val) : val;
+    if (field === 'load' && typeof newVal === 'string' && /^\s*\d+,\d+\s*(kg)?\s*$/i.test(newVal)) newVal = newVal.replace(',', '.');
     // Changing the prescribed weight should override what the client sees
     // next, not sit invisibly behind their last-logged number. The client's
     // weight hint normally prefers their own last-logged weight over the
@@ -6282,13 +6283,13 @@ function renderCV() {
         // they haven't entered this set yet, leave it EMPTY so the placeholder
         // (last time's weight) shows and there's nothing stale to submit.
         var _typedThis = (st.setLoads && st.setLoads[s] != null && String(st.setLoads[s]).trim() !== '');
-        const setLoad = _typedThis ? String(st.setLoads[s]).replace(/[^0-9.]/g, '') : '';
+        const setLoad = _typedThis ? cvCleanNum(st.setLoads[s]) : '';
         const repsPlaceholder = ((ex.lastRepsBySet && ex.lastRepsBySet[s] != null) ? String(ex.lastRepsBySet[s]) : (ex.lastReps ? String(ex.lastReps) : (ex.reps || '—').toString())).replace(/ ?each ?/gi,'').replace(/ ?each side ?/gi,'');
         // Show last time's weight as a HINT (placeholder), not a pre-filled value.
         // Pre-filling caused iOS select-and-overtype failures that silently
         // submitted the old/prescribed number. Empty box = clean tap-and-type.
-        var _lastW = String(setLoadRaw).replace(/[^0-9.]/g, '');
-        const loadPlaceholder = (ex.cat === 'Cardio') ? 'min' : (_lastW ? _lastW : (ex.load ? String(ex.load).replace(/[^0-9.]/g,'') : 'kg'));
+        var _lastW = cvCleanNum(setLoadRaw);
+        const loadPlaceholder = (ex.cat === 'Cardio') ? 'min' : (_lastW ? _lastW : (ex.load ? cvCleanNum(ex.load) : 'kg'));
         // Previous session values
         var prevLoad = isCardioEx ? '—' : (((ex.lastLoadBySet && ex.lastLoadBySet[s] != null) ? ex.lastLoadBySet[s] : ex.lastLoad) || '—');
         var prevReps = String((ex.lastRepsBySet && ex.lastRepsBySet[s] != null) ? ex.lastRepsBySet[s] : (ex.lastReps || ex.reps || '—')).replace(/ ?each ?side ?/gi,'').replace(/ ?each ?/gi,'');
@@ -6484,10 +6485,18 @@ async function cvSaveClientNoteNow(exIdx) {
   }
 }
 
+// Keep digits and ONE decimal point ("34.5kg" -> "34.5", "34,5" -> "34.5")
+function cvCleanNum(v) {
+  var t = String(v == null ? '' : v).replace(/,/g, '.').replace(/[^0-9.]/g, '');
+  var i = t.indexOf('.');
+  return i < 0 ? t : t.slice(0, i + 1) + t.slice(i + 1).replace(/\./g, '');
+}
 function cvSetRow(exIdx, setIdx, field, val) {
   if (!cvState[exIdx]) cvState[exIdx] = {};
   var key = field === 'reps' ? 'setReps' : 'setLoads';
   if (!cvState[exIdx][key]) cvState[exIdx][key] = [];
+  // Weights: a decimal comma (34,5) must stay 34.5, never become 345 or get rounded
+  if (field === 'load' && typeof val === 'string') val = val.replace(/,/g, '.');
   // Save current set value immediately
   cvState[exIdx][key][setIdx] = val;
 
@@ -6758,7 +6767,7 @@ async function cvSubmit() {
   // else reads cvState, so a weight/reps typed into only one box applies to
   // every set, while boxes that were given different values keep them.
   exs.forEach(function(ex, i) {
-    const totalSets = parseInt(ex.sets) || 3;
+    const totalSets = (cvState[i] && cvState[i].sessionSets != null) ? cvState[i].sessionSets : (parseInt(ex.sets) || 3);
     if (ex.cat === 'Cardio') {
       // Cardio is timed, not weighted — never keep a weight (e.g. a stray 5kg on the bike).
       if (cvState[i]) cvState[i].setLoads = [];
@@ -6772,7 +6781,7 @@ async function cvSubmit() {
   // so next renderCV shows correct weights even before cloud sync completes
   exs.forEach(function(ex, i) {
     const st = cvState[i] || {};
-    const totalSets = parseInt(ex.sets) || 3;
+    const totalSets = (cvState[i] && cvState[i].sessionSets != null) ? cvState[i].sessionSets : (parseInt(ex.sets) || 3);
     const lastRepsArr = [], lastLoadsArr = [];
     // Per-set memory too (lastLoadBySet/lastRepsBySet): if the client used a
     // varied pattern across sets (e.g. 50/40/40kg), each set remembers its
@@ -6797,7 +6806,7 @@ async function cvSubmit() {
   exs.forEach(function(ex, i) {
     const st = cvState[i] || {};
     const tickedSets = (st.sets || []).filter(Boolean).length;
-    const totalSets = parseInt(ex.sets) || 3;
+    const totalSets = (cvState[i] && cvState[i].sessionSets != null) ? cvState[i].sessionSets : (parseInt(ex.sets) || 3);
     if (!tickedSets && !st.note) return;
 
     // Collect what was actually done per set
@@ -10360,14 +10369,24 @@ function renderCVCustomWorkout() {
       var allDone = setsDone >= totalSessionSets;
 
       // Card header
-      h += '<div style="background:#12181D;border-radius:12px;margin-bottom:10px;border:1px solid ' + (allDone ? '#5BBFAA' : '#1F2A33') + ';overflow:hidden">';
-      h += '<div style="display:flex;align-items:center;gap:10px;padding:12px 14px">';
-      h += '<div style="width:52px;height:52px;border-radius:10px;background:#1F2A33;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center">' + getExIllusStr(ex) + '</div>';
+      h += '<div class="cwo-card" data-cwo-i="' + i + '" style="background:#12181D;border-radius:12px;margin-bottom:10px;border:1px solid ' + (allDone ? '#5BBFAA' : '#1F2A33') + ';overflow:hidden">';
+      h += '<div style="display:flex;align-items:center;gap:8px;padding:12px 10px 12px 6px">';
+      h += '<div class="cwo-handle" data-cwo-i="' + i + '" title="Drag to reorder" style="touch-action:none;cursor:grab;width:28px;align-self:stretch;display:flex;align-items:center;justify-content:center;color:#8B949E;font-size:20px;user-select:none;-webkit-user-select:none">&#8942;&#8942;</div>';
+      h += '<div style="width:48px;height:48px;border-radius:10px;background:#1F2A33;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center">' + getExIllusStr(ex) + '</div>';
       h += '<div style="flex:1;min-width:0">';
       h += '<div style="font-size:15px;font-weight:700;color:#FFFFFF">' + ex.name + '</div>';
-      h += '<div style="font-size:13px;color:#FFFFFF;margin-top:2px">' + totalSessionSets + ' sets' + (ex.reps ? ' × ' + ex.reps : '') + (setsDone > 0 ? ' <span style="color:#5BBFAA;font-weight:700">' + setsDone + '/' + totalSessionSets + ' done</span>' : '') + '</div>';
+      h += '<div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap">';
+      h += '<button onclick="cvAdjSets(' + i + ',-1)" aria-label="Fewer sets" style="width:30px;height:30px;background:#1F2A33;border:1.5px solid #2FD4F5;border-radius:8px;color:#2FD4F5;font-size:18px;font-weight:700;cursor:pointer;line-height:1;padding:0">&#8722;</button>';
+      h += '<span style="font-size:13px;color:#FFFFFF;font-weight:600;min-width:46px;text-align:center">' + totalSessionSets + ' sets</span>';
+      h += '<button onclick="cvAdjSets(' + i + ',1)" aria-label="More sets" style="width:30px;height:30px;background:#1F2A33;border:1.5px solid #2FD4F5;border-radius:8px;color:#2FD4F5;font-size:18px;font-weight:700;cursor:pointer;line-height:1;padding:0">+</button>';
+      h += '<span style="font-size:13px;color:#FFFFFF">' + (ex.reps ? '&times; ' + ex.reps : '') + (setsDone > 0 ? ' <span style="color:#5BBFAA;font-weight:700">' + setsDone + '/' + totalSessionSets + ' done</span>' : '') + '</span>';
       h += '</div>';
-      h += '<button onclick="cvCustomExercises.splice(' + i + ',1);cvRemoveStateAt(' + i + ');renderCV()" style="background:none;border:none;color:#8B949E;font-size:20px;cursor:pointer;padding:4px">&#215;</button>';
+      h += '</div>';
+      h += '<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">';
+      h += '<button onclick="cvMoveCustom(' + i + ',' + (i-1) + ')" aria-label="Move up"' + (i === 0 ? ' disabled' : '') + ' style="width:34px;height:30px;background:#1F2A33;border:1.5px solid #26323A;border-radius:8px;color:' + (i === 0 ? '#3a4650' : '#C9D1D9') + ';font-size:14px;cursor:pointer;padding:0">&#9650;</button>';
+      h += '<button onclick="cvMoveCustom(' + i + ',' + (i+1) + ')" aria-label="Move down"' + (i === cvCustomExercises.length-1 ? ' disabled' : '') + ' style="width:34px;height:30px;background:#1F2A33;border:1.5px solid #26323A;border-radius:8px;color:' + (i === cvCustomExercises.length-1 ? '#3a4650' : '#C9D1D9') + ';font-size:14px;cursor:pointer;padding:0">&#9660;</button>';
+      h += '</div>';
+      h += '<button onclick="cvRemoveCustom(' + i + ')" aria-label="Remove exercise" style="background:rgba(232,115,90,.12);border:1.5px solid #E8735A;color:#E8735A;width:38px;height:38px;border-radius:10px;font-size:20px;cursor:pointer;flex-shrink:0;padding:0;line-height:1">&#215;</button>';
       h += '</div>';
 
       // Set table - always open
@@ -10400,8 +10419,6 @@ function renderCVCustomWorkout() {
       // +/- set buttons + rest timer
       h += '<div style="display:flex;gap:8px;margin-top:10px;align-items:center">';
       h += '<button onclick="cvRestStart(\'cwo_' + i + '\',' + i + ',60)" id="cwo_' + i + '_btn" style="flex:1;padding:10px;background:#1F2A33;border:1.5px solid #2FD4F5;border-radius:10px;color:#2FD4F5;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><span style="font-size:16px">⏱</span> Rest Timer (60s)</button>';
-      h += '<button onclick="cvAdjSets(' + i + ',-1)" style="width:36px;height:36px;background:#1F2A33;border:1.5px solid #26323A;border-radius:8px;color:#8B949E;font-size:18px;font-weight:700;cursor:pointer;line-height:1">-</button>';
-      h += '<button onclick="cvAdjSets(' + i + ',1)" style="width:36px;height:36px;background:#1F2A33;border:1.5px solid #26323A;border-radius:8px;color:#8B949E;font-size:18px;font-weight:700;cursor:pointer;line-height:1">+</button>';
       h += '</div>';
 
       h += '</div>'; // end set area
@@ -10519,7 +10536,7 @@ async function cvSubmitCustomWorkout() {
   // into only one box carries to every set of that exercise; boxes given
   // their own distinct value keep it.
   cvCustomExercises.forEach(function(ex, i) {
-    var totalSets = parseInt(ex.sets) || 3;
+    var totalSets = cvCustomSetCount(i);
     cvFillBlankSetValues(i, 'setLoads', totalSets);
     cvFillBlankSetValues(i, 'setReps', totalSets);
   });
@@ -10535,14 +10552,15 @@ async function cvSubmitCustomWorkout() {
     var tickedSets = (st.sets || []).filter(Boolean).length;
     if (!tickedSets) return;
     var setDetails = [];
-    for (var s = 0; s < (parseInt(ex.sets)||3); s++) {
+    var _tot = cvCustomSetCount(i);
+    for (var s = 0; s < _tot; s++) {
       if (st.sets && st.sets[s]) {
         var r = (st.setReps && st.setReps[s]) || '';
         var l = collapseUnits((st.setLoads && st.setLoads[s]) || '');
         setDetails.push('Set' + (s+1) + ': ' + (r||'-') + (l ? ' @' + l : ''));
       }
     }
-    lines.push(ex.name + ' [' + tickedSets + '/' + (parseInt(ex.sets)||3) + ' sets]' + (setDetails.length ? ': ' + setDetails.join(', ') : ''));
+    lines.push(ex.name + ' [' + tickedSets + '/' + _tot + ' sets]' + (setDetails.length ? ': ' + setDetails.join(', ') : ''));
   });
   var logText = lines.join(' | ');
 
@@ -12009,12 +12027,67 @@ function cvRestStop(rtId) {
 }
 
 // Adjust sets for an exercise (+1 or -1)
+function cvCustomSetCount(i) {
+  var ex = cvCustomExercises[i] || {};
+  return (cvState[i] && cvState[i].sessionSets != null) ? cvState[i].sessionSets : (parseInt(ex.sets) || 3);
+}
+// Own-workout: remove one exercise (every other exercise keeps its ticked sets)
+function cvRemoveCustom(i) {
+  cvCustomExercises.splice(i, 1);
+  cvRemoveStateAt(i);
+  renderCV();
+}
+// Own-workout: move exercise from position a to b, carrying its ticked sets,
+// weights and reps with it.
+function cvMoveCustom(a, b) {
+  var n = cvCustomExercises.length;
+  if (a === b || a < 0 || b < 0 || a >= n || b >= n) return;
+  var order = [];
+  for (var k = 0; k < n; k++) order.push(k);
+  order.splice(b, 0, order.splice(a, 1)[0]);   // order[newPos] = oldIdx
+  var newEx = order.map(function(o) { return cvCustomExercises[o]; });
+  var newState = {};
+  order.forEach(function(o, np) { if (cvState[o]) newState[np] = cvState[o]; });
+  cvCustomExercises = newEx;
+  cvState = newState;
+  renderCV();
+}
+// Drag-to-reorder with the dotted handle (mouse and touch)
+(function() {
+  var drag = null;
+  document.addEventListener('pointerdown', function(e) {
+    var h = e.target.closest && e.target.closest('.cwo-handle');
+    if (!h) return;
+    e.preventDefault();
+    var card = h.closest('.cwo-card');
+    drag = { from: parseInt(h.getAttribute('data-cwo-i'), 10), over: null };
+    if (card) card.style.opacity = '.6';
+  });
+  document.addEventListener('pointermove', function(e) {
+    if (!drag) return;
+    var el = document.elementFromPoint(e.clientX, e.clientY);
+    var c = el && el.closest ? el.closest('.cwo-card') : null;
+    document.querySelectorAll('.cwo-card').forEach(function(x) { x.style.outline = ''; });
+    drag.over = null;
+    if (c) { drag.over = parseInt(c.getAttribute('data-cwo-i'), 10); if (drag.over !== drag.from) c.style.outline = '2px solid #2FD4F5'; }
+    if (e.clientY < 90) window.scrollBy(0, -14); else if (e.clientY > window.innerHeight - 90) window.scrollBy(0, 14);
+  });
+  function end() {
+    if (!drag) return;
+    var d = drag; drag = null;
+    document.querySelectorAll('.cwo-card').forEach(function(x) { x.style.outline = ''; x.style.opacity = ''; });
+    if (d.over != null && d.over !== d.from) cvMoveCustom(d.from, d.over);
+  }
+  document.addEventListener('pointerup', end);
+  document.addEventListener('pointercancel', end);
+})();
+
 function cvAdjSets(i, delta) {
   if (!cvState[i]) cvState[i] = {};
-  var prog = cvData.programs[cvProgIdx];
-  var ex = prog.exercises[i];
+  var ex = cvCustomWorkout ? cvCustomExercises[i] : cvData.programs[cvProgIdx].exercises[i];
+  if (!ex) return;
   var currentSets = (cvState[i].sessionSets != null) ? cvState[i].sessionSets : (parseInt(ex.sets) || 3);
-  var newSets = Math.max(1, Math.min(10, currentSets + delta));
+  var newSets = Math.max(1, Math.min(20, currentSets + delta));
   cvState[i].sessionSets = newSets;
   renderCV();
 }
