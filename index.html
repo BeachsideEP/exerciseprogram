@@ -5487,13 +5487,32 @@ function sendClientLink() {
   const emailEl = document.getElementById('ec_email');
   const email = emailEl ? emailEl.value.trim() : '';
   if (!email) { toast('Enter client email first', 'err'); return; }
+  // Supabase only allows one email per address every ~60 seconds. Tapping again
+  // inside that window used to show a vague "check email" error even though the
+  // first email had already gone out. Block repeat taps and say what's happening.
+  const now = Date.now();
+  window._linkSentAt = window._linkSentAt || {};
+  const wait = 60000 - (now - (window._linkSentAt[email.toLowerCase()] || 0));
+  if (wait > 0) { toast('Already sent - wait ' + Math.ceil(wait/1000) + 's before sending again. Ask them to check Junk/Spam.', 'err'); return; }
   fetch(SUPA_URL + '/auth/v1/magiclink', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
     body: JSON.stringify({ email: email })
   }).then(function(r) {
-    if (r.ok) toast('Login link sent to ' + email, 'ok');
-    else toast('Could not send - check email', 'err');
+    if (r.ok) {
+      window._linkSentAt[email.toLowerCase()] = Date.now();
+      toast('Login link sent to ' + email + ' - ask them to check Junk/Spam too', 'ok');
+      return;
+    }
+    return r.json().catch(function(){ return {}; }).then(function(d) {
+      const msg = (d.error_description || d.msg || d.message || '') + '';
+      if (r.status === 429 || /seconds|rate limit/i.test(msg)) {
+        window._linkSentAt[email.toLowerCase()] = Date.now() - 30000;
+        toast('A link was just sent - wait about a minute before sending again. Ask them to check Junk/Spam.', 'err');
+      } else {
+        toast('Could not send: ' + (msg || ('error ' + r.status)), 'err');
+      }
+    });
   }).catch(function() { toast('Connection error', 'err'); });
 }
 
