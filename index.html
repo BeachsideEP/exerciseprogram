@@ -838,6 +838,9 @@ html[data-cv-theme="light"] .cv-wkt-sheet{background:#FFFFFF!important}
 #viewClient[data-theme="light"] .cv-set-table th{color:#14202B!important}
 #viewClient input::placeholder,#viewClient textarea::placeholder{color:#9AA8B5!important;opacity:1}
 #viewClient[data-theme="light"] input::placeholder,#viewClient[data-theme="light"] textarea::placeholder{color:#6B7B88!important;opacity:1}
+/* Practitioner "Client View" preview: phone frame + stage follow Day mode */
+#viewClient[data-phone-mode="1"][data-theme="light"]{background:linear-gradient(135deg,#DDE6EE,#EEF3F7)!important}
+html[data-cv-theme="light"] #cvPhoneWrap{background:#F4F7FA!important}
 /* 6. SAFETY: the red video button always keeps white-on-red in both themes */
 /* Red "Watch Exercise Video" button stays red — good in both themes */
 
@@ -8389,6 +8392,7 @@ function openClientDemo() {
   cvOwnWorkouts = JSON.parse(localStorage.getItem('cv_own_workouts_' + cl.id) || '[]');
   // Show client view first
   showView('client');
+  try { cvInitTheme(); } catch(eth) {}
   // Apply phone frame after DOM is visible, then render content
   setTimeout(function() {
     var vc = document.getElementById('viewClient');
