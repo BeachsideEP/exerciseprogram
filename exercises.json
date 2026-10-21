@@ -446,9 +446,9 @@
    "hold": "",
    "rest": "45s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": "",
+   "video": "./media/cable-face-pull.mp4",
+   "startImage": "cable-face-pull-start.jpg",
+   "endImage": "cable-face-pull-end.jpg",
    "oldYoutube": "https://www.youtube.com/watch?v=rep-qVOkqgk"
   },
   {
@@ -1008,9 +1008,9 @@
    "hold": "",
    "rest": "45s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": ""
+   "video": "./media/sit-to-stand.mp4",
+   "startImage": "sit-to-stand-start.jpg",
+   "endImage": "sit-to-stand-end.jpg"
   },
   {
    "id": 65,
@@ -2348,9 +2348,9 @@
    "hold": "",
    "rest": "60s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": ""
+   "video": "./media/sit-to-stand.mp4",
+   "startImage": "sit-to-stand-start.jpg",
+   "endImage": "sit-to-stand-end.jpg"
   },
   {
    "id": "he7",
@@ -5577,9 +5577,9 @@
    "hold": "2s",
    "rest": "60s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": "",
+   "video": "./media/machine-calf-raises.mp4",
+   "startImage": "machine-calf-raises-start.jpg",
+   "endImage": "machine-calf-raises-end.jpg",
    "oldYoutube": "https://www.youtube.com/watch?v=MmxkHMNqVOY"
   },
   {
@@ -5806,9 +5806,9 @@
    "hold": "2s",
    "rest": "60s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": "",
+   "video": "./media/cable-face-pull.mp4",
+   "startImage": "cable-face-pull-start.jpg",
+   "endImage": "cable-face-pull-end.jpg",
    "oldYoutube": "https://www.youtube.com/watch?v=rep-qVOkqgk"
   },
   {
@@ -5972,9 +5972,9 @@
    "hold": "3s",
    "rest": "90s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": ""
+   "video": "./media/back-extension.mp4",
+   "startImage": "back-extension-start.jpg",
+   "endImage": "back-extension-end.jpg"
   },
   {
    "id": "gm34",
@@ -6212,9 +6212,9 @@
    "hold": "",
    "rest": "90s",
    "load": "",
-   "video": "",
-   "startImage": "",
-   "endImage": ""
+   "video": "./media/single-leg-press.mp4",
+   "startImage": "single-leg-press-start.jpg",
+   "endImage": "single-leg-press-end.jpg"
   },
   {
    "id": "gm50",
@@ -9119,6 +9119,46 @@
     "Clamshell on reformer",
     "Reformer Clamshell"
    ]
+  },
+  {
+   "id": "nx57",
+   "name": "B-Stance DB Romanian Deadlift",
+   "cat": "Lower Limb",
+   "desc": "Stand with a dumbbell in each hand, one foot slightly behind as a kickstand with only the toes lightly on the floor. Keep the back leg relaxed and push your hips back, lowering the weights down the front leg with a straight back. Drive your hips forward to stand tall. Most of the work stays in the front leg.",
+   "muscles": "Hamstrings,Glutes,Erector Spinae",
+   "sets": "3",
+   "reps": "10 each",
+   "hold": "",
+   "rest": "90s",
+   "load": "",
+   "aliases": [
+    "B Stance RDL",
+    "B-Stance RDL",
+    "Staggered Stance DB RDL"
+   ],
+   "video": "./media/b-stance-db-rdl.mp4",
+   "startImage": "b-stance-db-rdl-start.jpg",
+   "endImage": "b-stance-db-rdl-end.jpg"
+  },
+  {
+   "id": "nx58",
+   "name": "Psoas March",
+   "cat": "Core",
+   "desc": "Lie on your back with a resistance band around your feet and knees bent. Keeping your trunk and pelvis still, slowly lift one knee towards your chest against the band, then lower with control and alternate sides. Avoid arching your lower back.",
+   "muscles": "Hip Flexors,Psoas,Transversus Abdominis",
+   "sets": "3",
+   "reps": "10 each",
+   "hold": "",
+   "rest": "60s",
+   "load": "",
+   "aliases": [
+    "Psoas March (Band)",
+    "Banded Psoas March",
+    "Supine Psoas March"
+   ],
+   "video": "./media/psoas-march.mp4",
+   "startImage": "psoas-march-start.jpg",
+   "endImage": "psoas-march-end.jpg"
   }
  ]
 }
