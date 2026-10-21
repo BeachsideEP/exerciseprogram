@@ -603,14 +603,14 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 
 /* ═══ CLIENT LIGHT MODE — high contrast, easy to read ═══ */
 /* 1. Flip the client theme variables (covers all var(--cv-*) usages) */
-#viewClient[data-theme="light"]{
+html[data-cv-theme="light"], #viewClient[data-theme="light"]{
   --cv-bg:#F4F7FA; --cv-card:#FFFFFF; --cv-card-2:#EDF2F7;
   --cv-border:#DCE4EC; --cv-border-2:#C4D0DB;
   --cv-text:#14202B; --cv-text-2:#3A4B58; --cv-text-3:#5A6B78;
   --cv-accent:#0E7FA0; --cv-accent-2:#0B6A86; --cv-accent-glow:rgba(14,127,160,.18);
   --cv-input-bg:#FFFFFF; --cv-input-border:#C4D0DB; --cv-input-text:#14202B;
-  background:#F4F7FA!important;
 }
+#viewClient[data-theme="light"]{background:#F4F7FA!important}
 /* 2. Override the hardcoded dark theme rules */
 #viewClient[data-theme="light"] .cv-header{background:#FFFFFF!important;border-bottom:1px solid #DCE4EC!important}
 #viewClient[data-theme="light"] .cv-logo-text{color:#14202B!important}
@@ -680,6 +680,119 @@ header{background:var(--ocean-dp);color:#fff;padding:0 14px;display:flex;align-i
 #viewClient[data-theme="light"] .cv-submit{color:#fff!important;background:#0E7FA0!important}
 #viewClient[data-theme="light"] .streak-bar,#viewClient[data-theme="light"] .anna-header{background:#FFFFFF!important;border:1px solid #DCE4EC!important}
 #viewClient[data-theme="light"] [style*="font-size:22px"][style*="font-weight:800"],#viewClient[data-theme="light"] .cv-home-content [style*="Georgia"]{color:#0B6A86!important}
+/* Exercise-detail page (sits outside #viewClient): same Day rules */
+html[data-cv-theme="light"] .cv-ex-detail .cv-header{background:#FFFFFF!important;border-bottom:1px solid #DCE4EC!important}
+html[data-cv-theme="light"] .cv-ex-detail .cv-logo-text{color:#14202B!important}
+html[data-cv-theme="light"] .cv-ex-detail #cvThemeToggle{background:#EDF2F7!important;border:1.5px solid #C4D0DB!important;color:#14202B!important}
+html[data-cv-theme="light"] .cv-ex-detail .cv-tabs{background:rgba(255,255,255,.97)!important;border-top:1px solid #DCE4EC!important}
+html[data-cv-theme="light"] .cv-ex-detail .cv-tab{color:#5A6B78!important}
+html[data-cv-theme="light"] .cv-ex-detail .cv-tab.active{color:#0E7FA0!important}
+/* 3. Inline hardcoded backgrounds -> light (narrowed to background: only,
+      so dark-as-TEXT-colour elements like cyan buttons are untouched) */
+html[data-cv-theme="light"] .cv-ex-detail [style*="background:#0B0F12"]{background:#F4F7FA!important;color:#14202B!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="background:#12181D"]{background:#FFFFFF!important;color:#14202B!important;border:1px solid #DCE4EC!important;box-shadow:0 1px 3px rgba(0,0,0,.06)!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="background:#0d1117"]{background:#FFFFFF!important;color:#14202B!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="background:#0F1419"]{background:#FFFFFF!important;color:#14202B!important}
+/* Hero gradient banner on home */
+html[data-cv-theme="light"] .cv-ex-detail [style*="linear-gradient(180deg,#0D1D2E"]{background:linear-gradient(180deg,#E2EDF5 0%,#F4F7FA 100%)!important;color:#14202B!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="linear-gradient(135deg,#12181D"]{background:#FFFFFF!important;border:1px solid #DCE4EC!important;color:#14202B!important}
+/* 4. Inline text colours: white text darkens ONLY when the element has no
+      inline background of its own (accent/red buttons keep their white text) */
+html[data-cv-theme="light"] .cv-ex-detail [style*="color:#fff"]:not([style*="background"]),
+html[data-cv-theme="light"] .cv-ex-detail [style*="color:#FFF"]:not([style*="background"]),
+html[data-cv-theme="light"] .cv-ex-detail [style*="color:#ffffff"]:not([style*="background"]){color:#14202B!important}
+/* Grey-on-dark body text -> dark readable text */
+html[data-cv-theme="light"] .cv-ex-detail [style*="color:#C9D1D9"],
+html[data-cv-theme="light"] .cv-ex-detail [style*="color:#8B949E"],
+html[data-cv-theme="light"] .cv-ex-detail [style*="color:#8B98A5"],
+html[data-cv-theme="light"] .cv-ex-detail [style*="color:#7A8B99"],
+html[data-cv-theme="light"] .cv-ex-detail [style*="color:#9AA8B5"]{color:#3A4B58!important}
+/* Bright cyan text -> deeper blue for contrast on white */
+html[data-cv-theme="light"] .cv-ex-detail [style*="color:#2FD4F5"]{color:#0E7FA0!important}
+/* 5. Cards + inputs */
+html[data-cv-theme="light"] .cv-ex-detail .cv-ex-card{background:#FFFFFF!important;border:1px solid #DCE4EC!important}
+html[data-cv-theme="light"] .cv-ex-detail input,
+html[data-cv-theme="light"] .cv-ex-detail textarea,
+html[data-cv-theme="light"] .cv-ex-detail select{background:#FFFFFF!important;color:#14202B!important;border:1.5px solid #C4D0DB!important}
+/* ── Day mode tidy: remaining dark surfaces ── */
+html[data-cv-theme="light"] .cv-ex-detail [style*="background:#1F2A33"],
+html[data-cv-theme="light"] .cv-ex-detail [style*="background: #1F2A33"]{background:#E3EAF0!important;color:#14202B!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="background:#0D1A24"],
+html[data-cv-theme="light"] .cv-ex-detail [style*="background: #0D1A24"]{background:#EEF3F7!important;color:#14202B!important;border-color:#D3DDE6!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="background:#162026"],
+html[data-cv-theme="light"] .cv-ex-detail [style*="background: #162026"]{background:#EEF3F7!important;color:#14202B!important;border-color:#D3DDE6!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="background:#0B1820"],
+html[data-cv-theme="light"] .cv-ex-detail [style*="background: #0B1820"]{background:#EEF3F7!important;color:#14202B!important;border-color:#D3DDE6!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="background:#1A2530"],
+html[data-cv-theme="light"] .cv-ex-detail [style*="background: #1A2530"]{background:#EEF3F7!important;color:#14202B!important;border-color:#D3DDE6!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="background:#0B1217"],
+html[data-cv-theme="light"] .cv-ex-detail [style*="background: #0B1217"]{background:#EEF3F7!important;color:#14202B!important;border-color:#D3DDE6!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="background:#0d1b2a"],
+html[data-cv-theme="light"] .cv-ex-detail [style*="background: #0d1b2a"]{background:#EEF3F7!important;color:#14202B!important;border-color:#D3DDE6!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="background:#1C2B35"],
+html[data-cv-theme="light"] .cv-ex-detail [style*="background: #1C2B35"]{background:#EEF3F7!important;color:#14202B!important;border-color:#D3DDE6!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="background:#26323A"],
+html[data-cv-theme="light"] .cv-ex-detail [style*="background: #26323A"]{background:#D9E2EA!important;color:#14202B!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="background:#2C2C2E"],
+html[data-cv-theme="light"] .cv-ex-detail [style*="background: #2C2C2E"]{background:#D9E2EA!important;color:#14202B!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="background:#1a1a1a"],
+html[data-cv-theme="light"] .cv-ex-detail [style*="background: #1a1a1a"]{background:#D9E2EA!important;color:#14202B!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="solid #1F2A33"],html[data-cv-theme="light"] .cv-ex-detail [style*="solid #26323A"]{border-color:#D3DDE6!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="linear-gradient(135deg,#0D0D1A"]{background:linear-gradient(180deg,#E2EDF5,#F4F7FA)!important;color:#14202B!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="color:#E6EDF3"],html[data-cv-theme="light"] .cv-ex-detail [style*="color:#9BA8B0"]{color:#14202B!important}
+#cvThemeToggle{width:auto!important;height:36px!important;padding:0 14px!important;border-radius:99px!important;font-size:14px!important;font-weight:700;gap:6px;white-space:nowrap}
+html[data-cv-theme="light"] .cv-ex-detail .cv-home-wave{background:linear-gradient(180deg,#DCEAF4 0%,#F4F7FA 100%)!important}
+html[data-cv-theme="light"] .cv-ex-detail .cv-home-wave svg{opacity:.35}
+html[data-cv-theme="light"] .cv-ex-detail .cv-sesh-bar{background:#F4F7FA!important}
+html[data-cv-theme="light"] .cv-ex-detail .cv-sesh-bar [style*="color:#FFFFFF"]{color:#14202B!important}
+html[data-cv-theme="light"] .cv-ex-detail .cv-session{background:#FFFFFF!important;border:1px solid #DCE4EC!important}
+html[data-cv-theme="light"] .cv-ex-detail .cv-submit{color:#fff!important;background:#0E7FA0!important}
+html[data-cv-theme="light"] .cv-ex-detail .streak-bar,html[data-cv-theme="light"] .cv-ex-detail .anna-header{background:#FFFFFF!important;border:1px solid #DCE4EC!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="font-size:22px"][style*="font-weight:800"],html[data-cv-theme="light"] .cv-ex-detail .cv-home-content [style*="Georgia"]{color:#0B6A86!important}
+html[data-cv-theme="light"] .cv-ex-detail{background:#F4F7FA!important;color:#14202B!important}
+html[data-cv-theme="light"] .cv-ex-detail-title{color:#14202B!important}
+html[data-cv-theme="light"] .cv-ex-detail-desc{color:#2B3A46!important}
+html[data-cv-theme="light"] .cv-ex-detail .cv-howto-h{color:#4A5B68!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="position:sticky"]{background:#FFFFFF!important;border-bottom:1px solid #DCE4EC!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="border-bottom:1px solid #1F2A33"]{border-bottom-color:#E3EAF0!important}
+html[data-cv-theme="light"] .cv-ex-detail strong{color:#14202B!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="background:#0D1F2D"]{background:#E8F4FB!important;color:#14202B!important}
+html[data-cv-theme="light"] .cv-howto-h{color:#4A5B68}
+html[data-cv-theme="light"] #viewClient .cv-howto-h{color:#4A5B68!important}
+/* Round-2 Day fixes */
+#viewClient[data-theme="light"] [style*="color:#2FFFD4"]{color:#0B6A86!important}
+#viewClient[data-theme="light"] [style*="border:1.5px solid rgba(47,255,212"]{background:#E3F4F8!important;border-color:#0E7FA0!important}
+#viewClient[data-theme="light"] #clinikoModal button[onclick*="cvCloseClasses"]{color:#14202B!important}
+html[data-cv-theme="light"] #cvProgressListBody>div{background:#EEF3F7!important;border:1px solid #DCE4EC}
+html[data-cv-theme="light"] #cvProgressListBody [style*="color:var(--cv-text,"]{color:#14202B!important}
+html[data-cv-theme="light"] .cv-ex-detail button{color:#14202B!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="color:#FFFFFF"],html[data-cv-theme="light"] .cv-ex-detail [style*="color:#fff"]{color:#14202B!important}
+html[data-cv-theme="light"] .cv-ex-detail [style*="border-top"],html[data-cv-theme="light"] .cv-ex-detail-content>div[style*="height:1px"]{border-color:#DCE4EC!important}
+html[data-cv-theme="light"] .cv-ex-detail hr{border-color:#DCE4EC!important;background:#DCE4EC!important}
+#viewClient[data-theme="light"] .cv-ex-body{background:#FFFFFF!important;border-top:1px solid #E3EAF0!important}
+#viewClient[data-theme="light"] .cv-ex-hdr{background:#FFFFFF!important}
+#viewClient[data-theme="light"] .cv-check{border-color:#9FB0BC!important;background:#FFFFFF}
+#viewClient[data-theme="light"] .cv-check.on{background:#0E7FA0!important;border-color:#0E7FA0!important}
+html[data-cv-theme="light"] .cv-ex-pb-val{color:#14202B!important}
+html[data-cv-theme="light"] .cv-ex-pb-label{color:#1E7F68!important}
+html[data-cv-theme="light"] .cv-ex-pb{background:#E8F5F1!important}
+#viewClient[data-theme="light"] #cvSafetyPanel{background:#FFFFFF!important;border:1px solid #DCE4EC!important}
+#viewClient[data-theme="light"] #cvSafetyPanel [style*="background:rgba(47"],#viewClient[data-theme="light"] #cvSafetyPanel [style*="border-radius:50%"]{background:#E3F4F8!important}
+#viewClient[data-theme="light"] .cv-prog-hdr{background:#FFFFFF!important;border:1px solid #DCE4EC!important}
+#viewClient[data-theme="light"] .cv-prog-title{color:#0B6A86!important}
+#viewClient[data-theme="light"] .cv-prog-meta{color:#4A5B68!important}
+#viewClient[data-theme="light"] .cv-freq-badge{background:#E3F4F8!important;color:#0B6A86!important}
+#viewClient[data-theme="light"] .cv-ex-card-hdr{background:#FFFFFF!important}
+#viewClient[data-theme="light"] .cv-ex-card-thumb{background:#E3EAF0!important}
+#viewClient[data-theme="light"] .cv-ex-card-body{border-top-color:#E3EAF0!important}
+#viewClient[data-theme="light"] .cv-session-title{color:#14202B!important}
+#viewClient[data-theme="light"] .cv-ex-card-hdr [style*="color:#2FD4F5"],#viewClient[data-theme="light"] .cv-ex-card-hdr [class*="tap"]{color:#0E7FA0!important}
+#viewClient[data-theme="light"] .cv-ex-card-title,#viewClient[data-theme="light"] .cv-ex-name,#viewClient[data-theme="light"] .cv-ex-card-name{color:#14202B!important}
+#viewClient[data-theme="light"] .cv-vid-chip{color:#0B6A86!important}
+#viewClient[data-theme="light"] .cv-ex-params,#viewClient[data-theme="light"] .cv-ex-card-params,#viewClient[data-theme="light"] .cv-chevron,#viewClient[data-theme="light"] .cv-empty,#viewClient[data-theme="light"] .cv-set-table th,#viewClient[data-theme="light"] .hr-entry-date{color:#14202B!important}
+#viewClient[data-theme="light"] .cv-ex-desc,#viewClient[data-theme="light"] .cv-badge-name,#viewClient[data-theme="light"] .cv-loop-fail{color:#2B3A46!important}
+#viewClient[data-theme="light"] .cv-milestone-desc{color:#2B3A46!important}
+html[data-cv-theme="light"] .cv-ex-history-title{border-top-color:#DCE4EC!important;color:#4A5B68!important}
 /* 6. SAFETY: the red video button always keeps white-on-red in both themes */
 /* Red "Watch Exercise Video" button stays red — good in both themes */
 
@@ -9823,8 +9936,10 @@ function cvApplyTheme(mode) {
   if (!vc) return;
   if (mode === 'light') {
     vc.setAttribute('data-theme', 'light');
+    document.documentElement.setAttribute('data-cv-theme', 'light');
   } else {
     vc.removeAttribute('data-theme');
+    document.documentElement.removeAttribute('data-cv-theme');
   }
   var btn = document.getElementById('cvThemeToggle');
   if (btn) btn.textContent = (mode === 'light') ? '☀️ Day' : '🌙 Night';
