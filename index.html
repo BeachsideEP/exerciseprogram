@@ -818,6 +818,9 @@ html[data-cv-theme="light"] .cv-milestone-toast{background:linear-gradient(135de
 html[data-cv-theme="light"] .cv-milestone-toast *{color:#14202B!important}
 html[data-cv-theme="light"] .cv-wkt-sheet{background:#FFFFFF!important}
 #viewClient[data-theme="light"] .streak-bar,#viewClient[data-theme="light"] .streak-bar *,#viewClient[data-theme="light"] .anna-header,#viewClient[data-theme="light"] .anna-header *{color:#14202B!important}
+#viewClient[data-theme="light"] [style*="color:#E6E9EC"]{color:#14202B!important}
+#viewClient[data-theme="light"] [style*="color:#A8B5C0"],#viewClient[data-theme="light"] [style*="color:#5A6B78"],#viewClient[data-theme="light"] [style*="color:#6b7b80"]{color:#3A4B58!important}
+#viewClient[data-theme="light"] [style*="background:#1F2A33"][style*="color:#5BBFAA"]{color:#1E7F68!important}
 /* 6. SAFETY: the red video button always keeps white-on-red in both themes */
 /* Red "Watch Exercise Video" button stays red — good in both themes */
 
@@ -10483,15 +10486,15 @@ function renderCVProgramList() {
     if (resume) {
       h += '<div style="display:inline-block;margin-top:4px;background:#F4B94222;border:1px solid #F4B942;color:#F4B942;font-size:9.5px;font-weight:700;border-radius:8px;padding:1px 7px">&#9654; In progress &mdash; tap to resume</div>';
     } else {
-      h += '<div style="font-size:11.5px;color:#8B98A5;margin-top:2px">' + exs.length + ' exercise' + (exs.length === 1 ? '' : 's') + (ago ? ' &middot; ' + ago : (exs.length ? ' &middot; Not started yet' : '')) + '</div>';
+      h += '<div style="font-size:12.5px;color:#A8B5C0;margin-top:2px">' + exs.length + ' exercise' + (exs.length === 1 ? '' : 's') + (ago ? ' &middot; ' + ago : (exs.length ? ' &middot; Not started yet' : '')) + '</div>';
     }
     h += '</div>';
-    h += '<div style="color:#5A6B78;font-size:15px;font-weight:700;transform:rotate(' + (isOpen ? '90deg' : '0deg') + ');transition:transform .15s;flex-shrink:0">&#8250;</div>';
+    h += '<div style="color:#A8B5C0;font-size:15px;font-weight:700;transform:rotate(' + (isOpen ? '90deg' : '0deg') + ');transition:transform .15s;flex-shrink:0">&#8250;</div>';
     h += '</div>'; // end header row
     if (isOpen) {
       h += '<div style="border-top:1px solid #1F2A33;padding:6px 8px 10px">';
       if (!exs.length) {
-        h += '<div style="padding:10px 6px;font-size:12px;color:#5A6B78">No exercises yet</div>';
+        h += '<div style="padding:10px 6px;font-size:13px;color:#A8B5C0">No exercises yet</div>';
       } else {
         exs.forEach(function(ex, xi) {
           var _sets = parseInt(ex.sets) || 3;
@@ -10499,8 +10502,8 @@ function renderCVProgramList() {
           var _setsLbl = _isCardio ? (ex.reps || '') : (_sets + ' sets' + (ex.reps ? ' &times; ' + String(ex.reps).replace(/ ?each ?/gi,'').replace(/ ?each side ?/gi,'') : ''));
           h += '<div onclick="event.stopPropagation();cvGoToExercise(' + i + ',' + xi + ')" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;cursor:pointer">';
           h += '<div style="width:26px;height:26px;border-radius:7px;background:#1F2A33;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#5BBFAA">&#9654;</div>';
-          h += '<div style="flex-grow:1;font-size:13px;color:#E6E9EC">' + (ex.name || 'Exercise') + '</div>';
-          h += '<div style="font-size:11px;color:#5A6B78">' + _setsLbl + '</div>';
+          h += '<div style="flex-grow:1;font-size:14px;color:#E6E9EC">' + (ex.name || 'Exercise') + '</div>';
+          h += '<div style="font-size:12.5px;color:#A8B5C0">' + _setsLbl + '</div>';
           h += '</div>';
         });
       }
