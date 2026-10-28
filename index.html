@@ -3607,12 +3607,14 @@ const CAT_BGS = {
   "Cervical":"#D4D8F0"
 };
 
+var EX_IMG_PH = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60"><rect width="60" height="60" rx="6" fill="#E3EAF0"/><text x="30" y="38" font-size="26" text-anchor="middle">&#127947;</text></svg>');
+function exImgErr() { return "this.onerror=null;this.src=EX_IMG_PH"; }
 function getIllus(name, cat) {
   // If the exercise has a start photo in exercises.json (from its video), use
   // that as the thumbnail - same picture the client app shows.
   try {
     var _m = (typeof exMedia === 'function') ? exMedia({ name: name }) : null;
-    if (_m && _m.start) return '<img src="' + _m.start + '" alt="' + String(name).replace(/"/g,'&quot;') + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:8px">';
+    if (_m && _m.start) return '<img src="' + _m.start + '" onerror="' + exImgErr() + '" alt="' + String(name).replace(/"/g,'&quot;') + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:8px">';
   } catch (e) {}
   // Check for custom photo first
   const custom = customPhotos[name];
@@ -6298,7 +6300,7 @@ function getExIllusStr(ex) {
   // already skips straight to the library in that case) plays the new one.
   var _mm = exMedia(ex);
   if (_mm.start) {
-    return '<img src="' + _mm.start + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:8px">';
+    return '<img src="' + _mm.start + '" onerror="' + exImgErr() + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:8px">';
   }
 
   // 2. No video - fall back to a manually-set reference photo for this
@@ -10482,10 +10484,10 @@ function renderCVProgramList() {
   // in progress (matches the old grid's amber "resume" highlight); once the
   // client taps a chevron, cvToggleProgExpand pins it to an explicit index/null.
   var expandIdx = cvExpandedProgIdx;
-  if (expandIdx === 'auto') expandIdx = (hasState && !cvCustomWorkout) ? cvProgIdx : null;
+  if (expandIdx === 'auto') expandIdx = null; // all programs start collapsed; client picks one
   var h = '<div style="padding:4px 2px 20px">';
   h += '<div style="font-size:26px;font-weight:800;color:#FFFFFF;margin:4px 0 2px;font-family:Georgia,serif">Start Workout</div>';
-  h += '<div style="font-size:13px;color:#8B98A5;margin-bottom:16px">Tap a program to begin</div>';
+  h += '<div style="font-size:13px;color:#8B98A5;margin-bottom:16px">Tap a program to see its exercises</div>';
   h += '<div style="font-size:12px;font-weight:700;color:#8B98A5;letter-spacing:.06em;margin-bottom:8px">MY PROGRAMS (' + activeCount + ')</div>';
   h += '<div style="display:flex;flex-direction:column;gap:8px">';
   cvData.programs.forEach(function(p, i) {
@@ -10521,14 +10523,14 @@ function renderCVProgramList() {
           var _sets = parseInt(ex.sets) || 3;
           var _isCardio = ex.cat === 'Cardio';
           var _setsLbl = _isCardio ? (ex.reps || '') : (_sets + ' sets' + (ex.reps ? ' &times; ' + String(ex.reps).replace(/ ?each ?/gi,'').replace(/ ?each side ?/gi,'') : ''));
-          h += '<div onclick="event.stopPropagation();cvGoToExercise(' + i + ',' + xi + ')" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;cursor:pointer">';
+          h += '<div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px">';
           h += '<div style="width:26px;height:26px;border-radius:7px;background:#1F2A33;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#5BBFAA">&#9654;</div>';
           h += '<div style="flex-grow:1;font-size:14px;color:#E6E9EC">' + (ex.name || 'Exercise') + '</div>';
           h += '<div style="font-size:12.5px;color:#A8B5C0">' + _setsLbl + '</div>';
           h += '</div>';
         });
       }
-      h += '<button onclick="event.stopPropagation();cvStartProgram(' + i + ')" style="width:100%;box-sizing:border-box;margin-top:6px;padding:10px;border-radius:10px;border:1px solid #2FD4F5;background:transparent;color:#2FD4F5;font-size:13px;font-weight:700;cursor:pointer">' + (resume ? 'Resume Program' : 'Start Program') + '</button>';
+      h += '<button onclick="event.stopPropagation();cvStartProgram(' + i + ')" style="width:100%;box-sizing:border-box;margin-top:8px;padding:13px;border-radius:10px;border:none;background:#2FD4F5;color:#0B0F12;font-size:15px;font-weight:800;cursor:pointer">' + (resume ? 'Resume Program' : 'Start Program') + '</button>';
       h += '</div>';
     }
     h += '</div>'; // end card
@@ -10542,7 +10544,7 @@ function cvToggleProgExpand(i) {
   var cur = cvExpandedProgIdx;
   if (cur === 'auto') {
     var hasState = cvState && Object.keys(cvState).length > 0;
-    cur = (hasState && !cvCustomWorkout) ? cvProgIdx : null;
+    cur = null;
   }
   cvExpandedProgIdx = (cur === i) ? null : i;
   renderCVProgramList();
