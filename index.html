@@ -6637,7 +6637,7 @@ function cvRestoreState() {
     var data = JSON.parse(saved);
     if (Date.now() - new Date(data.savedAt).getTime() > 4 * 60 * 60 * 1000) { localStorage.removeItem(key); return; }
     cvState = data.state || {};
-    if (Object.keys(cvState).length) cvWkMode = 'active'; // resume straight into the session
+    // progress is kept; client lands on the program list and taps Resume
     if (data.feeling) cvFeeling = data.feeling;
     toast('Workout progress restored!', 'ok');
   } catch(e) {}
@@ -9122,7 +9122,7 @@ function cvRestoreSession() {
     // Restore tab (only switch to workouts if there's mid-workout state)
     var hasState = Object.keys(cvState).length > 0;
     if (s.tab === 'workouts' && hasState) {
-      cvWkMode = 'active'; // mid-workout: skip the launcher, resume the session
+      cvWkMode = 'list'; // always land on the program list; Resume button is on the in-progress program
       cvSwitchTab('workouts');
     } else if (s.tab && s.tab !== 'home' && s.tab !== 'workouts') {
       cvSwitchTab(s.tab);
