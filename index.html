@@ -3322,7 +3322,8 @@ function cvParseAllSessions(src) {
       for (var i = 0; i < segs.length; i++) {
         var hm = segs[i].match(/^(.*?) \[(\d+)\/(\d+) sets\]:/);
         if (!hm) continue;
-        var e = { name: hm[1], setsDone: +hm[2], setsPlanned: +hm[3], cardioMins: 0, sets: [], maxWeight: 0, maxReps: 0, est: 0, volume: 0, reps: 0 };
+        var nm = segs[i].match(/\s\u2014\s"([^"]*)"\s*$/);
+        var e = { name: hm[1], note: nm ? nm[1].trim() : '', setsDone: +hm[2], setsPlanned: +hm[3], cardioMins: 0, sets: [], maxWeight: 0, maxReps: 0, est: 0, volume: 0, reps: 0 };
         var m;
         setRe.lastIndex = 0;
         while ((m = setRe.exec(segs[i]))) {
@@ -3722,39 +3723,69 @@ function buildProgressReport(cl, range, comment) {
   var avg = Math.round(tot.s / months.length * 10) / 10;
   var compl = tot.exP ? Math.round(tot.exD / tot.exP * 100) : null;
 
-  // ---------- plain text for clinical notes ----------
+  // ---------- plain text for clinical notes (review style) ----------
+  var MONF = function(d) { return d.getDate() + ' ' + CV_MON[d.getMonth()]; };
+  var nowD = new Date(), startD = new Date(nowD.getFullYear(), nowD.getMonth() - (months.length - 1), 1);
+  var endD = new Date();
+  var revPeriod = MONF(startD) + ' \u2013 ' + MONF(endD) + ' ' + endD.getFullYear() + ' (' + months.length + ' months)';
+  var gains = roll.filter(function(r) { return r.pct !== null; });
+  var tracked = roll.filter(function(r) { return r.pct !== null; });
+  var improving = tracked.filter(function(r) { return r.pct !== null && r.pct > 3; });
+  var attend = activeWks >= 10 ? 'Consistent attendance' : activeWks >= 6 ? 'Moderate attendance' : 'Intermittent attendance';
   var L = [];
-  L.push('EXERCISE PROGRESS SUMMARY – ' + name);
-  L.push('Period: ' + period + ' (generated ' + today + ')');
-  L.push('Source: workouts submitted by the client in the Beachside EP app.');
+  L.push('PROGRESS REVIEW \u2013 ' + name);
+  L.push('Review period: ' + revPeriod + ' | Source: client-logged workouts, Beachside EP app');
+  L.push('');
+  L.push('SUMMARY');
+  var sum = attend + ' (' + tot.s + ' workouts, avg ' + avg + '/month, ' + activeWks + ' of last 12 weeks' + (streak > 1 ? ', ' + streak + '-week streak' : '') + ').';
+  L.push(sum);
+  if (tracked.length) {
+    L.push(improving.length === tracked.length ? 'Strength improving across all tracked exercises.' :
+           improving.length ? 'Strength improving in ' + improving.length + ' of ' + tracked.length + ' tracked exercises; others steady.' : 'Strength steady across tracked exercises.');
+  }
+  if (tot.card) L.push('Cardio ' + Math.round(tot.card) + ' min logged.');
   L.push('');
   L.push('ADHERENCE');
-  L.push('- Workouts logged: ' + tot.s + ' in ' + months.length + ' months (average ' + avg + ' per month)');
-  L.push('- Weeks trained: ' + activeWks + ' of the last 12; current streak ' + streak + ' week' + (streak === 1 ? '' : 's'));
+  L.push('- Workouts: ' + months.map(function(m, i) { return m.label + ' ' + m.sessions + (i === months.length - 1 ? ' (to date)' : ''); }).join(' | '));
   if (compl !== null) L.push('- Prescribed exercises completed: ' + compl + '%');
-  L.push('- Total sets: ' + tot.sets + (tot.vol ? '; total weight lifted ' + cvFmtNum(tot.vol) + ' kg' : '') + (tot.card ? '; cardio ' + Math.round(tot.card) + ' min' : ''));
-  L.push('- By month: ' + months.map(function(m) { return m.label + ' ' + m.sessions; }).join(', '));
-  var gains = roll.filter(function(r) { return r.pct !== null; });
-  if (gains.length) {
+  L.push('- Total sets ' + tot.sets + (tot.vol ? '; total load ' + (tot.vol >= 1000 ? (Math.round(tot.vol / 100) / 10) + ' t' : Math.round(tot.vol) + ' kg') : ''));
+  L.push('');
+  L.push('PROGRESSION (first logged \u2192 latest)');
+  var progLines = [];
+  roll.forEach(function(r) {
+    var wh = r.hist.filter(function(h) { return h.e.maxWeight > 0; });
+    var rh = r.hist.filter(function(h) { return h.e.maxReps > 0; });
+    var line = null;
+    if (wh.length) {
+      var w0 = wh[0].e.maxWeight, w1 = wh[wh.length - 1].e.maxWeight, bits = [];
+      bits.push(w0 === w1 ? cvFmtNum(w1) + ' kg (unchanged)' : cvFmtNum(w0) + ' \u2192 ' + cvFmtNum(w1) + ' kg');
+      if (rh.length > 1 && rh[0].e.maxReps !== rh[rh.length - 1].e.maxReps) bits.push(rh[0].e.maxReps + ' \u2192 ' + rh[rh.length - 1].e.maxReps + ' reps');
+      line = r.name + ': ' + bits.join(', ') + (r.pct !== null && r.pct !== 0 ? '  (' + (r.pct > 0 ? '+' : '') + r.pct + '% est. strength)' : '');
+    } else {
+      var lastE = r.hist[r.hist.length - 1].e, rp = lastE.sets.length ? lastE.sets[0].reps : 0;
+      var rtxt = (rh.length > 1 && rh[0].e.maxReps !== rh[rh.length - 1].e.maxReps) ? rh[0].e.maxReps + ' \u2192 ' + rh[rh.length - 1].e.maxReps + ' reps, ' : '';
+      line = r.name + ': ' + rtxt + lastE.setsDone + 'x' + rp + ', completed ' + r.sessions + ' session' + (r.sessions === 1 ? '' : 's') + ', no load';
+    }
+    progLines.push('- ' + line);
+  });
+  var capN = 12;
+  progLines.slice(0, capN).forEach(function(l) { L.push(l); });
+  if (progLines.length > capN) L.push('- + ' + (progLines.length - capN) + ' more exercises (see printed report)');
+  // client-reported comments (skip empty / trivial acknowledgements)
+  var trivial = /^(fine|ok|okay|good|great|easy|na|n\/a|none|nil|no|yes|all good|no issues|no problems|nice|hard|ok\.)\.?!?$/i;
+  var comments = [];
+  inRange.forEach(function(sx) { sx.exs.forEach(function(e) { if (e.note && !trivial.test(e.note) && e.note.length > 2) comments.push({ d: sx.date, n: e.name, t: e.note }); }); });
+  if (comments.length) {
+    var seen = {}, uniq = [];
+    comments.slice().reverse().forEach(function(c) { var k = c.n + '|' + c.t.toLowerCase(); if (!seen[k]) { seen[k] = 1; uniq.push(c); } });
     L.push('');
-    L.push('STRENGTH CHANGE (estimated 1RM, first to latest session)');
-    gains.slice().sort(function(a, b) { return b.pct - a.pct; }).forEach(function(r) {
-      L.push('- ' + r.name + ': ' + cvFmtNum(r.firstEst) + ' to ' + cvFmtNum(r.lastEst) + ' kg (' + (r.pct > 0 ? '+' : '') + r.pct + '%) over ' + r.sessions + ' sessions');
-    });
+    L.push('CLIENT-REPORTED');
+    uniq.slice(0, 8).forEach(function(c) { L.push('- ' + c.n + ' (' + MONF(c.d) + '): "' + c.t + '"'); });
+    if (uniq.length > 8) L.push('- + ' + (uniq.length - 8) + ' earlier comments');
   }
-  var pbs = roll.filter(function(r) { return r.maxWeight || r.maxReps; });
-  if (pbs.length) {
-    L.push('');
-    L.push('PERSONAL BESTS');
-    pbs.forEach(function(r) {
-      var bits = [];
-      if (r.maxWeight) bits.push('max ' + cvFmtNum(r.maxWeight) + ' kg');
-      if (r.maxReps) bits.push('max ' + r.maxReps + ' reps in a set');
-      bits.push('max ' + r.maxSets + ' sets in a session');
-      L.push('- ' + r.name + ': ' + bits.join(', '));
-    });
-  }
-  if (comment) { L.push(''); L.push('CLINICIAN COMMENT'); L.push(comment); }
+  L.push('');
+  L.push('CLINICIAN COMMENT');
+  L.push(comment ? comment : '[add comment]');
   var text = L.join('\n');
 
   // ---------- printable HTML ----------
