@@ -3783,9 +3783,6 @@ function buildProgressReport(cl, range, comment) {
     uniq.slice(0, 8).forEach(function(c) { L.push('- ' + c.n + ' (' + MONF(c.d) + '): "' + c.t + '"'); });
     if (uniq.length > 8) L.push('- + ' + (uniq.length - 8) + ' earlier comments');
   }
-  L.push('');
-  L.push('CLINICIAN COMMENT');
-  L.push(comment ? comment : '[add comment]');
   var text = L.join('\n');
 
   // ---------- printable HTML ----------
