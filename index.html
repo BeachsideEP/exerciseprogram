@@ -2663,11 +2663,19 @@ create policy "clients_read_library" on library for select using (auth.role() = 
 <div class="modal" style="width:min(760px,96vw);max-height:90vh;overflow-y:auto">
   <div class="modal-title">&#128202; Client Progress Report</div>
   <p class="modal-sub">Print or save as PDF for the client, or copy a summary into clinical notes</p>
-  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-    <span style="font-size:11px;font-weight:700;color:var(--muted,#7A95A5)">PERIOD</span>
+  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+    <span style="font-size:11px;font-weight:700;color:var(--muted,#7A95A5)">QUICK</span>
     <button class="btn btn-sm btn-outline" id="prR3" onclick="setProgRepRange(3)">3 months</button>
     <button class="btn btn-sm btn-teal" id="prR6" onclick="setProgRepRange(6)">6 months</button>
     <button class="btn btn-sm btn-outline" id="prR12" onclick="setProgRepRange(12)">12 months</button>
+    <button class="btn btn-sm btn-outline" id="prRlast" onclick="setProgRepRange('last')" style="display:none">Since last report</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+    <label style="font-size:11px;font-weight:700;color:var(--muted,#7A95A5)">FROM</label>
+    <input type="date" id="prFrom" onchange="prDatesChanged()" style="padding:6px 8px;border:1.5px solid var(--sand-d);border-radius:6px;font-size:12px;font-family:inherit;background:var(--sand)">
+    <label style="font-size:11px;font-weight:700;color:var(--muted,#7A95A5)">TO</label>
+    <input type="date" id="prTo" onchange="prDatesChanged()" style="padding:6px 8px;border:1.5px solid var(--sand-d);border-radius:6px;font-size:12px;font-family:inherit;background:var(--sand)">
+    <span style="font-size:11px;color:var(--muted,#7A95A5)">Pick the date of the last review to see progress since then</span>
   </div>
   <textarea id="prComment" rows="2" placeholder="Optional comment for the client or notes (printed on the report)..." oninput="renderProgressReport()" style="width:100%;box-sizing:border-box;margin-bottom:10px"></textarea>
   <div id="prPreview" style="border:1px solid var(--border,#DCE4EC);border-radius:10px;padding:12px;background:#fff;overflow-x:auto"></div>
@@ -3379,8 +3387,8 @@ function cvMonthlyStats(sessions, nMonths) {
   return months;
 }
 
-function cvWeeklyStats(sessions, nWeeks) {
-  var thisWk = cvWeekStart(new Date()), weeks = [];
+function cvWeeklyStats(sessions, nWeeks, endDate) {
+  var thisWk = cvWeekStart(endDate || new Date()), weeks = [];
   for (var i = nWeeks - 1; i >= 0; i--) {
     var ws = new Date(thisWk); ws.setDate(ws.getDate() - i * 7);
     weeks.push({ start: ws, label: cvShortDate(ws), sessions: 0 });
@@ -3393,10 +3401,10 @@ function cvWeeklyStats(sessions, nWeeks) {
 }
 
 // current run of consecutive weeks with at least one workout (this week doesn't break it if it's still early)
-function cvWeekStreak(sessions) {
+function cvWeekStreak(sessions, endDate) {
   var set = {};
   sessions.forEach(function(s) { set[cvWeekStart(s.date).getTime()] = 1; });
-  var wk = cvWeekStart(new Date()), streak = 0;
+  var wk = cvWeekStart(endDate || new Date()), streak = 0;
   if (!set[wk.getTime()]) wk.setDate(wk.getDate() - 7);
   while (set[wk.getTime()]) { streak++; wk.setDate(wk.getDate() - 7); }
   return streak;
@@ -3695,49 +3703,85 @@ function cvMetricVal(e, m) { return m === 'weight' ? e.maxWeight : m === 'reps' 
 // ════════════════════════════════════════════════════
 // PRACTITIONER: CLIENT PROGRESS REPORT (print / PDF / copy to clinical notes)
 // ════════════════════════════════════════════════════
-var prRange = 6;
+var prRange = 6;       // preset months (3 / 6 / 12) or 'custom' / 'last'
+var prFrom = '', prTo = ''; // yyyy-mm-dd strings from the date pickers
+function prIso(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function prParse(iso, endOfDay) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); if (!m) return null; return new Date(+m[1], +m[2] - 1, +m[3], endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0); }
+function prLastKey(cl) { return 'bep_prlast_' + (cl && cl.id); }
+function prLastDate(cl) { try { return localStorage.getItem(prLastKey(cl)) || ''; } catch (e) { return ''; } }
+function prRememberReport(cl) { try { localStorage.setItem(prLastKey(cl), prIso(new Date())); } catch (e) {} }
 function openProgressReport() {
   var cl = getClient();
   if (!cl) { toast('Select a client first', 'err'); return; }
   var sess = cvParseAllSessions(cl);
   if (!sess.length) { toast('No client workout logs to report on yet', 'err'); return; }
   var cm = document.getElementById('prComment'); if (cm) cm.value = '';
+  prRange = 6; var t = new Date(), f = new Date(t.getFullYear(), t.getMonth() - 6, t.getDate());
+  prTo = prIso(t); prFrom = prIso(f);
+  var lb = document.getElementById('prRlast'); if (lb) { var ld = prLastDate(cl); lb.style.display = ld ? '' : 'none'; if (ld) { var d0 = prParse(ld); lb.textContent = 'Since last report (' + cvShortDate(d0) + ')'; } }
   openM('progRepM');
   renderProgressReport();
 }
-function setProgRepRange(n) { prRange = n; renderProgressReport(); }
+function setProgRepRange(n) {
+  var cl = getClient(), t = new Date(); prTo = prIso(t);
+  if (n === 'last') { var ld = prLastDate(cl); if (!ld) return; prFrom = ld; }
+  else { prFrom = prIso(new Date(t.getFullYear(), t.getMonth() - n, t.getDate())); }
+  prRange = n; renderProgressReport();
+}
+function prDatesChanged() {
+  var f = document.getElementById('prFrom'), t = document.getElementById('prTo');
+  prFrom = f ? f.value : prFrom; prTo = t ? t.value : prTo; prRange = 'custom'; renderProgressReport();
+}
 
-function buildProgressReport(cl, range, comment) {
-  var sessions = cvParseAllSessions(cl);
-  var months = cvMonthlyStats(sessions, range);
-  var weeks = cvWeeklyStats(sessions, 12), streak = cvWeekStreak(sessions);
+function buildProgressReport(cl, opts, comment) {
+  var allSessions = cvParseAllSessions(cl);
+  var from = opts.from, to = opts.to;
+  var sessions = allSessions.filter(function(s) { return s.date >= from && s.date <= to; });
+  if (!sessions.length) return { empty: true, html: '', text: '' };
+  var days = Math.max(1, Math.round((to - from) / 86400000) + 1), weeksSpan = Math.max(1, Math.ceil(days / 7));
+  var unit = days <= 62 ? 'week' : 'month';
+  var months = [];   // "buckets": weeks for short periods, calendar months for longer ones
+  if (unit === 'week') {
+    var wkd = cvWeekStart(from);
+    while (wkd <= to) { months.push({ key: wkd.getTime(), start: new Date(wkd), label: cvShortDate(wkd), sessions: 0, sets: 0, reps: 0, volume: 0, cardio: 0, exDone: 0, exPlanned: 0 }); wkd = new Date(wkd.getFullYear(), wkd.getMonth(), wkd.getDate() + 7); }
+  } else {
+    var md = new Date(from.getFullYear(), from.getMonth(), 1);
+    while (md <= to) { months.push({ key: cvMonthKey(md), label: CV_MON[md.getMonth()], sessions: 0, sets: 0, reps: 0, volume: 0, cardio: 0, exDone: 0, exPlanned: 0 }); md = new Date(md.getFullYear(), md.getMonth() + 1, 1); }
+  }
+  sessions.forEach(function(sx) {
+    var key = unit === 'week' ? cvWeekStart(sx.date).getTime() : cvMonthKey(sx.date);
+    var m = months.filter(function(b) { return b.key === key; })[0]; if (!m) return;
+    m.sessions++; m.exDone += sx.done; m.exPlanned += sx.planned;
+    sx.exs.forEach(function(e) { m.sets += e.setsDone; m.reps += e.reps; m.volume += e.volume; m.cardio += e.cardioMins; });
+  });
+  var calWeeks = Math.max(1, Math.round((cvWeekStart(to) - cvWeekStart(from)) / 604800000) + 1);
+  var weeks = cvWeeklyStats(sessions, Math.min(12, calWeeks), to), streak = cvWeekStreak(sessions, to);
   var activeWks = weeks.filter(function(w) { return w.sessions > 0; }).length;
-  var inRange = sessions.filter(function(s) { return months.some(function(m) { return m.key === cvMonthKey(s.date); }); });
+  var inRange = sessions;
   var tot = months.reduce(function(a, m) { a.s += m.sessions; a.sets += m.sets; a.vol += m.volume; a.card += m.cardio; a.exD += m.exDone; a.exP += m.exPlanned; return a; }, { s: 0, sets: 0, vol: 0, card: 0, exD: 0, exP: 0 });
-  var firstM = months[0], lastM = months[months.length - 1];
-  var period = firstM.label + ' ' + firstM.year + ' – ' + lastM.label + ' ' + lastM.year;
+  var fmtLong = function(d) { return d.getDate() + ' ' + CV_MON[d.getMonth()] + ' ' + d.getFullYear(); };
+  var period = fmtLong(from) + ' – ' + fmtLong(to) + ' (' + weeksSpan + ' week' + (weeksSpan === 1 ? '' : 's') + ')';
+  var toIsToday = prIso(to) === prIso(new Date());
   var today = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
   var roll = cvExerciseRollup(sessions).filter(function(r) { return r.name.toLowerCase() !== 'any cardio'; }).sort(function(a, b) { return b.sessions - a.sessions || a.name.localeCompare(b.name); });
   roll.forEach(function(r) { r.pct = (r.sessions >= 2 && r.firstEst > 0 && r.lastEst > 0) ? Math.round((r.lastEst - r.firstEst) / r.firstEst * 100) : null; });
   var name = ((cl.first || '') + ' ' + (cl.last || '')).trim();
-  var avg = Math.round(tot.s / months.length * 10) / 10;
+  var avg = Math.round(tot.s / weeksSpan * 10) / 10;
   var compl = tot.exP ? Math.round(tot.exD / tot.exP * 100) : null;
 
   // ---------- plain text for clinical notes (review style) ----------
   var MONF = function(d) { return d.getDate() + ' ' + CV_MON[d.getMonth()]; };
-  var nowD = new Date(), startD = new Date(nowD.getFullYear(), nowD.getMonth() - (months.length - 1), 1);
-  var endD = new Date();
-  var revPeriod = MONF(startD) + ' \u2013 ' + MONF(endD) + ' ' + endD.getFullYear() + ' (' + months.length + ' months)';
+  var revPeriod = period;
   var gains = roll.filter(function(r) { return r.pct !== null; });
   var tracked = roll.filter(function(r) { return r.pct !== null; });
   var improving = tracked.filter(function(r) { return r.pct !== null && r.pct > 3; });
-  var attend = activeWks >= 10 ? 'Consistent attendance' : activeWks >= 6 ? 'Moderate attendance' : 'Intermittent attendance';
+  var wkRatio = weeks.length ? activeWks / weeks.length : 0, attend = wkRatio >= 0.8 ? 'Consistent attendance' : wkRatio >= 0.5 ? 'Moderate attendance' : 'Intermittent attendance';
   var L = [];
   L.push('PROGRESS REVIEW \u2013 ' + name);
   L.push('Review period: ' + revPeriod + ' | Source: client-logged workouts, Beachside EP app');
   L.push('');
   L.push('SUMMARY');
-  var sum = attend + ' (' + tot.s + ' workouts, avg ' + avg + '/month, ' + activeWks + ' of last 12 weeks' + (streak > 1 ? ', ' + streak + '-week streak' : '') + ').';
+  var sum = attend + ' (' + tot.s + ' workouts, avg ' + avg + '/week, ' + activeWks + ' of ' + weeks.length + ' week' + (weeks.length === 1 ? '' : 's') + (streak > 1 ? ', ' + streak + '-week streak' : '') + ').';
   L.push(sum);
   if (tracked.length) {
     L.push(improving.length === tracked.length ? 'Strength improving across all tracked exercises.' :
@@ -3746,11 +3790,11 @@ function buildProgressReport(cl, range, comment) {
   if (tot.card) L.push('Cardio ' + Math.round(tot.card) + ' min logged.');
   L.push('');
   L.push('ADHERENCE');
-  L.push('- Workouts: ' + months.map(function(m, i) { return m.label + ' ' + m.sessions + (i === months.length - 1 ? ' (to date)' : ''); }).join(' | '));
+  L.push('- Workouts: ' + months.map(function(m, i) { return m.label + ' ' + m.sessions + (toIsToday && i === months.length - 1 ? ' (to date)' : ''); }).join(' | '));
   if (compl !== null) L.push('- Prescribed exercises completed: ' + compl + '%');
   L.push('- Total sets ' + tot.sets + (tot.vol ? '; total load ' + (tot.vol >= 1000 ? (Math.round(tot.vol / 100) / 10) + ' t' : Math.round(tot.vol) + ' kg') : ''));
   L.push('');
-  L.push('PROGRESSION (first logged \u2192 latest)');
+  L.push('PROGRESSION (first logged in period \u2192 latest)');
   var progLines = [];
   roll.forEach(function(r) {
     var wh = r.hist.filter(function(h) { return h.e.maxWeight > 0; });
@@ -3796,7 +3840,7 @@ function buildProgressReport(cl, range, comment) {
     '<div style="font-size:11px;color:#5A6B78">' + period + (cl.clinician ? ' &middot; Clinician: ' + cvEsc(cl.clinician) : '') + '</div></div></div>';
   // KPIs
   function kpi(l, v, u) { return '<div style="flex:1;min-width:0;border:1px solid #DCE4EC;border-radius:8px;padding:7px 9px;background:#F7FAFC"><div style="font-size:9px;color:#5A6B78;text-transform:uppercase;letter-spacing:.05em">' + l + '</div><div style="font-size:19px;font-weight:700;color:#0D3D52;line-height:1.2">' + v + '<span style="font-size:10px;font-weight:600;color:#5A6B78"> ' + (u || '') + '</span></div></div>'; }
-  h += '<div style="display:flex;gap:7px;margin-bottom:12px">' + kpi('Workouts', tot.s) + kpi('Avg / month', avg) + kpi('Sets done', tot.sets) + kpi('Kg lifted', cvFmtNum(tot.vol)) + kpi('Weeks trained', activeWks, '/ 12') + '</div>';
+  h += '<div style="display:flex;gap:7px;margin-bottom:12px">' + kpi('Workouts', tot.s) + kpi('Avg / week', avg) + kpi('Sets done', tot.sets) + kpi('Kg lifted', cvFmtNum(tot.vol)) + kpi('Weeks trained', activeWks, '/ ' + weeks.length) + '</div>';
   // charts
   function card(t, m, c) { return '<div style="break-inside:avoid;border:1px solid #DCE4EC;border-radius:10px;padding:8px 10px;background:#fff"><div style="font-size:11.5px;font-weight:700;color:#0D3D52">' + t + '</div><div style="font-size:9.5px;color:#5A6B78;margin:1px 0 4px;line-height:1.3">' + m + '</div>' + c + '</div>'; }
   var bc1 = cvBarChart(months.map(function(m, i) { return { label: m.label, value: m.sessions, hi: i === months.length - 1 }; }), { unit: 'workouts' });
@@ -3804,10 +3848,10 @@ function buildProgressReport(cl, range, comment) {
   var bc3 = cvBarChart(weeks.map(function(w, i) { return { label: ((weeks.length - 1 - i) % 3 === 0) ? w.label : '', value: w.sessions, hi: i === weeks.length - 1 }; }), { unit: 'workouts' });
   var bc4 = cvBarChart(months.map(function(m, i) { return { label: m.label, value: m.sets, hi: i === months.length - 1 }; }), { unit: 'sets' });
   h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">' +
-    card('Workouts per month', 'Workouts submitted each month. Steady bars = steady habits.', bc1) +
-    card('Total weight lifted (kg)', 'Reps × kg for sets where a weight was logged.', bc2) +
-    card('Sets completed', 'Every set ticked off, by month.', bc4) +
-    card('Weekly consistency', 'Workouts per week, last 12 weeks. Current streak: ' + streak + ' week' + (streak === 1 ? '' : 's') + '.', bc3) + '</div>';
+    card('Workouts per ' + unit, 'Workouts submitted each ' + unit + '. Steady bars = steady habits.', bc1) +
+    card('Total weight lifted (kg)', 'Reps × kg for sets where a weight was logged, per ' + unit + '.', bc2) +
+    card('Sets completed', 'Every set ticked off, by ' + unit + '.', bc4) +
+    (unit === 'month' ? card('Weekly consistency', 'Workouts per week' + (weeks.length === 12 ? ', last 12 weeks of the period' : '') + '. Current streak: ' + streak + ' week' + (streak === 1 ? '' : 's') + '.', bc3) : card('Streak', 'Consecutive weeks with at least one workout, up to the end of the period.', '<div style="font-size:34px;font-weight:800;color:#1A7BA4;text-align:center;padding:18px 0 6px">' + streak + '</div><div style="text-align:center;font-size:11px;color:#5A6B78">week' + (streak === 1 ? '' : 's') + ' in a row</div>')) + '</div>';
   // improvers
   var imps = gains.filter(function(r) { return r.pct > 0; }).sort(function(a, b) { return b.pct - a.pct; }).slice(0, 5);
   if (imps.length) {
@@ -3825,17 +3869,26 @@ function buildProgressReport(cl, range, comment) {
 
 function renderProgressReport() {
   var cl = getClient(); if (!cl) return;
-  var cm = document.getElementById('prComment');
-  var rep = buildProgressReport(cl, prRange, cm ? cm.value.trim() : '');
-  window._prRep = rep;
-  var pv = document.getElementById('prPreview'); if (pv) pv.innerHTML = rep.html;
-  [3, 6, 12].forEach(function(n) {
-    var b = document.getElementById('prR' + n); if (!b) return;
+  var f = document.getElementById('prFrom'), t = document.getElementById('prTo');
+  if (f && f.value !== prFrom) f.value = prFrom; if (t && t.value !== prTo) t.value = prTo;
+  [3, 6, 12, 'last'].forEach(function(n) {
+    var b = document.getElementById(n === 'last' ? 'prRlast' : 'prR' + n); if (!b) return;
     b.className = 'btn btn-sm ' + (n === prRange ? 'btn-teal' : 'btn-outline');
   });
+  var pv = document.getElementById('prPreview'), from = prParse(prFrom, false), to = prParse(prTo, true);
+  window._prRep = null;
+  function msg(t) { if (pv) pv.innerHTML = '<div style="padding:26px 10px;text-align:center;color:#5A6B78;font-size:13px">' + t + '</div>'; }
+  if (!from || !to) { msg('Pick a start and end date to build the report.'); return; }
+  if (from > to) { msg('The start date is after the end date — please swap them.'); return; }
+  var cm = document.getElementById('prComment');
+  var rep = buildProgressReport(cl, { from: from, to: to }, cm ? cm.value.trim() : '');
+  if (rep.empty) { msg('No workouts were logged between ' + cvShortDate(from) + ' ' + from.getFullYear() + ' and ' + cvShortDate(to) + ' ' + to.getFullYear() + '. Try an earlier start date.'); return; }
+  window._prRep = rep;
+  if (pv) pv.innerHTML = rep.html;
 }
 function printProgressReport() {
-  if (!window._prRep) return;
+  if (!window._prRep) { toast('Pick dates with logged workouts first', 'err'); return; }
+  prRememberReport(getClient());
   var w = document.getElementById('progWrap'); if (!w) return;
   w.innerHTML = window._prRep.html;
   document.body.classList.add('print-prog');
@@ -3844,7 +3897,8 @@ function printProgressReport() {
   setTimeout(function() { window.print(); }, 80);
 }
 function copyProgressReport() {
-  if (!window._prRep) return;
+  if (!window._prRep) { toast('Pick dates with logged workouts first', 'err'); return; }
+  prRememberReport(getClient());
   var text = window._prRep.text;
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(function() { toast('✓ Progress summary copied — paste into clinical notes', 'ok'); }).catch(function() { fallbackCopyNotes(text); });
