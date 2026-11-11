@@ -5079,7 +5079,7 @@ function openDrawer(id) {
   document.getElementById('drCat').style.color = CAT_COLORS[ex.cat] || '#555';
   document.getElementById('drDesc').textContent = ex.desc || '';
   document.getElementById('drMuscles').innerHTML = (ex.muscles||'').split(',').map(m=>`<span class="tag">${m.trim()}</span>`).join('');
-  const ps = [ex.sets?`${ex.sets} sets`:'',ex.reps?`${ex.reps} reps`:'',ex.hold||'',ex.rest?`Rest: ${ex.rest}`:''].filter(Boolean);
+  const ps = [ex.sets?`${ex.sets} sets`:'',exRepsText(ex)?`${exRepsText(ex)} reps`:'',ex.hold||'',exLoadText(ex)||'',ex.rest?`Rest: ${ex.rest}`:''].filter(Boolean);
   document.getElementById('drParams').innerHTML = ps.map(p=>`<span class="tag">${p}</span>`).join('');
   document.getElementById('drAddBtn').onclick = () => { addEx(id); closeDrawer(); };
   // Show video + start/end photos if available
@@ -5425,7 +5425,7 @@ function updatePreviewPaneOnly() {
   if (p.exercises.length) {
     html += `<div class="prev-div"></div>`;
     html += p.exercises.map((ex,i) => {
-      const ps = [ex.sets?`${ex.sets} sets`:'',ex.reps?`${ex.reps} reps`:'',ex.hold||'',ex.load||'',ex.rest?`Rest: ${ex.rest}`:''].filter(Boolean).join(' · ');
+      const ps = [ex.sets?`${ex.sets} sets`:'',exRepsText(ex)?`${exRepsText(ex)} reps`:'',ex.hold||'',exLoadText(ex)||'',ex.rest?`Rest: ${ex.rest}`:''].filter(Boolean).join(' · ');
       return `<div class="prev-ex"><div class="prev-ex-nm">${i+1}. ${ex.name}</div><div class="prev-ex-p">${ps||'—'}</div>${ex.notes?`<div class="prev-ex-n">📋 ${ex.notes}</div>`:''}${ex.clientNote?`<div class="prev-ex-n" style="color:#5BBFAA">📌 Client: ${ex.clientNote}</div>`:''}</div>`;
     }).join('');
   } else { html += `<div class="prev-empty" style="margin-top:9px">Add exercises above</div>`; }
@@ -5458,7 +5458,7 @@ function updatePreview() {
   if (p.exercises.length) {
     html += `<div class="prev-div"></div>`;
     html += p.exercises.map((ex,i) => {
-      const ps = [ex.sets?`${ex.sets} sets`:'',ex.reps?`${ex.reps} reps`:'',ex.hold||'',ex.load||'',ex.rest?`Rest: ${ex.rest}`:''].filter(Boolean).join(' · ');
+      const ps = [ex.sets?`${ex.sets} sets`:'',exRepsText(ex)?`${exRepsText(ex)} reps`:'',ex.hold||'',exLoadText(ex)||'',ex.rest?`Rest: ${ex.rest}`:''].filter(Boolean).join(' · ');
       return `<div class="prev-ex"><div class="prev-ex-nm">${i+1}. ${ex.name}</div><div class="prev-ex-p">${ps||'—'}</div>${ex.notes?`<div class="prev-ex-n">📋 ${ex.notes}</div>`:''}${ex.clientNote?`<div class="prev-ex-n" style="color:#5BBFAA">📌 Client: ${ex.clientNote}</div>`:''}</div>`;
     }).join('');
   } else { html += `<div class="prev-empty" style="margin-top:9px">Add exercises above</div>`; }
@@ -8040,7 +8040,7 @@ function doPDFWithOpts() {
   ].filter(Boolean);
 
   const exHTML = p.exercises.map(function(ex, i) {
-    const params = [{l:'Sets',v:ex.sets},{l:'Reps',v:ex.reps},{l:'Hold',v:ex.hold},{l:'Load',v:ex.load},{l:'Rest',v:ex.rest}].filter(function(f){return f.v;});
+    const params = [{l:'Sets',v:ex.sets},{l:'Reps',v:exRepsText(ex)},{l:'Hold',v:ex.hold},{l:'Load',v:exLoadText(ex)},{l:'Rest',v:ex.rest}].filter(function(f){return f.v;});
     let illusHTML = '';
     if (showPhotos) {
       const illus = getIllus(ex.name, ex.cat);
@@ -8197,6 +8197,46 @@ async function renderSVGtoPDF(doc, ex, x, y, w, h) {
   return _drew;
 }
 
+
+// ── Print-out / email / preview text for WEIGHT and REPS ──
+// Format: the prescribed value first; if the client has since gone UP in weight, or changed
+// their reps, the client's current figure follows an arrow:  "25kg -> 30kg",  "12 -> 15".
+// If nothing was prescribed, the client's own figure is shown so print-outs are never blank.
+function exNum(v) { var m = String(v == null ? '' : v).match(/\d+(?:\.\d+)?/); return m ? parseFloat(m[0]) : null; }
+function exUniq(arr) { return arr.filter(function(v, i) { return arr.indexOf(v) === i; }); }
+function exClientVals(by, one) {
+  var a = (by || []).filter(function(v) { return v !== '' && v != null; }).map(String);
+  return a.length ? a : (one !== '' && one != null ? [String(one)] : []);
+}
+function exLoadText(ex) {
+  if (!ex) return '';
+  var P = ex.load ? String(ex.load) : '';
+  if (ex.cat === 'Cardio') return P;
+  var arr = exClientVals(ex.lastLoadBySet, ex.lastLoad);
+  if (!arr.length) return P;
+  var nums = arr.map(exNum).filter(function(n) { return n !== null; });
+  var unitM = /[a-zA-Z]+\s*$/.exec(P), unit = unitM ? unitM[0] : 'kg';
+  var u = exUniq(arr), txt = u.length === 1 ? u[0] : arr.join('/');
+  if (/^[\d.\/]+$/.test(txt)) txt += unit;
+  if (!P) return txt;
+  var Pn = exNum(P);
+  if (nums.length && Pn !== null && Math.max.apply(null, nums) > Pn) return P + ' → ' + txt;
+  return P;
+}
+function exRepsText(ex) {
+  if (!ex) return '';
+  var P = ex.reps ? String(ex.reps) : '';
+  if (ex.cat === 'Cardio') return P;
+  var arr = exClientVals(ex.lastRepsBySet, ex.lastReps);
+  if (!arr.length) return P;
+  var nums = arr.map(exNum).filter(function(n) { return n !== null; });
+  if (!nums.length) return P;
+  if (!P) return exUniq(arr).join('/');
+  var rg = /(\d+)\s*[-–]\s*(\d+)/.exec(P), lo, hi;
+  if (rg) { lo = +rg[1]; hi = +rg[2]; } else { lo = hi = exNum(P); }
+  var changed = lo === null || nums.some(function(n) { return n < lo || n > hi; });
+  return changed ? P + ' → ' + exUniq(arr).join('/') : P;
+}
 
 async function generatePDF(cl, p) {
   const btn = document.querySelector('[onclick="doPDFAndClose()"]');
@@ -8423,9 +8463,9 @@ async function generatePDF(cl, p) {
       // Parameters
       const params = [
         ex.sets ? ex.sets + ' sets' : null,
-        ex.reps ? ex.reps : null,
+        exRepsText(ex) || null,
         ex.hold ? 'Hold ' + ex.hold : null,
-        ex.load ? ex.load : null,
+        exLoadText(ex) || null,
         ex.rest ? 'Rest ' + ex.rest : null,
       ].filter(Boolean);
       if (params.length) {
@@ -11899,9 +11939,9 @@ async function emailProgramToClient() {
     var exRows = (prog.exercises || []).map(function(ex, i) {
       var params = [];
       if (ex.sets) params.push(ex.sets + ' sets');
-      if (ex.reps) params.push(ex.reps + ' reps');
+      var _rt = exRepsText(ex); if (_rt) params.push(_rt + ' reps');
       if (ex.hold) params.push('Hold ' + withUnit(ex.hold, 's'));
-      if (ex.load) params.push(ex.load);
+      var _lt = exLoadText(ex); if (_lt) params.push(_lt);
       if (ex.rest) params.push('Rest ' + withUnit(ex.rest, 's'));
       // Use | as delimiter - edge function will parse this
       return [(i+1) + '. ' + ex.name, params.join(', '), ex.notes || ''].join('||');
