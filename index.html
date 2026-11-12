@@ -8220,7 +8220,10 @@ function exLoadText(ex) {
   if (/^[\d.\/]+$/.test(txt)) txt += unit;
   if (!P) return txt;
   var Pn = exNum(P);
-  if (nums.length && Pn !== null && Math.max.apply(null, nums) > Pn) return P + ' → ' + txt;
+  if (nums.length && Pn !== null) {
+    if (Math.max.apply(null, nums) > Pn) return P + ' → ' + txt;
+    if (nums.some(function(n) { return n !== Pn; })) return P + ' (last ' + txt + ')';
+  }
   return P;
 }
 function exRepsText(ex) {
@@ -8304,7 +8307,7 @@ async function generatePDF(cl, p) {
       doc.rect(0, PH-10, PW, 10, 'F');
       setFont(7, 'normal', LIGHT);
       text('Beachside Exercise Physiology  -  Ph: 0409 051 260  -  admin@beachsideep.com.au  -  beachsideep.com.au', ML, PH-4);
-      text(String(pageNum), PW-ML, PH-4, { align: 'right' });
+      text('Page ' + pageNum + ' of ' + (doc.getNumberOfPages()), PW-ML, PH-4, { align: 'right' });
     }
 
     // ── COVER HEADER ──
@@ -8349,34 +8352,29 @@ async function generatePDF(cl, p) {
     text(p.title || 'Home Exercise Program', ML, y);
     y += 10;
 
-    // Client info pills
+    // Client details: clean, minimalist - small grey label over a bold value, no boxes
     const today = new Date().toLocaleDateString('en-AU', {day:'numeric', month:'long', year:'numeric'});
     const infoItems = [
       ['Client', cl.first + ' ' + cl.last],
       cl.clinician ? ['Clinician', cl.clinician] : null,
       ['Frequency', p.freq || '5x/week'],
       ['Date', today],
-      cl.review ? ['Review', fd(cl.review)] : null,
-      cl.goal ? ['Goal', cl.goal] : null,
+      cl.review ? ['Next review', fd(cl.review)] : null,
     ].filter(Boolean);
-
-    // Info grid - 2 columns
-    const colW = CW / 2 - 3;
+    const hCols = infoItems.length <= 4 ? infoItems.length : 3;
+    const hColW = CW / hCols;
     infoItems.forEach(function(item, i) {
-      const col = i % 2;
-      const row = Math.floor(i / 2);
-      const ix = ML + col * (colW + 6);
-      const iy = y + row * 8;
-      doc.setFillColor(...SAND);
-      doc.roundedRect(ix, iy, colW, 6.5, 1, 1, 'F');
-      setFont(7, 'bold', LIGHT);
-      text(item[0].toUpperCase(), ix + 2.5, iy + 4.5);
-      setFont(8, 'normal', TEXT);
-      const valWidth = colW - 28;
-      const truncated = doc.splitTextToSize(item[1], valWidth)[0];
-      text(truncated, ix + 28, iy + 4.5);
+      const ix = ML + (i % hCols) * hColW;
+      const iy = y + Math.floor(i / hCols) * 14;
+      doc.setFontSize(6.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...LIGHT);
+      doc.text(item[0].toUpperCase(), ix, iy, { charSpace: 0.35 });
+      setFont(10, 'bold', DEEP);
+      text(doc.splitTextToSize(String(item[1]), hColW - 5)[0], ix, iy + 5.5);
     });
-    y += Math.ceil(infoItems.length / 2) * 8 + 10;
+    y += Math.ceil(infoItems.length / hCols) * 14;
+    y += 1;
 
     // Divider
     doc.setDrawColor(...OCEAN);
@@ -8393,23 +8391,50 @@ async function generatePDF(cl, p) {
     const showLog     = opt('popt_log');
 
     for (var i = 0; i < p.exercises.length; i++) { var ex = p.exercises[i];
-      // Estimate height needed
-      const descLines = (showDesc && ex.desc) ? doc.splitTextToSize(ex.desc, CW - (showPhotos ? 26 : 0) - 4).length : 0;
-      const notesLines = (showNotes && ex.notes) ? doc.splitTextToSize(ex.notes, CW - (showPhotos ? 26 : 0) - 4).length : 0;
-      const progLines = (showProg && ex.progression) ? 1 : 0;
-      const cardH = Math.max(showPhotos ? 50 : 20, 12 + descLines * 4.5 + notesLines * 4.5 + progLines * 5 + 16);
-      checkY(Math.max(cardH, showPhotos ? 22 : 14));
-
-      const startY = y;
-      // ── NEW LAYOUT: 2 photos side by side, text on right ──
-      // Left col: 2 square photos stacked side by side
-      // Right col: name, params, description
-      const PHOTO_SIZE = showPhotos ? 42 : 0;  // each photo cell is 42x42mm
-      const PHOTO_GAP = showPhotos ? 2 : 0;
-      const PHOTOS_W = showPhotos ? (PHOTO_SIZE * 2 + PHOTO_GAP + 2) : 0;
-      const TEXT_X = ML + PHOTOS_W + (showPhotos ? 5 : 0);
-      const TEXT_W = CW - PHOTOS_W - (showPhotos ? 5 : 0);
       const catColor = CAT_RGB[ex.cat] || OCEAN;
+      // ── LAYOUT: text on the left (name, sets/reps/load boxes, how-to), two small
+      //    START / END photo boxes on the right ──
+      const PH_SZ = showPhotos ? 34 : 0;
+      const PH_GAP = 3;
+      const PHOTOS_W = showPhotos ? (PH_SZ * 2 + PH_GAP) : 0;
+      const TEXT_X = ML + 2;
+      const TEXT_W = CW - PHOTOS_W - (showPhotos ? 8 : 4);
+      const ph1x = ML + CW - PHOTOS_W;
+      const ph2x = ph1x + PH_SZ + PH_GAP;
+
+      // Parameter boxes (label above value). Only those that apply.
+      const _cl = function(s) { return (s || '').replace(/→/g, '->'); };
+      const pItems = [
+        ex.sets ? { l: 'SETS', v: String(ex.sets) } : null,
+        _cl(exRepsText(ex)) ? { l: 'REPS', v: _cl(exRepsText(ex)) } : null,
+        ex.hold ? { l: 'HOLD', v: String(ex.hold) } : null,
+        _cl(exLoadText(ex)) ? { l: 'WEIGHT', v: _cl(exLoadText(ex)) } : null,
+        ex.rest ? { l: 'REST', v: String(ex.rest) } : null,
+      ].filter(Boolean);
+      const BOXH = 10, BGAP = 2.5;
+      let pRows = [[]], rowW = 0;
+      pItems.forEach(function(it) {
+        setFont(8.5, 'bold', DEEP);
+        const w1 = doc.getTextWidth(it.v);
+        setFont(5.5, 'bold', LIGHT);
+        const w2 = doc.getTextWidth(it.l);
+        it.w = Math.max(w1, w2) + 6;
+        if (rowW + it.w > TEXT_W && pRows[pRows.length - 1].length) { pRows.push([]); rowW = 0; }
+        pRows[pRows.length - 1].push(it);
+        rowW += it.w + BGAP;
+      });
+      const paramsH = pItems.length ? pRows.length * (BOXH + BGAP) : 0;
+
+      setFont(8.5, 'normal', TEXT);
+      const descWrapped = (showDesc && ex.desc) ? doc.splitTextToSize(ex.desc, TEXT_W) : [];
+      setFont(7.5, 'italic', TEXT);
+      const nWrapped = (showNotes && ex.notes) ? doc.splitTextToSize(ex.notes, TEXT_W) : [];
+      const textH = 12 + paramsH + (descWrapped.length ? 5 + descWrapped.length * 4.3 : 0) +
+                    (nWrapped.length ? 2 + nWrapped.length * 4 : 0) + ((showProg && ex.progression) ? 5 : 0);
+      const photoH = showPhotos ? (PH_SZ + 8) : 0;
+      const blockH = Math.max(photoH, textH) + 6;
+      checkY(blockH);
+      const startY = y;
 
       // Separator line above exercise
       doc.setDrawColor(220, 230, 240);
@@ -8417,21 +8442,19 @@ async function generatePDF(cl, p) {
       doc.line(ML, y, ML + CW, y);
       y += 4;
 
-      // Exercise number + name
-      setFont(10, 'bold', DEEP);
-      text(String(i + 1) + '. ' + ex.name, TEXT_X, y + 5);
+      // Number badge + name
+      doc.setFillColor(...catColor);
+      doc.circle(TEXT_X + 3.5, y + 4.2, 3.5, 'F');
+      setFont(8.5, 'bold', WHITE);
+      text(String(i + 1), TEXT_X + 3.5, y + 5.3, { align: 'center' });
+      setFont(11, 'bold', DEEP);
+      text(doc.splitTextToSize(String(ex.name), TEXT_W - 10)[0], TEXT_X + 10, y + 5.4);
 
-      // Photos: 2 side by side
+      // START / END photos
       if (showPhotos) {
-        const ph1x = ML + 1;
-        const ph2x = ML + PHOTO_SIZE + PHOTO_GAP + 1;
         const phY = y;
-        // Photo box 1
         doc.setFillColor(...SAND);
-        doc.roundedRect(ph1x, phY, PHOTO_SIZE, PHOTO_SIZE, 2, 2, 'F');
-        // Start / end position photos come from exercises.json (made absolute so the
-        // PDF can fetch them); older uploaded photos are only a fallback. If a photo
-        // can't be loaded we fall back to the hand-drawn illustration so no box is blank.
+        doc.roundedRect(ph1x, phY, PH_SZ, PH_SZ, 2, 2, 'F');
         var libEx = getAllExercises().find(function(e) { return e.name === ex.name; }) ||
                     getAllExercises().find(function(e) { return e.name === (ex.substitutedFor || ex.name); }) || {};
         var _pm = exMedia(ex);
@@ -8441,71 +8464,58 @@ async function generatePDF(cl, p) {
         var _drewStart = false, _drewEnd = false;
         for (var _si = 0; _si < _startSrc.length && !_drewStart; _si++) {
           var _e1 = Object.assign({}, ex); _e1._photo = _startSrc[_si];
-          _drewStart = await renderSVGtoPDF(doc, _e1, ph1x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
+          _drewStart = await renderSVGtoPDF(doc, _e1, ph1x + 1, phY + 1, PH_SZ - 2, PH_SZ - 2);
         }
-        var _drewIllus1 = false;
         if (!_drewStart) {
           var _e1b = Object.assign({}, ex); _e1b._photo = null;
-          _drewIllus1 = await renderSVGtoPDF(doc, _e1b, ph1x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
+          await renderSVGtoPDF(doc, _e1b, ph1x + 1, phY + 1, PH_SZ - 2, PH_SZ - 2);
         }
-        // Photo box 2 (end position) - only drawn when there is a real end photo
         for (var _ei = 0; _ei < _endSrc.length && !_drewEnd; _ei++) {
           doc.setFillColor(...SAND);
-          doc.roundedRect(ph2x, phY, PHOTO_SIZE, PHOTO_SIZE, 2, 2, 'F');
+          doc.roundedRect(ph2x, phY, PH_SZ, PH_SZ, 2, 2, 'F');
           var _e2 = Object.assign({}, ex); _e2._photo = _endSrc[_ei];
-          _drewEnd = await renderSVGtoPDF(doc, _e2, ph2x + 1, phY + 1, PHOTO_SIZE - 2, PHOTO_SIZE - 2);
+          _drewEnd = await renderSVGtoPDF(doc, _e2, ph2x + 1, phY + 1, PH_SZ - 2, PH_SZ - 2);
         }
+        setFont(6.5, 'bold', LIGHT);
+        text('START', ph1x + PH_SZ / 2, phY + PH_SZ + 3.8, { align: 'center' });
+        if (_drewEnd) text('END', ph2x + PH_SZ / 2, phY + PH_SZ + 3.8, { align: 'center' });
       }
 
-      // Text column
-      let paramY = y + 10;
-
-      // Parameters
-      const params = [
-        ex.sets ? ex.sets + ' sets' : null,
-        exRepsText(ex) || null,
-        ex.hold ? 'Hold ' + ex.hold : null,
-        exLoadText(ex) || null,
-        ex.rest ? 'Rest ' + ex.rest : null,
-      ].filter(Boolean);
-      if (params.length) {
-        setFont(8.5, 'bold', OCEAN);
-        text(params.join('   '), TEXT_X, paramY);
-        paramY += 6;
-      }
-
-      // Description
-      if (showDesc && ex.desc) {
-        setFont(8, 'normal', TEXT);
-        const descWrapped = doc.splitTextToSize(ex.desc, TEXT_W);
-        descWrapped.forEach(function(line) {
-          text(line, TEXT_X, paramY);
-          paramY += 4.5;
+      // Sets / reps / weight boxes
+      let ty = y + 11;
+      pRows.forEach(function(row) {
+        let bx = TEXT_X;
+        row.forEach(function(it) {
+          doc.setFillColor(...SAND);
+          doc.roundedRect(bx, ty, it.w, BOXH, 1.5, 1.5, 'F');
+          setFont(5.5, 'bold', LIGHT);
+          text(it.l, bx + 3, ty + 3.4);
+          setFont(8.5, 'bold', DEEP);
+          text(it.v, bx + 3, ty + 8);
+          bx += it.w + BGAP;
         });
-      }
+        ty += BOXH + BGAP;
+      });
 
-      // Notes
-      if (showNotes && ex.notes) {
-        paramY += 1;
+      // How to do it
+      if (descWrapped.length) {
+        ty += 1.5;
+        setFont(6.5, 'bold', OCEAN);
+        text('HOW TO DO IT', TEXT_X, ty);
+        ty += 3.6;
+        setFont(8.5, 'normal', TEXT);
+        descWrapped.forEach(function(line) { text(line, TEXT_X, ty); ty += 4.3; });
+      }
+      if (nWrapped.length) {
+        ty += 2;
         setFont(7.5, 'italic', [100, 130, 150]);
-        const nWrapped = doc.splitTextToSize(ex.notes, TEXT_W);
-        nWrapped.forEach(function(line) {
-          text(line, TEXT_X, paramY);
-          paramY += 4.2;
-        });
+        nWrapped.forEach(function(line) { text(line, TEXT_X, ty); ty += 4; });
       }
-
-      // Progression
       if (showProg && ex.progression) {
         setFont(7.5, 'bold', TEAL);
-        text('> ' + ex.progression, TEXT_X, paramY);
-        paramY += 4.5;
+        text('> ' + ex.progression, TEXT_X, ty + 1);
+        ty += 5;
       }
-
-      // Card height is max of photo height and text height
-      const photoBlockH = showPhotos ? (PHOTO_SIZE + 6) : 0;
-      const textBlockH = paramY - y;
-      const blockH = Math.max(photoBlockH, textBlockH) + 6;
 
       y = startY + blockH;
     }
@@ -8586,6 +8596,7 @@ async function generatePDF(cl, p) {
     const totalPages = doc.getNumberOfPages();
     for (let pg = 1; pg <= totalPages; pg++) {
       doc.setPage(pg);
+      pageNum = pg;
       addFooter();
     }
 
