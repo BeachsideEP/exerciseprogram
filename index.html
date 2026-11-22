@@ -6165,7 +6165,7 @@ async function sendOTP() {
     } else {
       var msg = d.error_description || d.msg || d.error || JSON.stringify(d);
       if (msg.includes('Signups not allowed') || msg.includes('signup') || msg.includes('Signup') || msg.includes('not found') || msg.includes('Unable to validate')) {
-        setAuthMsg("Sorry, your email isn't recognised. Please contact the clinic to be set up.", 'err');
+        setAuthMsg("We couldn't find a login for that email. Please check it is the email you gave the clinic, or call us on 0409 051 260 and we'll sort it out.", 'err');
       } else if (msg.includes('Email logins are disabled') || msg.includes('not enabled')) {
         setAuthMsg('Sign-in not enabled — please contact the clinic.', 'err');
       } else {
@@ -6405,6 +6405,31 @@ async function safePushClientToCloud(snapCl) {
   pushClientToCloud(snapCl);
 }
 
+// ── AUTO-CREATE CLIENT LOGIN ──
+// Every client with an email must have a sign-in account, otherwise the client
+// sees "email not recognised" on the login screen. This asks the database to
+// create one (only if missing) whenever a client is saved or a program emailed.
+// Practitioner devices only. Quiet if the database function isn't installed yet.
+var _loginEnsured = {};
+async function ensureClientLogin(email) {
+  try {
+    if (userRole !== 'practitioner') return 'skip';
+    var e = (email || '').trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) return 'invalid';
+    if (_loginEnsured[e]) return _loginEnsured[e];
+    if (window._ensureLoginMissing) return 'unavailable';
+    var r = await fetch(SUPA_URL + '/rest/v1/rpc/ensure_client_login', {
+      method: 'POST', headers: supaHeaders(), body: JSON.stringify({ p_email: e })
+    });
+    if (r.status === 404) { window._ensureLoginMissing = true; return 'unavailable'; }
+    if (!r.ok) return 'error';
+    var res = await r.json();
+    if (res === 'created' || res === 'exists') _loginEnsured[e] = res;
+    if (res === 'created') toast('Sign-in created for ' + e, 'ok');
+    return res;
+  } catch (err) { return 'error'; }
+}
+
 async function pushClientToCloud(cl) {
   if (userRole !== 'practitioner' && document.getElementById('viewApp').style.display === 'none') return;
   // Strip photo data from program exercises before pushing - photos live in library only
@@ -6438,6 +6463,7 @@ if (!p) return;
       body: JSON.stringify({ id: cl.id, data: cl, updated_at: now })
     });
     setSyncStatus(r.ok ? 'ok' : 'err');
+    if (r.ok && cl.email) ensureClientLogin(cl.email);
     if (r.ok) _saveLocalNow();
   } catch (e) { setSyncStatus('err'); }
 }
@@ -6700,6 +6726,14 @@ async function cvStampAppOpen() {
   if (!cvData || !cvData.id) return;
   var nowIso = new Date().toISOString();
   cvData.lastAppOpenAt = nowIso; // reflect immediately in memory for this session
+  // Keep a short history of open times (last 40, skipping repeat opens within 30 min)
+  // so the practitioner dashboard can spot clients who open the app at class times.
+  try {
+    var _ol = Array.isArray(cvData.openLog) ? cvData.openLog : [];
+    var _lastOpen = _ol.length ? new Date(_ol[_ol.length - 1]).getTime() : 0;
+    if (!_lastOpen || (Date.now() - _lastOpen) > 30 * 60 * 1000) _ol.push(nowIso);
+    cvData.openLog = _ol.slice(-40);
+  } catch (eOl) {}
   try {
     await fetch(SUPA_URL + '/rest/v1/clients', {
       method: 'POST',
@@ -11609,6 +11643,28 @@ function fmtAppOpenAgo(iso) {
   return 'Opened app ' + Math.round(diff / 30) + 'mo ago';
 }
 
+// Creation date from an id like 'p_1778019836666' or 'p_17780198366660.386...' (newer ids have a random
+// tail glued on, so only the first 13 digits - the millisecond timestamp - are used).
+function idCreatedDate(id) {
+  var m = String(id || '').match(/(\d{13})/);
+  if (!m) return null;
+  var ts = parseInt(m[1], 10);
+  return (ts > 1000000000000 && ts < 4000000000000) ? new Date(ts) : null;
+}
+// Class time windows (minutes after midnight, local time): 7-8am, 9:30-10:30am, 3-4pm, 5-6pm.
+var CLASS_WINDOWS = [[420, 480], [570, 630], [900, 960], [1020, 1080]];
+// Number of separate days in the last 30 days on which the client opened the app inside a class window.
+function classOpenDays(cl) {
+  var log = (cl && Array.isArray(cl.openLog)) ? cl.openLog : [];
+  var cutoff = Date.now() - 30 * 86400000, days = {};
+  log.forEach(function(iso) {
+    var d = new Date(iso); if (isNaN(d) || d.getTime() < cutoff) return;
+    var m = d.getHours() * 60 + d.getMinutes();
+    if (CLASS_WINDOWS.some(function(w) { return m >= w[0] && m < w[1]; })) days[d.toDateString()] = 1;
+  });
+  return Object.keys(days).length;
+}
+
 // Which dashboard category (if any) is currently expanded. Only one at a
 // time, accordion-style, so the list stays tidy - null means everything's
 // collapsed to just the category headers + counts.
@@ -11637,10 +11693,12 @@ function toggleInPerson(id, ev) {
 var dashCatMeta = {
   inactive:   { hdr: 'Inactive',        rowPill: 'Inactive',   dot: '#a13a3a', bg: '#f3e3e3', color: '#a13a3a' },
   'at-risk':  { hdr: 'At risk',         rowPill: 'At risk',    dot: '#a15c00', bg: '#fdf0dc', color: '#a15c00' },
+  'potential-class': { hdr: 'Potential class client', rowPill: 'Class?', dot: '#1A7BA4', bg: '#e1f0f7', color: '#1A7BA4' },
   'in-person':{ hdr: 'In-person only',  rowPill: 'In-person',  dot: '#a15c00', bg: '#fdf0dc', color: '#a15c00' },
-  active:     { hdr: 'Active on app',   rowPill: 'Active',     dot: '#1e7a4c', bg: '#e0f4e8', color: '#1e7a4c' }
+  active:     { hdr: 'Active on app',   rowPill: 'Active',     dot: '#1e7a4c', bg: '#e0f4e8', color: '#1e7a4c' },
+  'access-ended': { hdr: 'Access ended', rowPill: 'Access ended', dot: '#6b7b80', bg: '#eceff0', color: '#6b7b80' }
 };
-var dashCatOrder = ['inactive', 'at-risk', 'in-person', 'active'];
+var dashCatOrder = ['inactive', 'at-risk', 'potential-class', 'in-person', 'active', 'access-ended'];
 
 function renderDashboardPanel() {
   var p = document.getElementById('dashPanel');
@@ -11659,17 +11717,29 @@ function renderDashboardPanel() {
   // ones whose app-inactivity happened to be obvious.
   var rows = activeOnly.map(function(cl) {
     var lastLog = '', lastLogDate = null;
-    (cl.programs || []).forEach(function(pr) {
-      if (!pr) return;
-      (pr.log || []).forEach(function(e) {
-        var d = parseLogDate(e.date);
-        if (d && (!lastLogDate || d > lastLogDate)) { lastLogDate = d; lastLog = e.date; }
-      });
-    });
+    function _seen(e) { var d = parseLogDate(e.date); if (d && (!lastLogDate || d > lastLogDate)) { lastLogDate = d; lastLog = e.date; } }
+    (cl.programs || []).forEach(function(pr) { if (!pr) return; (pr.log || []).forEach(_seen); });
+    (cl.ownWorkouts || []).forEach(_seen); // workouts the client did on their own count too
     var daysSince = lastLogDate ? Math.floor((now - lastLogDate) / (1000*60*60*24)) : null;
-    var status = daysSince === null ? 'at-risk' : (daysSince <= 14 ? 'active' : daysSince <= 35 ? 'at-risk' : 'inactive');
-    var category = (status !== 'inactive' && cl.inPerson) ? 'in-person' : status;
-    return { cl: cl, lastLog: lastLog, daysSince: daysSince, category: category, appOpenAt: cl.lastAppOpenAt };
+    var status;
+    if (daysSince === null) {
+      // Never logged: same grace period as the Compliance tab (based on how long since the program was created)
+      var _created = null;
+      (cl.programs || []).forEach(function(pr) {
+        var dd = pr && idCreatedDate(pr.id);
+        if (dd && (!_created || dd > _created)) _created = dd;
+      });
+      var _age = _created ? Math.floor((now - _created) / 86400000) : 999;
+      status = _age <= 14 ? 'active' : _age <= 30 ? 'at-risk' : 'inactive';
+    } else {
+      status = daysSince <= 14 ? 'active' : daysSince <= 35 ? 'at-risk' : 'inactive';
+    }
+    var classDays = classOpenDays(cl);
+    // Access ended (end date passed): the client can't use the app, so keep them out of the attention lists.
+    var _au = cl.accessUntil ? new Date(cl.accessUntil) : null;
+    var accessEnded = !!(_au && !isNaN(_au) && _au < now);
+    var category = accessEnded ? 'access-ended' : (cl.inPerson ? 'in-person' : ((status !== 'active' && classDays >= 2) ? 'potential-class' : status));
+    return { cl: cl, lastLog: lastLog, daysSince: daysSince, category: category, appOpenAt: cl.lastAppOpenAt, classDays: classDays };
   });
   rows.sort(function(a, b) {
     var da = a.daysSince===null ? 9999 : a.daysSince, db = b.daysSince===null ? 9999 : b.daysSince;
@@ -11700,6 +11770,7 @@ function renderDashboardPanel() {
           '<div class="dash-row-name">' + cl.first + ' ' + cl.last + '</div>' +
           '<div class="dash-row-meta">' + (r.lastLog ? 'Last session: ' + r.lastLog.split(',')[0] : 'No sessions logged') + '</div>' +
           '<div class="dash-row-meta" style="' + (cl.inPerson ? 'color:#a15c00' : '') + '">' + fmtAppOpenAgo(r.appOpenAt) + '</div>' +
+          (r.category === 'potential-class' ? '<div class="dash-row-meta" style="color:#1A7BA4">Opens app at class times (' + r.classDays + ' days this month)</div>' : '') +
         '</div>' +
         '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">' +
           '<span class="dash-pill" style="background:' + meta.bg + ';color:' + meta.color + '">' + meta.rowPill + '</span>' +
@@ -11942,6 +12013,7 @@ async function emailProgramToClient() {
   var confirmed = confirm('Send "' + (prog.title||'Exercise Program') + '" to ' + cl.first + ' ' + cl.last + ' at ' + cl.email + '?');
   if (!confirmed) return;
   toast('Sending...', 'ok');
+  await ensureClientLogin(cl.email); // make sure they can actually sign in
 
   try {
     // Step 1: Store email job in Supabase library table
@@ -12239,7 +12311,9 @@ function renderComplianceTab() {
 
   var rows = activeClients.map(function(cl) {
     var allLog = [];
-    (cl.programs||[]).forEach(function(p){ if (!p) return; (p.log||[]).forEach(function(e){ if(e.clientSubmitted) allLog.push(e); }); });
+    (cl.programs||[]).forEach(function(p){ if (!p) return; (p.log||[]).forEach(function(e){ allLog.push(e); }); });
+    // allLog now includes sessions the practitioner recorded (e.g. class attendance), not just
+    // client-submitted ones, so it matches the dashboard. Ratings (RPE) still use client entries only.
     var ownW = cl.ownWorkouts||[];
     var combined = allLog.concat(ownW);
     var lastDate = null;
@@ -12251,7 +12325,7 @@ function renderComplianceTab() {
     var prev30 = combined.filter(function(e){ var d=normDateC(e.date); return d&&d>=prev30Start&&d<thirtyAgo; }).length;
     var trend  = last30>prev30?'up':last30<prev30?'down':'same';
     var totalSessions = combined.length;
-    var rpeVals = allLog.filter(function(e){ var d=normDateC(e.date); return d&&d>=thirtyAgo&&e.rpe; })
+    var rpeVals = allLog.filter(function(e){ var d=normDateC(e.date); return e.clientSubmitted&&d&&d>=thirtyAgo&&e.rpe; })
                         .map(function(e){ return parseFloat(e.rpe)||0; }).filter(Boolean);
     var avgRPE = rpeVals.length ? (rpeVals.reduce(function(a,b){return a+b;},0)/rpeVals.length).toFixed(1) : null;
     var safetyLog = cl.safetyLog||[];
@@ -12299,15 +12373,10 @@ function renderComplianceTab() {
     // Use program creation date as reference if no sessions yet
     var progCreatedDate = null;
     (cl.programs||[]).forEach(function(p) {
-if (!p) return;
-            if (p.id) {
-        // p.id is 'p_TIMESTAMP...' - extract timestamp
-        var ts = parseInt((p.id||'').replace('p_',''));
-        if (!isNaN(ts) && ts > 1000000000000) {
-          var d = new Date(ts);
-          if (!progCreatedDate || d > progCreatedDate) progCreatedDate = d;
-        }
-      }
+      if (!p) return;
+      // Program ids carry a creation timestamp; read only its first 13 digits (see idCreatedDate)
+      var d = idCreatedDate(p.id);
+      if (d && (!progCreatedDate || d > progCreatedDate)) progCreatedDate = d;
     });
     var clientAge = progCreatedDate ? Math.floor((now - progCreatedDate) / (1000*60*60*24)) : 999;
     
