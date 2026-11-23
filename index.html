@@ -4083,11 +4083,41 @@ function applyExerciseData(json) {
 }
 // Video + start/end photos for an exercise: exercises.json is the source of
 // truth; falls back to a link saved on the program's own copy or a custom entry.
+// ── DRAWN START/END ILLUSTRATIONS ──
+// Exercises with no photo of their own get a clean drawn start + end picture
+// from the /illustrations folder, so every print-out and card looks consistent.
+// Your own photos (exercises.json, library or uploaded) ALWAYS take priority.
+var EX_ILLUS = {"abwheelrollout":"ab-wheel-rollout","activekneeextension":"active-knee-extension","ballsqueeze":"ball-squeeze","bandedrow":"banded-row","bandedshrug":"banded-shrug","bandedtibraise":"banded-tib-raise","bandpullapart":"band-pull-apart","bentoverdbrow":"bent-over-db-row","birddog":"bird-dog","bodyweightsquat":"squat","boxsquat":"box-squat","cablebicepcurl":"cable-bicep-curl","cablehipabduction":"cable-hip-abduction","cablekickback":"cable-kickback","cablerowlow":"seated-cable-row","cabletriceppushdown":"tricep-rope-extension","cablewoodchophightolow":"cable-woodchop-high-to-low","calfraisebilateral":"calf-raise-bilateral","calfraisesingleleg":"calf-raise-single-leg","catcowstretch":"cat-cow-stretch","chestpressmachine":"chest-press-machine","clamshell":"clamshell","deadbug":"deadbug","externalrotationband":"external-rotation-band","forwardfoldstretch":"forward-fold-stretch","forwardlunge":"forward-lunge","gobletsquat":"goblet-squat","hanginglegraise":"hanging-leg-raise","hip9090stretch":"hip-90-90-stretch","hipabductionmachine":"hip-abduction-machine","hipadductionmachine":"hip-adduction-machine","hipthrust":"hip-thrust","inclinechestpressmachine":"incline-chest-press-machine","inclinedbpress":"incline-db-press","kbaroundtheworld":"kb-around-the-world","lateralstepup":"lateral-step-up","latpulldown":"lat-pulldown","latpulldownmachine":"lat-pulldown","legcurlmachineprone":"leg-curl-machine-prone","legcurlmachineseated":"leg-curl-machine-seated","legpress":"leg-press","legpressmachine":"leg-press","pigeonstretch":"pigeon-stretch","plateloadedhipthrustmachine":"plate-loaded-hip-thrust-machine","pushup":"push-up","reverselunge":"reverse-lunge","scooteronreformer":"scooter-on-reformer","seatedcablerow":"seated-cable-row","seatedcalfraisemachine":"seated-calf-raise-machine","seatedrowcable":"seated-cable-row","seatedrowmachine":"seated-row-machine","shoulderpressmachine":"shoulder-press-machine","sideplank":"side-plank","singlearmdbrow":"single-arm-db-row","squat":"squat","squatjump":"squat-jump","standingcalfraise":"calf-raise-bilateral","standinghipabduction":"standing-hip-abduction","stepup":"step-up","threadtheneedle":"thread-the-needle","tibraisebar":"tib-raise-bar","triceppushdowncable":"tricep-rope-extension","tricepropeextension":"tricep-rope-extension","wallangels":"wall-angels","wallpushup":"wall-push-up","wallsit":"wall-sit"};
+function exHasOwnPhoto(ex) {
+  try {
+    var names = [ex.name]; if (ex.substitutedFor) names.push(ex.substitutedFor);
+    if (ex.photo1 || ex.photo2 || ex.photo) return true;
+    var all = (typeof getAllExercises === 'function') ? getAllExercises() : [];
+    for (var i = 0; i < names.length; i++) {
+      var n = names[i], k = normNameKey(n);
+      if (typeof customPhotos !== 'undefined' && customPhotos && customPhotos[n]) return true;
+      for (var j = 0; j < all.length; j++) {
+        if (normNameKey(all[j].name) === k && (all[j].photo1 || all[j].photo2)) return true;
+      }
+    }
+  } catch (e) {}
+  return false;
+}
+function exIllusFor(ex) {
+  if (!ex) return null;
+  var slug = EX_ILLUS[normNameKey(ex.name)] || (ex.substitutedFor && EX_ILLUS[normNameKey(ex.substitutedFor)]) || '';
+  if (!slug) return null;
+  return { start: './illustrations/' + slug + '-start.png', end: './illustrations/' + slug + '-end.png' };
+}
 function exMedia(ex) {
   var m = { video: '', start: '', end: '', yt: '' };
   if (!ex) return m;
   var lib = EX_BY_KEY[normNameKey(ex.name)] || (ex.substitutedFor && EX_BY_KEY[normNameKey(ex.substitutedFor)]) || null;
   if (lib) { m.video = lib.videoUrl || ''; m.start = lib.startImage || ''; m.end = lib.endImage || ''; m.yt = lib.ytUrl || ''; }
+  if (!m.start && !m.end) {
+    var _il = exIllusFor(ex);
+    if (_il && !exHasOwnPhoto(ex)) { m.start = _il.start; m.end = _il.end; m.illus = true; }
+  }
   if (!m.video) {
     var c = [ex.videoUrl];
     try {
